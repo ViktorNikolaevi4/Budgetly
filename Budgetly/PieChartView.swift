@@ -15,19 +15,6 @@ struct PieChartView: View {
 
 
         VStack {
-            HStack {
-                Button("Расходы")
-                    {
-
-                }
-                    .buttonStyle(CustomButtonStyle())
-
-                Spacer()
-                Button("Доходы") {
-
-                }
-                .buttonStyle(CustomButtonStyle())
-            }.padding()
             Chart(transactions) { transaction in
                 // Используем круговую диаграмму с сектором
                 SectorMark(
@@ -57,9 +44,9 @@ struct CustomButtonStyle: ButtonStyle {
 struct PieChartView_Previews: PreviewProvider {
     static var previews: some View {
         PieChartView(transactions: [
-            Transaction(id: UUID(), category: "Food", amount: 500.0, date: Date()),
-            Transaction(id: UUID(), category: "Transport", amount: 300.0, date: Date()),
-            Transaction(id: UUID(), category: "Entertainment", amount: 200.0, date: Date())
+            Transaction(id: UUID(), category: "Food", amount: 500.0, date: Date(), type: "Расходы"),
+            Transaction(id: UUID(), category: "Transport", amount: 300.0, date: Date(), type: "Расходы"),
+            Transaction(id: UUID(), category: "Entertainment", amount: 200.0, date: Date(), type: "Расходы")
         ])
     }
 }

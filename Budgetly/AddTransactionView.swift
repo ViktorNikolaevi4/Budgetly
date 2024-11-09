@@ -83,7 +83,7 @@ struct AddTransactionView: View {
                 // Кнопка сохранения транзакции
                 Button(action: {
                     if let amountValue = Double(amount) {
-                        budgetViewModel.addTransaction(category: selectedCategory, amount: amountValue)
+                        budgetViewModel.addTransaction(category: selectedCategory, amount: amountValue, type: selectedType)
                         dismiss()
                     }
                 }) {
