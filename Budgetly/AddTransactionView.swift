@@ -15,6 +15,11 @@ struct AddTransactionView: View {
     @State private var selectedCategory: String = "Здоровье"
     @State private var newCategory: String = ""
 
+        // Категории для доходов и расходов
+        let expenseCategories = ["Здоровье", "Досуг", "Дом", "Кафе", "Образование"]
+        let incomeCategories = ["Зарплата", "Инвестиции", "Подарки", "Прочее"]
+
+
     var body: some View {
         NavigationStack {
             VStack {
@@ -55,7 +60,8 @@ struct AddTransactionView: View {
                     .font(.headline)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
-                        ForEach(["Здоровье", "Досуг", "Дом", "Кафе", "Образование", "Подарки", "Продукты"], id: \.self) { category in
+                        let categories = selectedType == "Расходы" ? expenseCategories : incomeCategories
+                        ForEach(categories, id: \.self) { category in
                             Button(action: {
                                 selectedCategory = category
                             }) {
