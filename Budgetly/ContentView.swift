@@ -14,8 +14,8 @@ struct ContentView: View {
             NavigationStack {
                 VStack {
                     // Отображение сальдо
-                    Text("Сальдо: \(budgetViewModel.saldo, specifier: "%.2g") ₽")
-                        .foregroundStyle(budgetViewModel.totalExpenses >= budgetViewModel.totalIncome ? .green : .red)
+                    Text("Сальдо: \(budgetViewModel.saldo >= 0 ? "+" : "")\(budgetViewModel.saldo, specifier: "%.2f") ₽")
+                        .foregroundColor(budgetViewModel.saldo >= 0 ? .green : .red)
                         .font(.title2)
                         .padding()
                     // Переключатель между доходами и расходами

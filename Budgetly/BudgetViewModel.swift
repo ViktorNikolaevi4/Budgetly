@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import Observation
 
+// Ваша модель BudgetViewModel
 @Observable
 class BudgetViewModel {
     var transactions: [Transaction] = []
@@ -13,8 +14,9 @@ class BudgetViewModel {
     var totalIncome: Double {
         transactions.filter { $0.type == .income }.reduce(0) { $0 + $1.amount }
     }
+
     var saldo: Double {
-        totalExpenses - totalIncome
+        totalIncome - totalExpenses
     }
 
     func addTransaction(category: String, amount: Double, type: TransactionType) {
