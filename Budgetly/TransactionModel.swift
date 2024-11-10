@@ -1,22 +1,19 @@
-//
-//  TransactionModel.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 05.11.2024.
-//
-
 import Foundation
 import SwiftData
 
+enum TransactionType: Codable {
+    case income, expenses
+}
+
 @Model
 class Transaction: Identifiable {
-        var id: UUID
-        var category: String
-        var amount: Double
-        var date: Date
-        var type: String // Новое свойство для типа: "Доходы" или "Расходы"
+    var id: UUID
+    var category: String
+    var amount: Double
+    var date: Date
+    var type: TransactionType
 
-    init(id: UUID, category: String, amount: Double, date: Date, type: String) {
+    init(id: UUID, category: String, amount: Double, date: Date, type: TransactionType) {
         self.id = id
         self.category = category
         self.amount = amount

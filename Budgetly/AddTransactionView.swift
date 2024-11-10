@@ -1,22 +1,15 @@
-//
-//  AddTransactionView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 05.11.2024.
-//
-
 import SwiftUI
 
 struct AddTransactionView: View {
     @Environment(\.dismiss) var dismiss
     @State var budgetViewModel: BudgetViewModel
-    @State private var selectedType: String = "Расходы"
+    @State private var selectedType: TransactionType = .expenses
     @State private var amount: String = ""
     @State private var selectedCategory: String = "Здоровье"
     @State private var newCategory: String = ""
     @State private var isShowingAlert = false // Флаг для отображения алерта
 
-        // Категории для доходов и расходов
+    // Категории для доходов и расходов
     @State private var expenseCategories = ["Здоровье", "Досуг", "Дом", "Кафе", "Образование"]
     @State private var incomeCategories = ["Зарплата", "Инвестиции", "Подарки", "Прочее"]
 
@@ -27,23 +20,23 @@ struct AddTransactionView: View {
                 // Выбор типа: Доход или Расход
                 HStack {
                     Button(action: {
-                        selectedType = "Расходы"
+                        selectedType = .expenses
                     }) {
                         Text("Расходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == "Расходы" ? Color.black : Color.gray)
+                            .background(selectedType == .expenses ? Color.black : Color.gray)
                             .foregroundColor(.white)
                             .cornerRadius(8)
                     }
 
                     Button(action: {
-                        selectedType = "Доходы"
+                        selectedType = .income
                     }) {
                         Text("Доходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == "Доходы" ? Color.black : Color.gray)
+                            .background(selectedType == .income ? Color.black : Color.gray)
                             .foregroundColor(.white)
                             .cornerRadius(8)
                     }
@@ -61,7 +54,7 @@ struct AddTransactionView: View {
                     .font(.headline)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
-                        let categories = selectedType == "Расходы" ? expenseCategories : incomeCategories
+                        let categories = selectedType == .expenses ? expenseCategories : incomeCategories
                         ForEach(categories, id: \.self) { category in
                             Button(action: {
                                 selectedCategory = category
@@ -130,16 +123,16 @@ struct AddTransactionView: View {
     }
     // Функция для добавления новой категории
     private func addNewCategory() {
-           if !newCategory.isEmpty {
-               if selectedType == "Расходы" {
-                   expenseCategories.append(newCategory)
-               } else {
-                   incomeCategories.append(newCategory)
-               }
-               selectedCategory = newCategory
-               newCategory = ""
-           }
-       }
+        if !newCategory.isEmpty {
+            if selectedType == .expenses {
+                expenseCategories.append(newCategory)
+            } else {
+                incomeCategories.append(newCategory)
+            }
+            selectedCategory = newCategory
+            newCategory = ""
+        }
+    }
 }
 
 

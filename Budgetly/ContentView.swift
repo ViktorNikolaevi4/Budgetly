@@ -1,9 +1,3 @@
-//
-//  ContentView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 05.11.2024.
-//
 import SwiftUI
 import Charts
 import Observation
@@ -11,39 +5,39 @@ import Observation
 struct ContentView: View {
     @State private var budgetViewModel = BudgetViewModel()
     @State private var isAddTransactionViewPresented = false
-    @State private var selectedTransactionType: String = "Расходы" // Переключатель между "Доходы" и "Расходы"
+    @State private var selectedTransactionType: TransactionType = .income
     @State private var isMenuVisible = false // Управляет отображением меню
     @State private var selectedTimePeriod: String = "Все время" // Выбранный временной диапазон
-    
+
     var body: some View {
         ZStack {
             NavigationStack {
                 VStack {
                     // Отображение сальдо
-                    Text("Сальдо: \(budgetViewModel.saldo, specifier: "%.2f") ₽")
+                    Text("Сальдо: \(budgetViewModel.saldo, specifier: "%.2g") ₽")
                         .foregroundStyle(budgetViewModel.totalExpenses >= budgetViewModel.totalIncome ? .green : .red)
                         .font(.title2)
                         .padding()
                     // Переключатель между доходами и расходами
                     HStack {
                         Button(action: {
-                            selectedTransactionType = "Расходы"
+                            selectedTransactionType = .expenses
                         }) {
                             Text("Расходы")
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(selectedTransactionType == "Расходы" ? Color.black : Color.gray)
+                                .background(selectedTransactionType == .expenses ? Color.black : Color.gray)
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
 
                         Button(action: {
-                            selectedTransactionType = "Доходы"
+                            selectedTransactionType = .income
                         }) {
                             Text("Доходы")
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(selectedTransactionType == "Доходы" ? Color.black : Color.gray)
+                                .background(selectedTransactionType == .income ? Color.black : Color.gray)
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
@@ -59,16 +53,17 @@ struct ContentView: View {
                                 }) {
                                     Text(period)
                                         .font(.caption)
-                                        .frame(width:55, height: 5)
-                                        .padding()
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 8)
                                         .background(selectedTimePeriod == period ? Color.blue : Color.gray)
                                         .foregroundStyle(.white)
                                         .cornerRadius(8)
                                 }
                             }
                         }
-                      //  .padding()
                     }
+                    .padding(.horizontal, 16)
+
                     // Диаграмма расходов или доходов на основе выбранного типа
                     PieChartView(transactions: budgetViewModel.transactions.filter { $0.type == selectedTransactionType })
 
@@ -79,7 +74,7 @@ struct ContentView: View {
                                 Text(transaction.category)
                                 Spacer()
                                 Text("\(transaction.amount, specifier: "%.2f") ₽")
-                                    .foregroundColor(selectedTransactionType == "Расходы" ? .red : .green)
+                                    .foregroundColor(selectedTransactionType == .expenses ? .red : .green)
                             }
                         }
                     }
@@ -121,30 +116,30 @@ struct ContentView: View {
         }
     }
     // Фильтруем транзакции по типу и времени
-        var filteredTransactions: [Transaction] {
-            let now = Date()
-            let calendar = Calendar.current
+    var filteredTransactions: [Transaction] {
+        let now = Date()
+        let calendar = Calendar.current
 
-            return budgetViewModel.transactions.filter { transaction in
-                // Фильтрация по типу
-                guard transaction.type == selectedTransactionType else { return false }
+        return budgetViewModel.transactions.filter { transaction in
+            // Фильтрация по типу
+            guard transaction.type == selectedTransactionType else { return false }
 
-                // Фильтрация по выбранному временному диапазону
-                switch selectedTimePeriod {
-                case "День":
-                    return calendar.isDateInToday(transaction.date)
-                case "Неделя":
-                    return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
-                case "Месяц":
-                    return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
-                case "Год":
-                    return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
-                default:
-                    return true // "Все время" показывает все транзакции
-                }
+            // Фильтрация по выбранному временному диапазону
+            switch selectedTimePeriod {
+            case "День":
+                return calendar.isDateInToday(transaction.date)
+            case "Неделя":
+                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
+            case "Месяц":
+                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
+            case "Год":
+                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
+            default:
+                return true // "Все время" показывает все транзакции
             }
         }
     }
+}
 
 
 

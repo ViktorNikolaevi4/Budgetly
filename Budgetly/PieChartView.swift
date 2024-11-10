@@ -1,9 +1,3 @@
-//
-//  PieChartView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 05.11.2024.
-//
 import SwiftUI
 import Charts
 
@@ -12,8 +6,6 @@ struct PieChartView: View {
     var transactions: [Transaction]
 
     var body: some View {
-
-
         VStack {
             Chart(transactions) { transaction in
                 // Используем круговую диаграмму с сектором
@@ -29,6 +21,7 @@ struct PieChartView: View {
 }
 
 struct CustomButtonStyle: ButtonStyle {
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding()
@@ -44,9 +37,9 @@ struct CustomButtonStyle: ButtonStyle {
 struct PieChartView_Previews: PreviewProvider {
     static var previews: some View {
         PieChartView(transactions: [
-            Transaction(id: UUID(), category: "Food", amount: 500.0, date: Date(), type: "Расходы"),
-            Transaction(id: UUID(), category: "Transport", amount: 300.0, date: Date(), type: "Расходы"),
-            Transaction(id: UUID(), category: "Entertainment", amount: 200.0, date: Date(), type: "Расходы")
+            Transaction(id: UUID(), category: "Food", amount: 500.0, date: Date(), type: .expenses),
+            Transaction(id: UUID(), category: "Transport", amount: 300.0, date: Date(), type: .expenses),
+            Transaction(id: UUID(), category: "Entertainment", amount: 200.0, date: Date(), type: .expenses)
         ])
     }
 }

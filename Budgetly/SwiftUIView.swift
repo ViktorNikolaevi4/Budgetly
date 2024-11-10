@@ -1,10 +1,3 @@
-//
-//  SwiftUIView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 07.11.2024.
-//
-
 import SwiftUI
 
 struct SwiftUIView: View {
@@ -23,7 +16,8 @@ struct SwiftUIView: View {
 #Preview {
     SwiftUIView()
 }
-func futchMessage() async -> String {
+
+private func futchMessage() async -> String {
      try? await Task.sleep(for: .seconds(2))
     return "Hello World"
 }
