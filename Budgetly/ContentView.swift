@@ -14,11 +14,16 @@ struct ContentView: View {
     @State private var selectedTransactionType: String = "Расходы" // Переключатель между "Доходы" и "Расходы"
     @State private var isMenuVisible = false // Управляет отображением меню
     @State private var selectedTimePeriod: String = "Все время" // Выбранный временной диапазон
-
+    
     var body: some View {
         ZStack {
             NavigationStack {
                 VStack {
+                    // Отображение сальдо
+                    Text("Сальдо: \(budgetViewModel.saldo, specifier: "%.2f") ₽")
+                        .foregroundStyle(budgetViewModel.totalExpenses >= budgetViewModel.totalIncome ? .green : .red)
+                        .font(.title2)
+                        .padding()
                     // Переключатель между доходами и расходами
                     HStack {
                         Button(action: {
@@ -62,7 +67,7 @@ struct ContentView: View {
                                 }
                             }
                         }
-                        .padding()
+                      //  .padding()
                     }
                     // Диаграмма расходов или доходов на основе выбранного типа
                     PieChartView(transactions: budgetViewModel.transactions.filter { $0.type == selectedTransactionType })

@@ -14,10 +14,11 @@ struct AddTransactionView: View {
     @State private var amount: String = ""
     @State private var selectedCategory: String = "Здоровье"
     @State private var newCategory: String = ""
+    @State private var isShowingAlert = false // Флаг для отображения алерта
 
         // Категории для доходов и расходов
-        let expenseCategories = ["Здоровье", "Досуг", "Дом", "Кафе", "Образование"]
-        let incomeCategories = ["Зарплата", "Инвестиции", "Подарки", "Прочее"]
+    @State private var expenseCategories = ["Здоровье", "Досуг", "Дом", "Кафе", "Образование"]
+    @State private var incomeCategories = ["Зарплата", "Инвестиции", "Подарки", "Прочее"]
 
 
     var body: some View {
@@ -74,7 +75,7 @@ struct AddTransactionView: View {
                         }
                         // Добавить новую категорию
                         Button(action: {
-                            // Открытие формы добавления новой категории
+                            isShowingAlert = true
                         }) {
                             Image(systemName: "plus.circle")
                                 .font(.largeTitle)
@@ -111,12 +112,34 @@ struct AddTransactionView: View {
                     }) {
                         Image(systemName: "xmark")
                             .font(.title2)
-                            .foregroundColor(.black)
+                            .foregroundStyle(.black)
                     }
                 }
             }
+            // Алерт для добавления новой категории
+            .alert("Новая категория", isPresented: $isShowingAlert) {
+                TextField("Введите новую категорию", text: $newCategory)
+                Button("Добавить", action: {
+                    addNewCategory()
+                })
+                Button("Отмена", role: .cancel, action: {
+                    newCategory = ""
+                })
+            }
         }
     }
+    // Функция для добавления новой категории
+    private func addNewCategory() {
+           if !newCategory.isEmpty {
+               if selectedType == "Расходы" {
+                   expenseCategories.append(newCategory)
+               } else {
+                   incomeCategories.append(newCategory)
+               }
+               selectedCategory = newCategory
+               newCategory = ""
+           }
+       }
 }
 
 
