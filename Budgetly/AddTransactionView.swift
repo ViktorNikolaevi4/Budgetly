@@ -1,17 +1,42 @@
 import SwiftUI
+import SwiftData
+
+enum CategoryType: String {
+    case expenses = "Расходы"
+    case income = "Доходы"
+}
+
+@Model
+class Category {
+    var name: String
+    private var typeRawValue: String
+
+    var type: CategoryType {
+        get { CategoryType(rawValue: typeRawValue) ?? .expenses } // По умолчанию .expenses, если значение отсутствует
+        set { typeRawValue = newValue.rawValue }
+    }
+
+    init(name: String, type: CategoryType) {
+        self.name = name
+        self.typeRawValue = type.rawValue
+    }
+}
 
 struct AddTransactionView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Query private var allCategories: [Category]
     @Environment(\.dismiss) var dismiss
     @State var budgetViewModel: BudgetViewModel
-    @State private var selectedType: TransactionType = .expenses
+    @State private var selectedType: CategoryType = .expenses
     @State private var amount: String = ""
     @State private var selectedCategory: String = "Здоровье"
     @State private var newCategory: String = ""
     @State private var isShowingAlert = false // Флаг для отображения алерта
 
     // Категории для доходов и расходов
-    @State private var expenseCategories = ["Здоровье", "Досуг", "Дом", "Кафе", "Образование"]
-    @State private var incomeCategories = ["Зарплата", "Инвестиции", "Подарки", "Прочее"]
+    var filteredCategories: [Category] {
+        allCategories.filter { $0.type == selectedType }
+    }
 
 
     var body: some View {
@@ -54,14 +79,13 @@ struct AddTransactionView: View {
                     .font(.headline)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
-                        let categories = selectedType == .expenses ? expenseCategories : incomeCategories
-                        ForEach(categories, id: \.self) { category in
+                        ForEach(filteredCategories, id: \.name) { category in
                             Button(action: {
-                                selectedCategory = category
+                                selectedCategory = category.name
                             }) {
-                                Text(category)
+                                Text(category.name)
                                     .padding()
-                                    .background(selectedCategory == category ? Color.blue : Color.gray)
+                                    .background(selectedCategory == category.name ? Color.blue : Color.gray)
                                     .foregroundColor(.white)
                                     .cornerRadius(8)
                             }
@@ -83,7 +107,8 @@ struct AddTransactionView: View {
                 // Кнопка сохранения транзакции
                 Button(action: {
                     if let amountValue = Double(amount) {
-                        budgetViewModel.addTransaction(category: selectedCategory, amount: amountValue, type: selectedType)
+                        let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
+                        budgetViewModel.addTransaction(category: selectedCategory, amount: amountValue, type: transactionType)
                         dismiss()
                     }
                 }) {
@@ -124,17 +149,13 @@ struct AddTransactionView: View {
     // Функция для добавления новой категории
     private func addNewCategory() {
         if !newCategory.isEmpty {
-            if selectedType == .expenses {
-                expenseCategories.append(newCategory)
-            } else {
-                incomeCategories.append(newCategory)
-            }
-            selectedCategory = newCategory
-            newCategory = ""
+                let category = Category(name: newCategory, type: selectedType)
+                modelContext.insert(category) // Добавляем категорию в SwiftData
+                selectedCategory = newCategory
+                newCategory = ""
         }
     }
 }
-
 
 #Preview {
     AddTransactionView(budgetViewModel: BudgetViewModel())
