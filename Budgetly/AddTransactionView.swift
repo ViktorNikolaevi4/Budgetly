@@ -37,7 +37,12 @@ struct AddTransactionView: View {
     var filteredCategories: [Category] {
         allCategories.filter { $0.type == selectedType }
     }
-
+    // Сетка с тремя колонками
+    private let columns = [
+        GridItem(.flexible()),
+        GridItem(.flexible()),
+        GridItem(.flexible())
+    ]
 
     var body: some View {
         NavigationStack {
@@ -77,19 +82,21 @@ struct AddTransactionView: View {
                 // Выбор категории
                 Text("Категории")
                     .font(.headline)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack {
-                        ForEach(filteredCategories, id: \.name) { category in
-                            Button(action: {
-                                selectedCategory = category.name
-                            }) {
-                                Text(category.name)
-                                    .padding()
-                                    .background(selectedCategory == category.name ? Color.blue : Color.gray)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
-                            }
-                        }
+
+                // Используем LazyVGrid для отображения категорий в несколько строк
+                  LazyVGrid(columns: columns, spacing: 10) {
+                      ForEach(filteredCategories, id: \.name) { category in
+                          Button(action: {
+                              selectedCategory = category.name
+                          }) {
+                              Text(category.name)
+                                  .padding()
+                                  .frame(maxWidth: .infinity)
+                                  .background(selectedCategory == category.name ? Color.blue : Color.gray)
+                                  .foregroundColor(.white)
+                                  .cornerRadius(8)
+                          }
+                      }
                         // Добавить новую категорию
                         Button(action: {
                             isShowingAlert = true
@@ -100,17 +107,12 @@ struct AddTransactionView: View {
                         }
                     }
                     .padding()
-                }
 
                 Spacer()
 
                 // Кнопка сохранения транзакции
                 Button(action: {
-                    if let amountValue = Double(amount) {
-                        let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
-                        budgetViewModel.addTransaction(category: selectedCategory, amount: amountValue, type: transactionType)
-                        dismiss()
-                    }
+                    saveTransaction()
                 }) {
                     Text("Добавить")
                         .font(.headline)
@@ -153,6 +155,16 @@ struct AddTransactionView: View {
                 modelContext.insert(category) // Добавляем категорию в SwiftData
                 selectedCategory = newCategory
                 newCategory = ""
+        }
+    }
+    // Функция для сохранения транзакции
+    private func saveTransaction() {
+        if let amountValue = Double(amount) {
+            let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
+            let newTransaction = Transaction(category: selectedCategory, amount: amountValue, type: transactionType)
+            modelContext.insert(newTransaction) // Добавляем транзакцию в SwiftData
+            try? modelContext.save() // Сохраняем изменения
+            dismiss()
         }
     }
 }
