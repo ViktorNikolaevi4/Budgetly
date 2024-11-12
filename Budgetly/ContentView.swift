@@ -53,8 +53,8 @@ struct ContentView: View {
                                 }) {
                                     Text(period)
                                         .font(.caption)
-                                        .padding(.vertical, 8)
-                                        .padding(.horizontal, 8)
+                                        .frame(width:55, height: 5)
+                                        .padding()
                                         .background(selectedTimePeriod == period ? Color.blue : Color.gray)
                                         .foregroundStyle(.white)
                                         .cornerRadius(8)
@@ -62,7 +62,6 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
 
                     // Диаграмма расходов или доходов на основе выбранного типа
                     PieChartView(transactions: budgetViewModel.transactions.filter { $0.type == selectedTransactionType })
