@@ -6,8 +6,12 @@ import SwiftData
 enum SelectedView {
     case contentView
     case accounts
-    case charts
-    case categories
+    case regularPayments
+    case reminders
+    case settings
+    case shareWithFriends
+    case appEvaluation
+    case contacTheDeveloper
     // Добавьте другие представления, если нужно
 }
 
@@ -201,21 +205,54 @@ struct SideMenuView: View {
                 }
                 .padding()
 
-                Button("Графики") {
+                Button("Регулярные платежи") {
                     withAnimation {
-                        selectedView = .charts // Устанавливаем отображение "Графики"
+                        selectedView = .regularPayments
                         isMenuVisible = false
                     }
                 }
                 .padding()
 
-                Button("Категории") {
+                Button("Напоминания") {
                     withAnimation {
-                        selectedView = .categories // Устанавливаем отображение "Категории"
+                        selectedView = .reminders
                         isMenuVisible = false
                     }
                 }
                 .padding()
+
+                Button("Настройки") {
+                    withAnimation {
+                        selectedView = .settings
+                        isMenuVisible = false
+                    }
+                }
+                .padding()
+
+                Button("Поделиться с друзьями") {
+                    withAnimation {
+                        selectedView = .shareWithFriends
+                        isMenuVisible = false
+                    }
+                }
+                .padding()
+
+                Button("Оценить приложение") {
+                    withAnimation {
+                        selectedView = .appEvaluation
+                        isMenuVisible = false
+                    }
+                }
+                .padding()
+
+                Button("Связаться с разработчикамм") {
+                    withAnimation {
+                        selectedView = .contacTheDeveloper
+                        isMenuVisible = false
+                    }
+                }
+                .padding()
+
 
                 // Добавьте остальные кнопки меню
 
