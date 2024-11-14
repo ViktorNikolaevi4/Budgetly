@@ -7,22 +7,27 @@ enum CategoryType: String {
 }
 
 @Model
-class Category {
+class Category: Identifiable {
+    var id: UUID
     var name: String
     private var typeRawValue: String
+    var account: Account // Связь с конкретным счетом
 
     var type: CategoryType {
         get { CategoryType(rawValue: typeRawValue) ?? .expenses } // По умолчанию .expenses, если значение отсутствует
         set { typeRawValue = newValue.rawValue }
     }
 
-    init(name: String, type: CategoryType) {
+    init(id: UUID = UUID(), name: String, type: CategoryType, account: Account) {
+        self.id = id
         self.name = name
         self.typeRawValue = type.rawValue
+        self.account = account
     }
 }
 
 struct AddTransactionView: View {
+    var account: Account? // Связанный счёт
     @Environment(\.modelContext) private var modelContext
     @Query private var allCategories: [Category]
     @Environment(\.dismiss) var dismiss
@@ -150,19 +155,31 @@ struct AddTransactionView: View {
     }
     // Функция для добавления новой категории
     private func addNewCategory() {
-        if !newCategory.isEmpty {
-                let category = Category(name: newCategory, type: selectedType)
-                modelContext.insert(category) // Добавляем категорию в SwiftData
-                selectedCategory = newCategory
-                newCategory = ""
+        guard let account = account, !newCategory.isEmpty else {
+            // Можно добавить сообщение об ошибке или лог для отладки
+            print("Ошибка: отсутствует account или пустое имя категории")
+            return
+        }
+        let category = Category(name: newCategory, type: selectedType, account: account)
+        modelContext.insert(category) // Добавляем категорию в SwiftData
+        selectedCategory = newCategory
+        newCategory = ""
+
+        // Сохранение изменений
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при сохранении категории: \(error)")
         }
     }
+
     // Функция для сохранения транзакции
     private func saveTransaction() {
-        if let amountValue = Double(amount) {
+        if let amountValue = Double(amount), let account = account {
             let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
-            let newTransaction = Transaction(category: selectedCategory, amount: amountValue, type: transactionType)
+            let newTransaction = Transaction(category: selectedCategory, amount: amountValue, type: transactionType, account: account)
             modelContext.insert(newTransaction) // Добавляем транзакцию в SwiftData
+            account.transactions.append(newTransaction)
             try? modelContext.save() // Сохраняем изменения
             dismiss()
         }

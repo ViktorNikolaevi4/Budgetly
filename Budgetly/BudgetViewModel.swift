@@ -1,11 +1,12 @@
 import Foundation
 import SwiftUI
 import Observation
-// import SwiftData
 
 // Ваша модель BudgetViewModel
 @Observable
-class BudgetViewModel {
+class BudgetViewModel{
+    var accounts: [Account] = [Account(name: "Основной счет")]
+    
     var transactions: [Transaction] = []
 
     var totalExpenses: Double {
@@ -20,8 +21,10 @@ class BudgetViewModel {
         totalIncome - totalExpenses
     }
 
-    func addTransaction(category: String, amount: Double, type: TransactionType) {
-        let newTransaction = Transaction(id: UUID(), category: category, amount: amount, date: Date(), type: type)
+    func addTransaction(category: String, amount: Double, type: TransactionType, account: Account) {
+        let newTransaction = Transaction(id: UUID(), category: category, amount: amount, date: Date(), type: type, account: account)
         transactions.append(newTransaction)
+        account.transactions.append(newTransaction) // Добавляем транзакцию в аккаунт
+
     }
 }

@@ -16,17 +16,41 @@ enum SelectedView {
 }
 
 struct ContentView: View {
+    @State private var selectedAccount: Account?
     @Query private var transactions: [Transaction]
     @State private var budgetViewModel = BudgetViewModel()
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
-    @State private var isMenuVisible = false // Управляет отображением меню
-    @State private var selectedTimePeriod: String = "Все время" // Выбранный временной диапазон
-    @State private var selectedView: SelectedView = .contentView // Состояние для отображения текущего представления
+    @State private var selectedTimePeriod: String = "Все время"
+    @State private var selectedView: SelectedView = .contentView
+    @State private var isMenuVisible = false
 
-    // Вычисляемое свойство для расчёта сальдо
     private var saldo: Double {
-        Transaction.calculateSaldo(from: transactions)
+        guard let account = selectedAccount else { return 0 }
+        let income = account.transactions.filter { $0.type == .income }.reduce(0) { $0 + $1.amount }
+        let expenses = account.transactions.filter { $0.type == .expenses }.reduce(0) { $0 + $1.amount }
+        return income - expenses
+    }
+
+    var filteredTransactions: [Transaction] {
+        let now = Date()
+        let calendar = Calendar.current
+
+        return (selectedAccount?.transactions ?? []).filter { transaction in
+            guard transaction.type == selectedTransactionType else { return false }
+            switch selectedTimePeriod {
+            case "День":
+                return calendar.isDateInToday(transaction.date)
+            case "Неделя":
+                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
+            case "Месяц":
+                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
+            case "Год":
+                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
+            default:
+                return true
+            }
+        }
     }
 
     var body: some View {
@@ -34,11 +58,12 @@ struct ContentView: View {
             NavigationStack {
                 VStack {
                     if selectedView == .contentView {
-                        mainContentView // Отображаем главное представление
-                    } else {
-                        Text("Другие представления") // Здесь могут быть другие представления для других пунктов меню
+                        mainContentView
+                    } else if selectedView == .accounts {
+                        AccountsView(budgetViewModel: budgetViewModel)
                     }
                 }
+                .navigationTitle("Бюджет")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(action: {
@@ -48,30 +73,39 @@ struct ContentView: View {
                         }) {
                             Image(systemName: "gearshape.fill")
                                 .font(.title3)
-                                .foregroundStyle(.black)
+                                .foregroundColor(.black)
                         }
                     }
                 }
             }
-            // Отображение бокового меню
+
             if isMenuVisible {
                 SideMenuView(isMenuVisible: $isMenuVisible, selectedView: $selectedView)
             }
         }
     }
 
-    // Основное содержимое ContentView
     private var mainContentView: some View {
         VStack {
+            Picker("Выберите счет", selection: $selectedAccount) {
+                ForEach(budgetViewModel.accounts) { account in
+                    Text(account.name).tag(account as Account?)
+                }
+            }
+            .padding()
+            .onAppear {
+                if selectedAccount == nil {
+                    selectedAccount = budgetViewModel.accounts.first
+                }
+            }
+
             Text("Сальдо: \(saldo >= 0 ? "+" : "")\(saldo, specifier: "%.2f") ₽")
                 .foregroundColor(saldo >= 0 ? .green : .red)
                 .font(.title2)
                 .padding()
 
             HStack {
-                Button(action: {
-                    selectedTransactionType = .expenses
-                }) {
+                Button(action: { selectedTransactionType = .expenses }) {
                     Text("Расходы")
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -80,9 +114,7 @@ struct ContentView: View {
                         .cornerRadius(8)
                 }
 
-                Button(action: {
-                    selectedTransactionType = .income
-                }) {
+                Button(action: { selectedTransactionType = .income }) {
                     Text("Доходы")
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -96,31 +128,28 @@ struct ContentView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 5) {
                     ForEach(["День", "Неделя", "Месяц", "Год", "Все время"], id: \.self) { period in
-                        Button(action: {
-                            selectedTimePeriod = period
-                        }) {
+                        Button(action: { selectedTimePeriod = period }) {
                             Text(period)
                                 .font(.caption)
-                                .frame(width:55, height: 5)
+                                .frame(width: 55, height: 5)
                                 .padding()
                                 .background(selectedTimePeriod == period ? Color.blue : Color.gray)
-                                .foregroundStyle(.white)
+                                .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
                     }
                 }
             }
+            .padding(.bottom) // Отступ перед графиком
 
-            PieChartView(transactions: transactions.filter { $0.type == selectedTransactionType })
+            PieChartView(transactions: filteredTransactions) // Перемещен ниже
 
-            List {
-                ForEach(filteredTransactions) { transaction in
-                    HStack {
-                        Text(transaction.category)
-                        Spacer()
-                        Text("\(transaction.amount, specifier: "%.2f") ₽")
-                            .foregroundColor(selectedTransactionType == .expenses ? .red : .green)
-                    }
+            List(filteredTransactions) { transaction in
+                HStack {
+                    Text(transaction.category)
+                    Spacer()
+                    Text("\(transaction.amount, specifier: "%.2f") ₽")
+                        .foregroundColor(transaction.type == .expenses ? .red : .green)
                 }
             }
 
@@ -134,38 +163,10 @@ struct ContentView: View {
             }
             .padding()
             .sheet(isPresented: $isAddTransactionViewPresented) {
-                AddTransactionView(budgetViewModel: budgetViewModel)
+                AddTransactionView(account: selectedAccount, budgetViewModel: budgetViewModel)
             }
         }
-    }
-
-    // Фильтруем транзакции по типу и времени
-    var filteredTransactions: [Transaction] {
-        let now = Date()
-        let calendar = Calendar.current
-
-        return transactions.filter { transaction in
-            // Фильтрация по типу
-            guard transaction.type == selectedTransactionType else { return false }
-
-            // Фильтрация по выбранному временному диапазону
-            switch selectedTimePeriod {
-            case "День":
-                return calendar.isDateInToday(transaction.date)
-            case "Неделя":
-                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
-            case "Месяц":
-                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
-            case "Год":
-                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
-            default:
-                return true // "Все время" показывает все транзакции
-            }
-        }
-    }
-}
-
-
+    }}
 
 #Preview {
     ContentView()

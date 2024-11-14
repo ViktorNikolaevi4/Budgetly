@@ -12,13 +12,16 @@ class Transaction: Identifiable {
     var amount: Double
     var date: Date
     var type: TransactionType
+    var account: Account // Связь с конкретным счетом
 
-    init(id: UUID = UUID(), category: String, amount: Double, date: Date = Date(), type: TransactionType) {
+
+    init(id: UUID = UUID(), category: String, amount: Double, date: Date = Date(), type: TransactionType, account: Account) {
         self.id = id
         self.category = category
         self.amount = amount
         self.date = date
         self.type = type
+        self.account = account
     }
 
     // Вычисляемое свойство для получения сальдо
