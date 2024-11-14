@@ -63,6 +63,8 @@ struct ContentView: View {
                         mainContentView
                     } else if selectedView == .accounts {
                         AccountsView()
+                    } else if selectedView == .regularPayments {
+                        RegularPaymentsView()
                     }
                 }
                 .navigationTitle("Бюджет")
