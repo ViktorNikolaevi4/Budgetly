@@ -10,9 +10,10 @@ import SwiftData
 
 struct AccountsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var accounts: [Account]
+
     @State private var accountName: String = ""
     @State private var isShowingAlert = false
-    @State var budgetViewModel: BudgetViewModel
 
     var body: some View {
         VStack {
@@ -20,11 +21,13 @@ struct AccountsView: View {
                 .font(.headline)
 
             List {
-                ForEach(budgetViewModel.accounts) { account in
+                ForEach(accounts) { account in
                     Text(account.name)
                 }
                 .onDelete { indexSet in
-                    budgetViewModel.accounts.remove(atOffsets: indexSet)
+                    for index in indexSet {
+                        modelContext.delete(accounts[index])
+                    }
                 }
             }
 
@@ -45,7 +48,6 @@ struct AccountsView: View {
         guard !accountName.isEmpty else { return }
         let newAccount = Account(name: accountName)
         modelContext.insert(newAccount)
-        budgetViewModel.accounts.append(newAccount)
         accountName = ""
     }
 }

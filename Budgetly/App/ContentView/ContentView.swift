@@ -16,9 +16,11 @@ enum SelectedView {
 }
 
 struct ContentView: View {
-    @State private var selectedAccount: Account?
     @Query private var transactions: [Transaction]
-    @State private var budgetViewModel = BudgetViewModel()
+    @Query private var accounts: [Account]
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
     @State private var selectedTimePeriod: String = "Все время"
@@ -60,7 +62,7 @@ struct ContentView: View {
                     if selectedView == .contentView {
                         mainContentView
                     } else if selectedView == .accounts {
-                        AccountsView(budgetViewModel: budgetViewModel)
+                        AccountsView()
                     }
                 }
                 .navigationTitle("Бюджет")
@@ -83,19 +85,25 @@ struct ContentView: View {
                 SideMenuView(isMenuVisible: $isMenuVisible, selectedView: $selectedView)
             }
         }
+        .onAppear {
+            if accounts.isEmpty {
+                let account = Account(name: "Main")
+                modelContext.insert(account)
+            }
+        }
     }
 
     private var mainContentView: some View {
         VStack {
             Picker("Выберите счет", selection: $selectedAccount) {
-                ForEach(budgetViewModel.accounts) { account in
+                ForEach(accounts) { account in
                     Text(account.name).tag(account as Account?)
                 }
             }
             .padding()
             .onAppear {
                 if selectedAccount == nil {
-                    selectedAccount = budgetViewModel.accounts.first
+                    selectedAccount = accounts.first
                 }
             }
 
@@ -163,7 +171,7 @@ struct ContentView: View {
             }
             .padding()
             .sheet(isPresented: $isAddTransactionViewPresented) {
-                AddTransactionView(account: selectedAccount, budgetViewModel: budgetViewModel)
+                AddTransactionView(account: selectedAccount)
             }
         }
     }}

@@ -1,37 +1,13 @@
 import SwiftUI
 import SwiftData
 
-enum CategoryType: String {
-    case expenses = "Расходы"
-    case income = "Доходы"
-}
-
-@Model
-class Category: Identifiable {
-    var id: UUID
-    var name: String
-    private var typeRawValue: String
-    var account: Account // Связь с конкретным счетом
-
-    var type: CategoryType {
-        get { CategoryType(rawValue: typeRawValue) ?? .expenses } // По умолчанию .expenses, если значение отсутствует
-        set { typeRawValue = newValue.rawValue }
-    }
-
-    init(id: UUID = UUID(), name: String, type: CategoryType, account: Account) {
-        self.id = id
-        self.name = name
-        self.typeRawValue = type.rawValue
-        self.account = account
-    }
-}
-
 struct AddTransactionView: View {
     var account: Account? // Связанный счёт
+
     @Environment(\.modelContext) private var modelContext
     @Query private var allCategories: [Category]
     @Environment(\.dismiss) var dismiss
-    @State var budgetViewModel: BudgetViewModel
+
     @State private var selectedType: CategoryType = .expenses
     @State private var amount: String = ""
     @State private var selectedCategory: String = "Здоровье"
@@ -187,5 +163,5 @@ struct AddTransactionView: View {
 }
 
 #Preview {
-    AddTransactionView(budgetViewModel: BudgetViewModel())
+    AddTransactionView()
 }

@@ -1,12 +1,13 @@
 import SwiftUI
-import Observation
+import SwiftData
 
 struct ExpenseView: View {
-    @State var budgetViewModel: BudgetViewModel
+
+    @Query private var transactions: [Transaction]
 
     var body: some View {
         List {
-            ForEach(budgetViewModel.transactions.filter { $0.type == .expenses }) { transaction in
+            ForEach(transactions.filter { $0.type == .expenses }) { transaction in
                 HStack {
                     Text(transaction.category)
                     Spacer()

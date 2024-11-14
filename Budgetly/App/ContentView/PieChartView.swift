@@ -2,8 +2,10 @@ import SwiftUI
 import Charts
 
 struct PieChartView: View {
-    @State private var selectedTimePeriod: String = "День"
+
     var transactions: [Transaction]
+
+    @State private var selectedTimePeriod: String = "День"
 
     var body: some View {
         VStack {
