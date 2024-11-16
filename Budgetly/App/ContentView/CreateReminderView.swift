@@ -1,29 +1,49 @@
 import SwiftUI
 import SwiftData
 
+enum ReminderFrequency: String, CaseIterable, Identifiable {
+    case once = "Один раз"
+    case daily = "Каждый день"
+    case weekly = "Каждую неделю"
+    case biWeekly = "Каждые 2 недели"
+    case monthly = "Каждый месяц"
+    case biMonthly = "Каждые 2 месяца"
+    case quarterly = "Каждый квартал"
+    case semiAnnually = "Каждый полгода"
+    case annually = "Каждый год"
+
+    var id: String { self.rawValue }
+}
+
 struct CreateReminderView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    var existingPayment: RegularPayment?
+
     @State private var paymentType: CategoryType = .expenses
     @State private var paymentName: String = ""
-    @State private var reminderFrequency: String = "Каждый месяц"
+    @State private var reminderFrequency: ReminderFrequency = .once
     @State private var startDate = Date()
-    @State private var includeEndDate = false // Переключатель для включения даты окончания
+    @State private var includeEndDate = false
     @State private var endDate: Date? = nil
     @State private var amount: String = ""
     @State private var comment: String = ""
 
-    var isFormValid: Bool {
-        !paymentName.isEmpty && !amount.isEmpty
+    init(existingPayment: RegularPayment? = nil) {
+        self.existingPayment = existingPayment
+        _paymentName = State(initialValue: existingPayment?.name ?? "")
+        _reminderFrequency = State(initialValue: existingPayment?.frequency ?? .monthly)
+        _startDate = State(initialValue: existingPayment?.startDate ?? Date())
+        _endDate = State(initialValue: existingPayment?.endDate)
+        _amount = State(initialValue: existingPayment?.amount != nil ? String(existingPayment!.amount) : "")
+        _comment = State(initialValue: existingPayment?.comment ?? "")
+    //    _paymentType = State(initialValue: existingPayment?.type ?? .expenses)
+        _includeEndDate = State(initialValue: existingPayment?.endDate != nil)
     }
 
-    // Computed binding for endDate with a default value
-    private var endDateBinding: Binding<Date> {
-        Binding<Date>(
-            get: { endDate ?? Date() },
-            set: { endDate = $0 }
-        )
+    var isFormValid: Bool {
+        !paymentName.isEmpty && !amount.isEmpty
     }
 
     var body: some View {
@@ -57,9 +77,14 @@ struct CreateReminderView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
 
-            TextField("Периодичность напоминания", text: $reminderFrequency)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+            // Выбор периодичности
+            Picker("Периодичность напоминания", selection: $reminderFrequency) {
+                ForEach(ReminderFrequency.allCases) { frequency in
+                    Text(frequency.rawValue).tag(frequency)
+                }
+            }
+            .pickerStyle(MenuPickerStyle()) // Используем меню для удобства
+            .padding()
 
             DatePicker("Дата начала напоминания", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
                 .padding()
@@ -68,7 +93,7 @@ struct CreateReminderView: View {
                 .padding()
 
             if includeEndDate {
-                DatePicker("Дата окончания напоминания", selection: endDateBinding, displayedComponents: [.date, .hourAndMinute])
+                DatePicker("Дата окончания напоминания", selection: Binding(get: { endDate ?? Date() }, set: { endDate = $0 }), displayedComponents: [.date, .hourAndMinute])
                     .padding()
             }
 
@@ -82,10 +107,10 @@ struct CreateReminderView: View {
                 .padding()
 
             Button(action: {
-                saveReminder()
+                saveOrUpdateReminder()
                 dismiss()
             }) {
-                Text("Создать")
+                Text(existingPayment == nil ? "Создать" : "Обновить")
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -96,21 +121,41 @@ struct CreateReminderView: View {
             .padding()
             .disabled(!isFormValid)
         }
-        .navigationTitle("Создать напоминание")
+        .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
         .padding()
     }
 
-    private func saveReminder() {
+//    var isFormValid: Bool {
+//        !paymentName.isEmpty && !amount.isEmpty
+//    }
+
+
+    private func saveOrUpdateReminder() {
         guard let amountValue = Double(amount) else { return }
-        let newReminder = RegularPayment(
-            name: paymentName,
-            frequency: reminderFrequency,
-            startDate: startDate,
-            endDate: includeEndDate ? endDate : nil, // Добавление даты окончания, если она включена
-            amount: amountValue,
-            comment: comment
-        )
-        modelContext.insert(newReminder)
+
+        if let payment = existingPayment {
+            // Обновление существующего платежа
+            payment.name = paymentName
+            payment.frequency = reminderFrequency // Используем ReminderFrequency напрямую
+            payment.startDate = startDate
+            payment.endDate = includeEndDate ? endDate : nil
+            payment.amount = amountValue
+            payment.comment = comment
+        } else {
+            // Создание нового платежа
+            let newReminder = RegularPayment(
+                name: paymentName,
+                frequency: reminderFrequency, // Используем ReminderFrequency напрямую
+                startDate: startDate,
+                endDate: includeEndDate ? endDate : nil,
+                amount: amountValue,
+                comment: comment
+            )
+            modelContext.insert(newReminder)
+        }
     }
+
+
 }
+
 

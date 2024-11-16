@@ -4,6 +4,7 @@ import SwiftData
 struct RegularPaymentsView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var isCreateReminderViewPresented = false
+    @State private var selectedPayment: RegularPayment?
 
     @Query private var regularPayments: [RegularPayment]
 
@@ -14,16 +15,31 @@ struct RegularPaymentsView: View {
                     HStack {
                         Text(payment.name)
                         Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { payment.endDate == nil || payment.endDate! > Date() },
-                            set: { _ in }
-                        ))
+                        Toggle(isOn: Binding(
+                            get: { payment.isActive },
+                            set: { newValue in
+                                payment.isActive = newValue
+                                try? modelContext.save() // Сохраняем изменения состояния
+                            }
+                        )) {
+                            EmptyView()
+                        }
                         .labelsHidden()
+
+                        // Кнопка для редактирования
+                        Button(action: {
+                            selectedPayment = payment
+                            isCreateReminderViewPresented = true
+                        }) {
+                            Image(systemName: "pencil")
+                                .foregroundColor(.blue)
+                        }
                     }
                 }
             }
 
             Button(action: {
+                selectedPayment = nil // Установка в nil для создания нового платежа
                 isCreateReminderViewPresented = true
             }) {
                 Text("+ СОЗДАТЬ")
@@ -32,12 +48,19 @@ struct RegularPaymentsView: View {
                     .foregroundColor(.blue)
             }
             .sheet(isPresented: $isCreateReminderViewPresented) {
-                CreateReminderView()
+                if let payment = selectedPayment {
+                    // Открыть представление с редактированием
+                    CreateReminderView(existingPayment: payment)
+                } else {
+                    // Открыть представление для создания нового платежа
+                    CreateReminderView()
+                }
             }
         }
         .navigationTitle("Регулярные платежи")
     }
 }
+
 
 #Preview {
     RegularPaymentsView()
