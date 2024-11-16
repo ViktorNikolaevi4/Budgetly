@@ -141,6 +141,10 @@ struct CreateReminderView: View {
             payment.endDate = includeEndDate ? endDate : nil
             payment.amount = amountValue
             payment.comment = comment
+
+            // Отменяем старое уведомление и создаем новое
+            payment.cancelNotification()
+            payment.sheduleNotification()
         } else {
             // Создание нового платежа
             let newReminder = RegularPayment(
@@ -152,10 +156,11 @@ struct CreateReminderView: View {
                 comment: comment
             )
             modelContext.insert(newReminder)
+
+            // Планируем уведомление
+            newReminder.sheduleNotification()
         }
     }
-
-
 }
 
 

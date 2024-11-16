@@ -36,6 +36,14 @@ struct RegularPaymentsView: View {
                         }
                     }
                 }
+                .onDelete { indexSet in
+                    for index in indexSet {
+                        let payment = regularPayments[index]
+                        payment.cancelNotification() // Отмена запланированного уведомления
+                        modelContext.delete(payment) // Удаление из базы данных
+                    }
+
+                }
             }
 
             Button(action: {

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftData
+import UserNotifications
 
 @Model
 class RegularPayment: Identifiable {
@@ -34,5 +35,40 @@ class RegularPayment: Identifiable {
         self.amount = amount
         self.comment = comment
         self.isActive = isActive
+    }
+}
+
+extension RegularPayment {
+    func sheduleNotification() {
+        // Создаем уведомление
+        let content = UNMutableNotificationContent()
+        content.title = "Напоминание о платеже"
+        content.body = "Платеж: \(name) на сумму \(String(format: "%.2f", amount)) ₽"
+        content.sound = .default
+
+        // Создаем триггер на основе даты начала
+        let calendar = Calendar.current
+        let componets = calendar.dateComponents([.year, .month, .day, .minute], from: startDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: componets, repeats: false)
+
+        // Уникальный идентификатор уведомления
+        let notificationID = "RegularPayment-\(id.uuidString)"
+
+        // Создаем запрос на уведомление
+        let request = UNNotificationRequest(identifier: notificationID, content: content, trigger: trigger)
+
+        // Добавляем запрос
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("Ошибка при добавлении уведомления: \(error)")
+            } else {
+                print("Уведомление запланировано: \(notificationID)")
+            }
+        }
+    }
+
+    func cancelNotification() {
+        let notificationID = "RegularPayment-\(id.uuidString)"
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationID])
     }
 }
