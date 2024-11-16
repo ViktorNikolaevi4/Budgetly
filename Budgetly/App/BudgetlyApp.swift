@@ -14,7 +14,8 @@ struct BudgetApp: App {
                 .modelContainer(for: [Transaction.self,
                                       Category.self,
                                       Account.self,
-                                      RegularPayment.self
+                                      RegularPayment.self,
+                                      Reminder.self
                                      ])
         }
     }

@@ -66,6 +66,9 @@ struct ContentView: View {
                     } else if selectedView == .regularPayments {
                         RegularPaymentsView()
                     }
+                    else if selectedView == .reminders {
+                        RemindersView()
+                    }
                 }
                 .navigationTitle("Бюджет")
                 .toolbar {
@@ -242,7 +245,7 @@ struct SideMenuView: View {
 
                 Button("Поделиться с друзьями") {
                     withAnimation {
-                        selectedView = .shareWithFriends
+                        shareWithFriends()
                         isMenuVisible = false
                     }
                 }
@@ -273,6 +276,30 @@ struct SideMenuView: View {
             .background(Color.white)
             .offset(x: isMenuVisible ? 0 : -250) // Выдвижение меню
             .animation(.easeInOut(duration: 0.3), value: isMenuVisible)
+        }
+    }
+
+    // Функция для вызова UIActivityViewController
+    private func shareWithFriends() {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
+            print("Ошибка: невозможно получить WindowScene")
+            return
+        }
+        // Текст и ссылка на App Store
+        let shareText = """
+        Я использую приложение Budgetly для управления своими финансами! Попробуй и ты:
+        """
+        // Ссылка на App Store
+        let appStoreLinkString = "https://apps.apple.com/app/idXXXXXXXXX" // Укажите свою ссылку
+        guard let appStoreLink = URL(string: appStoreLinkString) else {
+            print("Ошибка: ссылка на App Store недействительна")
+            return
+        }
+        // UIActivityViewController
+        let activityVC = UIActivityViewController(activityItems: [shareText, appStoreLink], applicationActivities: nil)
+        // Указываем, с какой сцены запустить ActivityViewController
+        if let rootViewController = windowScene.windows.first?.rootViewController {
+            rootViewController.present(activityVC, animated: true, completion: nil)
         }
     }
 }
