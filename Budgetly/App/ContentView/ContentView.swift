@@ -19,13 +19,13 @@ struct ContentView: View {
     @Query private var transactions: [Transaction]
     @Query private var accounts: [Account]
     @Environment(\.modelContext) private var modelContext
-
     @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
     @State private var selectedTimePeriod: String = "Все время"
     @State private var selectedView: SelectedView = .contentView
     @State private var isMenuVisible = false
+    @State private var isRateAppViewPresented = false // Управление видимостью окна оценки приложения
 
     private var saldo: Double {
         guard let account = selectedAccount else { return 0 }
@@ -69,6 +69,9 @@ struct ContentView: View {
                     else if selectedView == .reminders {
                         RemindersView()
                     }
+                    else if selectedView == .contacTheDeveloper {
+                        ContactDeveloperView()
+                    }
                 }
                 .navigationTitle("Бюджет")
                 .toolbar {
@@ -87,7 +90,19 @@ struct ContentView: View {
             }
 
             if isMenuVisible {
-                SideMenuView(isMenuVisible: $isMenuVisible, selectedView: $selectedView)
+                SideMenuView(isMenuVisible: $isMenuVisible,
+                             selectedView: $selectedView,
+                             isRateAppViewPresented: $isRateAppViewPresented)
+            }
+
+            if isRateAppViewPresented {
+                Color.black.opacity(0.4) // Полупрозрачный фон
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        isRateAppViewPresented = false
+                    }
+
+                RateAppView(isPresented: $isRateAppViewPresented)
             }
         }
         .onAppear {
@@ -101,6 +116,7 @@ struct ContentView: View {
     private var mainContentView: some View {
         VStack {
             Picker("Выберите счет", selection: $selectedAccount) {
+                Text("Выберите счет").tag(nil as Account?)
                 ForEach(accounts) { account in
                     Text(account.name).tag(account as Account?)
                 }
@@ -188,7 +204,8 @@ struct ContentView: View {
 
 struct SideMenuView: View {
     @Binding var isMenuVisible: Bool
-    @Binding var selectedView: SelectedView // Привязка для изменения текущего представления
+    @Binding var selectedView: SelectedView
+    @Binding var isRateAppViewPresented: Bool // Управление окном оценки
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -253,8 +270,10 @@ struct SideMenuView: View {
 
                 Button("Оценить приложение") {
                     withAnimation {
-                        selectedView = .appEvaluation
                         isMenuVisible = false
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isRateAppViewPresented = true
                     }
                 }
                 .padding()
