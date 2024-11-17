@@ -18,7 +18,11 @@ class Category: Identifiable {
         set { typeRawValue = newValue.rawValue }
     }
 
-    init(id: UUID = UUID(), name: String, type: CategoryType, account: Account) {
+    init(id: UUID = UUID(),
+         name: String,
+         type: CategoryType,
+         account: Account
+    ) {
         self.id = id
         self.name = name
         self.typeRawValue = type.rawValue

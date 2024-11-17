@@ -14,7 +14,10 @@ class Account: Identifiable {
     var transactions: [Transaction] = []
     var categories: [Category] = []
 
-    init(id: UUID = UUID(), name: String, transactions: [Transaction] = []) {
+    init(id: UUID = UUID(),
+         name: String,
+         transactions: [Transaction] = []
+    ) {
         self.id = id
         self.name = name
         self.transactions = transactions

@@ -4,6 +4,7 @@ import Observation
 import SwiftData
 
 enum SelectedView {
+    case registration
     case contentView
     case accounts
     case regularPayments
@@ -72,6 +73,9 @@ struct ContentView: View {
                     else if selectedView == .contacTheDeveloper {
                         ContactDeveloperView()
                     }
+                     else if selectedView == .registration {
+                    RegistrationView()
+                    }
                 }
                 .navigationTitle("Бюджет")
                 .toolbar {
@@ -107,7 +111,7 @@ struct ContentView: View {
         }
         .onAppear {
             if accounts.isEmpty {
-                let account = Account(name: "Main")
+                let account = Account(name: "Основной Счет")
                 modelContext.insert(account)
             }
         }
@@ -220,6 +224,14 @@ struct SideMenuView: View {
 
             // Само меню
             VStack(alignment: .leading) {
+                Button("Регистрация") {
+                    withAnimation {
+                        selectedView = .registration
+                        isMenuVisible = false
+                    }
+                }
+                .padding()
+
                 Button("Главная") {
                     withAnimation {
                         selectedView = .contentView // Устанавливаем главное представление

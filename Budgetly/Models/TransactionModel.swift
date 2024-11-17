@@ -14,7 +14,13 @@ class Transaction: Identifiable {
     var type: TransactionType
     var account: Account // Связь с конкретным счетом
 
-    init(id: UUID = UUID(), category: String, amount: Double, date: Date = Date(), type: TransactionType, account: Account) {
+    init(id: UUID = UUID(),
+         category: String,
+         amount: Double,
+         date: Date = Date(),
+         type: TransactionType,
+         account: Account
+    ) {
         self.id = id
         self.category = category
         self.amount = amount
