@@ -13,9 +13,8 @@ enum SelectedView {
     case shareWithFriends
     case appEvaluation
     case contacTheDeveloper
-    // Добавьте другие представления, если нужно
 }
-//Еnum для периода времени
+
 enum TimePeriod: String, CaseIterable, Identifiable {
     case day = "День"
     case week = "Неделя"
@@ -23,7 +22,7 @@ enum TimePeriod: String, CaseIterable, Identifiable {
     case year = "Год"
     case allTime = "Все время"
 
-    var id: String { self.rawValue }
+    var id: String { rawValue }
 }
 
 struct ContentView: View {
@@ -90,11 +89,11 @@ struct ContentView: View {
                 .navigationTitle("Бюджет")
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
+                        Button {
                             withAnimation {
                                 isMenuVisible.toggle()
                             }
-                        }) {
+                        } label: {
                             Image(systemName: "gearshape.fill")
                                 .font(.title3)
                                 .foregroundColor(.black)
@@ -104,9 +103,11 @@ struct ContentView: View {
             }
 
             if isMenuVisible {
-                SideMenuView(isMenuVisible: $isMenuVisible,
-                             selectedView: $selectedView,
-                             isRateAppViewPresented: $isRateAppViewPresented)
+                SideMenuView(
+                    isMenuVisible: $isMenuVisible,
+                    selectedView: $selectedView,
+                    isRateAppViewPresented: $isRateAppViewPresented
+                )
             }
 
             if isRateAppViewPresented {
