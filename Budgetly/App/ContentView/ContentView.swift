@@ -15,6 +15,16 @@ enum SelectedView {
     case contacTheDeveloper
     // Добавьте другие представления, если нужно
 }
+//Еnum для периода времени
+enum TimePeriod: String, CaseIterable, Identifiable {
+    case day = "День"
+    case week = "Неделя"
+    case month = "Месяц"
+    case year = "Год"
+    case allTime = "Все время"
+
+    var id: String { self.rawValue }
+}
 
 struct ContentView: View {
     @Query private var transactions: [Transaction]
@@ -23,7 +33,7 @@ struct ContentView: View {
     @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
-    @State private var selectedTimePeriod: String = "Все время"
+    @State private var selectedTimePeriod: TimePeriod = .allTime
     @State private var selectedView: SelectedView = .contentView
     @State private var isMenuVisible = false
     @State private var isRateAppViewPresented = false // Управление видимостью окна оценки приложения
@@ -41,16 +51,16 @@ struct ContentView: View {
 
         return (selectedAccount?.transactions ?? []).filter { transaction in
             guard transaction.type == selectedTransactionType else { return false }
-            switch selectedTimePeriod {
-            case "День":
+            switch TimePeriod(rawValue: selectedTimePeriod.rawValue) ?? .allTime {
+            case .day:
                 return calendar.isDateInToday(transaction.date)
-            case "Неделя":
+            case .week:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
-            case "Месяц":
+            case .month:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
-            case "Год":
+            case .year:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
-            default:
+            case .allTime:
                 return true
             }
         }
@@ -160,9 +170,9 @@ struct ContentView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 5) {
-                    ForEach(["День", "Неделя", "Месяц", "Год", "Все время"], id: \.self) { period in
+                    ForEach(TimePeriod.allCases) { period in
                         Button(action: { selectedTimePeriod = period }) {
-                            Text(period)
+                            Text(period.rawValue)
                                 .font(.caption)
                                 .frame(width: 55, height: 5)
                                 .padding()
