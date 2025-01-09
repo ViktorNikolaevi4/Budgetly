@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-struct RegularPaymentsView: View {
+struct RegularPaymentsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @State private var isCreateReminderViewPresented = false
     @State private var selectedPayment: RegularPayment?
@@ -71,5 +71,5 @@ struct RegularPaymentsView: View {
 
 
 #Preview {
-    RegularPaymentsView()
+    RegularPaymentsScreen()
 }

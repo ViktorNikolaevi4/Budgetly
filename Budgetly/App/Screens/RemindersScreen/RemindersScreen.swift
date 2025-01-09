@@ -1,14 +1,7 @@
-//
-//  RemindersView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 16.11.2024.
-//
-
 import SwiftUI
 import SwiftData
 
-struct RemindersView: View {
+struct RemindersScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var reminders: [Reminder]
     @State private var isAddReminderViewPresented = false
@@ -62,5 +55,5 @@ struct RemindersView: View {
     }
 }
 #Preview {
-    RemindersView()
+    RemindersScreen()
 }

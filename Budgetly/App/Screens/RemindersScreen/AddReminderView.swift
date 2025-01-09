@@ -1,10 +1,3 @@
-//
-//  AddReminderView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 16.11.2024.
-//
-
 import SwiftUI
 import SwiftData
 

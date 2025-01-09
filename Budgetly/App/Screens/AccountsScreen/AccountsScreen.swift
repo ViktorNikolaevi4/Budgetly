@@ -1,14 +1,7 @@
-//
-//  AccountsView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 14.11.2024.
-//
-
 import SwiftUI
 import SwiftData
 
-struct AccountsView: View {
+struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var accounts: [Account]
 

@@ -1,10 +1,3 @@
-//
-//  MailComposerView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 17.11.2024.
-//
-
 import SwiftUI
 import MessageUI
 

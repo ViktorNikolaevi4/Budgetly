@@ -1,10 +1,3 @@
-//
-//  KeychainManager.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 17.11.2024.
-//
-
 import Security
 import Foundation
 
