@@ -16,6 +16,6 @@ struct IncomeView: View {
                 }
             }
         }
-        .navigationTitle("Доходы")
+       .navigationTitle("Доходы")
     }
 }

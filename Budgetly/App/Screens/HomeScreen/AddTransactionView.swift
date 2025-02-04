@@ -38,7 +38,7 @@ struct AddTransactionView: View {
                             .padding()
                             .background(selectedType == .expenses ? Color.black : Color.gray)
                             .foregroundColor(.white)
-                            .cornerRadius(8)
+                            .cornerRadius(10)
                     }
 
                     Button(action: {
@@ -49,7 +49,7 @@ struct AddTransactionView: View {
                             .padding()
                             .background(selectedType == .income ? Color.black : Color.gray)
                             .foregroundColor(.white)
-                            .cornerRadius(8)
+                            .cornerRadius(10)
                     }
                 }
                 .padding()
@@ -57,37 +57,40 @@ struct AddTransactionView: View {
                 // Ввод суммы
                 TextField("Введите сумму", text: $amount)
                     .keyboardType(.decimalPad)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
-
+                    .background(Color.gray.opacity(0.9)) // Серый фон с прозрачностью
+                    .cornerRadius(10) // Закругленные углы
+                    .foregroundColor(.white) // Цвет вводимого текста
+                    .padding(.horizontal)
                 // Выбор категории
                 Text("Категории")
                     .font(.headline)
 
                 // Используем LazyVGrid для отображения категорий в несколько строк
-                  LazyVGrid(columns: columns, spacing: 10) {
-                      ForEach(filteredCategories, id: \.name) { category in
-                          Button(action: {
-                              selectedCategory = category.name
-                          }) {
-                              Text(category.name)
-                                  .padding()
-                                  .frame(maxWidth: .infinity)
-                                  .background(selectedCategory == category.name ? Color.blue : Color.gray)
-                                  .foregroundColor(.white)
-                                  .cornerRadius(8)
-                          }
-                      }
-                        // Добавить новую категорию
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(filteredCategories, id: \.name) { category in
                         Button(action: {
-                            isShowingAlert = true
+                            selectedCategory = category.name
                         }) {
-                            Image(systemName: "plus.circle")
-                                .font(.largeTitle)
-                                .foregroundColor(.blue)
+                            Text(category.name)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(selectedCategory == category.name ? Color.black : Color.gray)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
                         }
                     }
-                    .padding()
+                    // Добавить новую категорию
+                    Button(action: {
+                        isShowingAlert = true
+                    }) {
+                        Image(systemName: "plus.circle")
+                            .font(.largeTitle)
+                           //  bold()
+                            .foregroundColor(.black)
+                    }
+                }
+                .padding()
 
                 Spacer()
 
@@ -99,21 +102,28 @@ struct AddTransactionView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.green)
+                        .background(Color.black)
                         .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .cornerRadius(10)
                 }
                 .padding()
             }
-            .navigationTitle("Добавление операции")
+            .background(GradientView()) // Градиентный фон
+            .scrollContentBackground(.hidden) // Убираем фон NavigationStack
+       //     .navigationTitle("Добавление операции")
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Добавление операции")
+                        .font(.title2)
+                        .foregroundStyle(.white)
+                }
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
                             .font(.title2)
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                     }
                 }
             }
@@ -127,7 +137,7 @@ struct AddTransactionView: View {
                     newCategory = ""
                 })
             }
-        }
+        }.foregroundStyle(.white)
     }
     // Функция для добавления новой категории
     private func addNewCategory() {

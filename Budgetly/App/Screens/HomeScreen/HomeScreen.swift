@@ -50,38 +50,50 @@ struct HomeScreen: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack {
-                accountView
 
-                transactionTypeControl
+            NavigationStack {
+                VStack {
+                    accountView
 
-                timePeriodPicker
+                    transactionTypeControl
 
-                PieChartView(transactions: filteredTransactions) // Перемещен ниже
+                    timePeriodPicker
 
-                List(filteredTransactions) { transaction in
-                    HStack {
-                        Text(transaction.category)
-                        Spacer()
-                        Text("\(transaction.amount, specifier: "%.2f") ₽")
-                            .foregroundColor(transaction.type == .expenses ? .red : .green)
+                    PieChartView(transactions: filteredTransactions) // Перемещен ниже
+
+                    List(filteredTransactions) { transaction in
+                        HStack {
+                            Text(transaction.category)
+                            Spacer()
+                            Text("\(transaction.amount, specifier: "%.2f") ₽")
+                                .foregroundColor(transaction.type == .expenses ? .red : .green)
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+                .padding()
+//                .navigationTitle("Бюджет")
+//                .navigationBarTitleDisplayMode(.inline)
+//                .toolbarColorScheme(.dark, for: .navigationBar)
+                .toolbar {
+                    ToolbarItem(placement: .principal) { // Центрируем заголовок и делаем белым
+                        Text("Бюджет")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white) // Делаем текст белым
                     }
                 }
-                .listStyle(.plain)
+                .background(GradientView()) // Градиентный фон
+                .scrollContentBackground(.hidden) // Убираем фон
             }
-            .padding()
-            .navigationTitle("Бюджет")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-        .onAppear {
-            if selectedAccount == nil {
-                selectedAccount = accounts.first
+            .onAppear {
+                if selectedAccount == nil {
+                    selectedAccount = accounts.first
+                }
             }
-        }
-        .sheet(isPresented: $isAddTransactionViewPresented) {
-            AddTransactionView(account: selectedAccount)
-        }
+            .sheet(isPresented: $isAddTransactionViewPresented) {
+                AddTransactionView(account: selectedAccount)
+            }
     }
 
     private var accountView: some View {
@@ -93,14 +105,19 @@ struct HomeScreen: View {
                 Spacer()
 
                 Picker("Выберите счет", selection: $selectedAccount) {
-                    Text("Выберите счет").tag(nil as Account?)
+                    Text("Выберите счет")
+                        .tag(nil as Account?)
                     ForEach(accounts) { account in
                         Text(account.name).tag(account as Account?)
                     }
                 }
+                .tint(.white) // Изменяет цвет выделенного текста на белый
+                .foregroundColor(.white) // Применяется ко всем текстам внутри Picker
             }
+            .foregroundStyle(.white)
 
-            Text("Мой бюджет")
+            Text("Баланс")
+                .foregroundStyle(.white)
 
             Text("\(saldo, specifier: "%.2f") ₽")
                 .foregroundColor(saldo >= 0 ? .green : .red)
@@ -112,13 +129,13 @@ struct HomeScreen: View {
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color.blue)
+            .background(Color.black)
             .foregroundStyle(.white)
             .cornerRadius(24)
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.2))
+        .background(Color.gray.opacity(0.8))
         .cornerRadius(24)
     }
 
@@ -153,6 +170,7 @@ struct HomeScreen: View {
         HStack {
             Text("Период")
                 .font(.headline)
+                .foregroundStyle(.white)
 
             Spacer()
 
@@ -161,6 +179,8 @@ struct HomeScreen: View {
                     Text(period.rawValue).tag(period)
                 }
             }
+            .tint(.white) // Изменяет цвет выделенного текста на белый
+            .foregroundColor(.white) // Применяется ко всем текстам внутри Picker
             .onAppear {
                 selectedTimePeriod = .allTime
             }
