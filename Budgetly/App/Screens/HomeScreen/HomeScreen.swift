@@ -27,6 +27,7 @@ struct HomeScreen: View {
     @State private var isCustomPeriodPickerPresented = false
 
     @State private var isGoldBagViewPresented = false
+    @State private var isStatsViewPresented = false
 
     @Environment(\.modelContext) private var modelContext
 
@@ -104,15 +105,24 @@ struct HomeScreen: View {
                             .fontWeight(.bold)
                             .foregroundColor(.white) // Делаем текст белым
                     }
-                    // Новый ToolbarItem (placement: .navigationBarTrailing) с иконкой мешка
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            isGoldBagViewPresented = true
-                        } label: {
-                            Image(systemName: "bag.fill") // Иконка "мешок"
-                                .foregroundColor(.white)
-                        }
-                    }
+                    // Группа элементов в правом верхнем углу
+                     ToolbarItemGroup(placement: .navigationBarTrailing) {
+                         // 1) Кнопка для статистики
+                         Button {
+                             isStatsViewPresented = true
+                         } label: {
+                             Image(systemName: "chart.bar.fill")
+                                 .foregroundColor(.white)
+                         }
+
+                         // 2) Кнопка для мешочка
+                         Button {
+                             isGoldBagViewPresented = true
+                         } label: {
+                             Image(systemName: "bag.fill")
+                                 .foregroundColor(.white)
+                         }
+                     }
                 }
                 .background(GradientView()) // Градиентный фон
                 .scrollContentBackground(.hidden) // Убираем фон
@@ -127,6 +137,9 @@ struct HomeScreen: View {
             }
             .sheet(isPresented: $isAddTransactionViewPresented) {
                 AddTransactionView(account: selectedAccount)
+            }
+            .sheet(isPresented: $isStatsViewPresented) {
+                StatsView()
             }
     }
 
