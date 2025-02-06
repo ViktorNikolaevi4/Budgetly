@@ -15,7 +15,9 @@ struct BudgetApp: App {
                                       Category.self,
                                       Account.self,
                                       RegularPayment.self,
-                                      Reminder.self
+                                      Reminder.self,
+                                      Asset.self,
+                                      AssetType.self
                                      ])
         }
     }

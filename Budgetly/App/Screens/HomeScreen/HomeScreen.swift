@@ -26,6 +26,8 @@ struct HomeScreen: View {
     @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
 
+    @State private var isGoldBagViewPresented = false
+
     @Environment(\.modelContext) private var modelContext
 
     /// Баланс за выбранный период (учитывает все доходы и расходы)
@@ -102,6 +104,15 @@ struct HomeScreen: View {
                             .fontWeight(.bold)
                             .foregroundColor(.white) // Делаем текст белым
                     }
+                    // Новый ToolbarItem (placement: .navigationBarTrailing) с иконкой мешка
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            isGoldBagViewPresented = true
+                        } label: {
+                            Image(systemName: "bag.fill") // Иконка "мешок"
+                                .foregroundColor(.white)
+                        }
+                    }
                 }
                 .background(GradientView()) // Градиентный фон
                 .scrollContentBackground(.hidden) // Убираем фон
@@ -110,6 +121,9 @@ struct HomeScreen: View {
                 if selectedAccount == nil {
                     selectedAccount = accounts.first
                 }
+            }
+            .sheet(isPresented: $isGoldBagViewPresented) {
+                GoldBagView()
             }
             .sheet(isPresented: $isAddTransactionViewPresented) {
                 AddTransactionView(account: selectedAccount)
