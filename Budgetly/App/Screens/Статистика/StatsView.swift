@@ -31,6 +31,8 @@ struct StatsView: View {
     @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
 
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -46,6 +48,18 @@ struct StatsView: View {
             .padding()
             .navigationTitle("Статистика")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // Кнопка-крестик слева
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss() // Закрываем Sheet
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.red)
+                    }
+                }
+            }
         }
         // Если выбрали "Выбрать период", показываем выбор дат
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
@@ -68,21 +82,27 @@ struct StatsView: View {
 
     // MARK: - Пикер периода (День, Неделя и т.д.)
     private var periodPicker: some View {
-        HStack {
-            Text("Период:")
-            Picker("Период", selection: $selectedTimePeriod) {
-                ForEach(TimePeriod.allCases) { period in
-                    Text(period.rawValue).tag(period)
+        Group {
+            if selectedSegment != .assets {
+                HStack {
+                    Text("Период:")
+                    Picker("Период", selection: $selectedTimePeriod) {
+                        ForEach(TimePeriod.allCases) { period in
+                            Text(period.rawValue).tag(period)
+                        }
+                    }
+                    .onChange(of: selectedTimePeriod) { _, newValue in
+                        if newValue == .custom {
+                            isCustomPeriodPickerPresented = true
+                        }
+                    }
                 }
-            }
-            .onChange(of: selectedTimePeriod) { _, newValue in
-                if newValue == .custom {
-                    isCustomPeriodPickerPresented = true
+                .onAppear {
+                    selectedTimePeriod = .allTime
                 }
+            } else {
+                EmptyView() // Возвращаем пустую вью
             }
-        }
-        .onAppear {
-            selectedTimePeriod = .allTime
         }
     }
 
@@ -91,22 +111,22 @@ struct StatsView: View {
     private var listOfFilteredItems: some View {
         switch selectedSegment {
         case .income:
-            // Показываем список доходов, отфильтрованных по периоду
-            List(filteredIncomeTransactions) { tx in
+            // Сгруппированные доходы
+            List(groupedIncomeTransactions, id: \.category) { group in
                 HStack {
-                    Text(tx.category)
+                    Text(group.category)
                     Spacer()
-                    Text("\(tx.amount, specifier: "%.2f") ₽")
+                    Text("\(group.total, specifier: "%.2f") ₽")
                         .foregroundColor(.green)
                 }
             }
         case .expenses:
-            // Показываем список расходов, отфильтрованных по периоду
-            List(filteredExpenseTransactions) { tx in
+            // Сгруппированные расходы
+            List(groupedExpenseTransactions, id: \.category) { group in
                 HStack {
-                    Text(tx.category)
+                    Text(group.category)
                     Spacer()
-                    Text("\(tx.amount, specifier: "%.2f") ₽")
+                    Text("\(group.total, specifier: "%.2f") ₽")
                         .foregroundColor(.red)
                 }
             }
@@ -129,6 +149,20 @@ struct StatsView: View {
         }
     }
 
+    // MARK: - Группировка транзакций по категориям и суммирование
+    private func groupedTransactions(_ transactions: [Transaction]) -> [(category: String, total: Double)] {
+        // Используем Dictionary(grouping:by:) для группировки
+        let dict = Dictionary(grouping: transactions, by: { $0.category })
+
+        // Превращаем словарь в массив структур (category, total)
+        // total — это сумма amounts в рамках каждой категории
+        return dict.map { (category, txs) in
+            let total = txs.reduce(0) { $0 + $1.amount }
+            return (category: category, total: total)
+        }
+        .sorted { $0.category < $1.category }
+    }
+
     // MARK: - Фильтр доходов по периоду
     private var filteredIncomeTransactions: [Transaction] {
         transactions
@@ -141,6 +175,15 @@ struct StatsView: View {
         transactions
             .filter { $0.type == .expenses }
             .filter(isInSelectedPeriod)
+    }
+
+    // MARK: - Сгруппированные доходы и расходы
+    private var groupedIncomeTransactions: [(category: String, total: Double)] {
+        groupedTransactions(filteredIncomeTransactions)
+    }
+
+    private var groupedExpenseTransactions: [(category: String, total: Double)] {
+        groupedTransactions(filteredExpenseTransactions)
     }
 
     // MARK: - Проверка, попадает ли дата транзакции в выбранный период
@@ -163,4 +206,3 @@ struct StatsView: View {
         }
     }
 }
-
