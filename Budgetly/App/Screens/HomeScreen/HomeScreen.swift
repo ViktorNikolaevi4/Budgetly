@@ -106,23 +106,23 @@ struct HomeScreen: View {
                             .foregroundColor(.white) // Делаем текст белым
                     }
                     // Группа элементов в правом верхнем углу
-                     ToolbarItemGroup(placement: .navigationBarTrailing) {
-                         // 1) Кнопка для статистики
-                         Button {
-                             isStatsViewPresented = true
-                         } label: {
-                             Image(systemName: "chart.bar.fill")
-                                 .foregroundColor(.white)
-                         }
-
-                         // 2) Кнопка для мешочка
-                         Button {
-                             isGoldBagViewPresented = true
-                         } label: {
-                             Image(systemName: "bag.fill")
-                                 .foregroundColor(.white)
-                         }
-                     }
+//                     ToolbarItemGroup(placement: .navigationBarTrailing) {
+//                         // 1) Кнопка для статистики
+//                         Button {
+//                             isStatsViewPresented = true
+//                         } label: {
+//                             Image(systemName: "chart.bar.fill")
+//                                 .foregroundColor(.white)
+//                         }
+//
+//                         // 2) Кнопка для мешочка
+//                         Button {
+//                             isGoldBagViewPresented = true
+//                         } label: {
+//                             Image(systemName: "bag.fill")
+//                                 .foregroundColor(.white)
+//                         }
+//                     }
                 }
                 .background(GradientView()) // Градиентный фон
                 .scrollContentBackground(.hidden) // Убираем фон
@@ -132,15 +132,15 @@ struct HomeScreen: View {
                     selectedAccount = accounts.first
                 }
             }
-            .sheet(isPresented: $isGoldBagViewPresented) {
-                GoldBagView()
-            }
-            .sheet(isPresented: $isAddTransactionViewPresented) {
-                AddTransactionView(account: selectedAccount)
-            }
-            .sheet(isPresented: $isStatsViewPresented) {
-                StatsView()
-            }
+//            .sheet(isPresented: $isGoldBagViewPresented) {
+//                GoldBagView()
+//            }
+//            .sheet(isPresented: $isAddTransactionViewPresented) {
+//                AddTransactionView(account: selectedAccount)
+//            }
+//            .sheet(isPresented: $isStatsViewPresented) {
+//                StatsView()
+//            }
     }
 
     private var accountView: some View {

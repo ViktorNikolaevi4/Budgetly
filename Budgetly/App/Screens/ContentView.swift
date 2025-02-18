@@ -33,14 +33,14 @@ struct ContentView: View {
                 .tabItem {
                     Label("Счета", systemImage: "creditcard")
                 }
-            RegularPaymentsScreen()
+            GoldBagView()
                 .tabItem {
-                    Label("Платежи", systemImage: "scroll")
+                    Label("Активы", systemImage: "bag.fill")
                 }
-            RemindersScreen()
+
+            StatsView()
                 .tabItem {
-                    Label("Напоминания", systemImage: "bell")
-                        .symbolRenderingMode(.hierarchical)
+                    Label("Статистика", systemImage: "chart.bar.fill")
                 }
             SettingsScreen()
                 .tabItem {

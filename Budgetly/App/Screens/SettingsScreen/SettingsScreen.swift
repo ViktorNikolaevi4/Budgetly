@@ -35,6 +35,15 @@ struct SettingsScreen: View {
                                    Label("Написать разработчикам", systemImage: "envelope")
                                }
                            }
+                           // Новый раздел "Дополнительно" — или как вы хотите назвать
+                           Section("Дополнительно") {
+                               NavigationLink(destination: RegularPaymentsScreen()) {
+                                   Label("Регулярные платежи", systemImage: "scroll")
+                               }
+                               NavigationLink(destination: RemindersScreen()) {
+                                   Label("Напоминания", systemImage: "bell")
+                               }
+                           }
                        }
                        .listStyle(InsetGroupedListStyle())
                        .navigationTitle("Настройки")
