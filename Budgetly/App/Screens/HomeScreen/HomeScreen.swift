@@ -89,20 +89,27 @@ struct HomeScreen: View {
                     PieChartView(transactions: filteredTransactions) // Перемещен ниже
 
                     ScrollView {
-                        LazyVGrid(columns: columns, spacing: 16) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
                             ForEach(filteredTransactions) { transaction in
                                 // Карточка
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: 2) {
                                     Text(transaction.category)
-                                        .font(.headline)
+                                        .font(.body)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                        .minimumScaleFactor(0.8)
 
                                     Text("\(transaction.amount, specifier: "%.0f")")
                                         .foregroundColor(
-                                            transaction.type == .expenses ? .red : .green
+                                            .primary
                                         )
-                                        .font(.body)
+                                        .font(.headline)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                        .minimumScaleFactor(0.8)
                                 }
-                                .padding()
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
                                 .frame(maxWidth: .infinity)
                                 .background(Color.white)
                                 .cornerRadius(12)
