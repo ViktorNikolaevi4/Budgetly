@@ -137,7 +137,7 @@ struct AddTransactionView: View {
                     newCategory = ""
                 })
             }
-        }.foregroundStyle(.white)
+        }.foregroundStyle(.black)
     }
     // Функция для добавления новой категории
     private func addNewCategory() {

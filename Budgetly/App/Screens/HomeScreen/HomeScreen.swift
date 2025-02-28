@@ -31,6 +31,10 @@ struct HomeScreen: View {
 
     @Environment(\.modelContext) private var modelContext
 
+    private let columns = [
+        GridItem(.adaptive(minimum: 100))
+    ]
+
     /// Баланс за выбранный период (учитывает все доходы и расходы)
     private var saldo: Double {
         let income = allPeriodTransactions
@@ -84,18 +88,44 @@ struct HomeScreen: View {
 
                     PieChartView(transactions: filteredTransactions) // Перемещен ниже
 
-                    List {
-                        ForEach(filteredTransactions) { transaction in
-                            HStack {
-                                Text(transaction.category)
-                                Spacer()
-                                Text("\(transaction.amount, specifier: "%.2f") ₽")
-                                    .foregroundColor(transaction.type == .expenses ? .red : .green)
+                    ScrollView {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(filteredTransactions) { transaction in
+                                // Карточка
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(transaction.category)
+                                        .font(.headline)
+
+                                    Text("\(transaction.amount, specifier: "%.0f")")
+                                        .foregroundColor(
+                                            transaction.type == .expenses ? .red : .green
+                                        )
+                                        .font(.body)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .shadow(color: .black.opacity(0.1),
+                                        radius: 4,
+                                        x: 0,
+                                        y: 2)
+                                // Пример swipeActions (iOS 15+),
+                                // но в гриде он будет работать чуть менее очевидно:
+                                .swipeActions {
+                                    Button(role: .destructive) {
+                                        if let index = filteredTransactions.firstIndex(where: { $0.id == transaction.id }) {
+                                            deleteTransaction(at: IndexSet(integer: index))
+                                        }
+                                    } label: {
+                                        Text("Удалить")
+                                    }
+                                }
                             }
                         }
-                        .onDelete(perform: deleteTransaction)
+                        .padding(.horizontal)
+                        .padding(.vertical)
                     }
-                    .listStyle(.plain)
                 }
                 .padding()
                 .toolbar {
@@ -135,9 +165,9 @@ struct HomeScreen: View {
 //            .sheet(isPresented: $isGoldBagViewPresented) {
 //                GoldBagView()
 //            }
-//            .sheet(isPresented: $isAddTransactionViewPresented) {
-//                AddTransactionView(account: selectedAccount)
-//            }
+            .sheet(isPresented: $isAddTransactionViewPresented) {
+                AddTransactionView(account: selectedAccount)
+            }
 //            .sheet(isPresented: $isStatsViewPresented) {
 //                StatsView()
 //            }
