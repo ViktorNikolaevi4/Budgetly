@@ -48,17 +48,22 @@ struct ContentView: View {
                         .symbolRenderingMode(.hierarchical)
                 }
         }
+        .background(Color(UIColor.systemGray6)) // Фон TabView
         .onAppear {
             let appearance = UITabBarAppearance()
-            appearance.configureWithTransparentBackground() // Прозрачный фон, чтобы сливался
+            appearance.configureWithOpaqueBackground()
 
-            // Цвет выбранной кнопки (иконка и текст)
-            appearance.stackedLayoutAppearance.selected.iconColor = .black
-            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor.black]
+            // Цвет фона Tab Bar (как на макете)
+            appearance.backgroundColor = UIColor.systemGray6
 
-            // Цвет НЕ выбранных кнопок (иконка и текст)
-            appearance.stackedLayoutAppearance.normal.iconColor = .white
-            appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.white]
+            // Настройка цветов иконок и текста
+            let selectedColor = UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)
+
+            appearance.stackedLayoutAppearance.selected.iconColor = selectedColor
+            appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: selectedColor]
+
+            appearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
+            appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.gray]
 
             UITabBar.appearance().standardAppearance = appearance
             UITabBar.appearance().scrollEdgeAppearance = appearance

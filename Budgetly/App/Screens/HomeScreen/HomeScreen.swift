@@ -137,10 +137,10 @@ struct HomeScreen: View {
                 .padding()
                 .toolbar {
                     ToolbarItem(placement: .principal) { // Центрируем заголовок и делаем белым
-                        Text("Бюджет")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white) // Делаем текст белым
+                        Text("Мой Бюджет")
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .foregroundColor(.black) // Делаем текст белым
                     }
                     // Группа элементов в правом верхнем углу
 //                     ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -183,9 +183,13 @@ struct HomeScreen: View {
     private var accountView: some View {
         VStack(spacing: 20) {
             HStack {
-                Text("Счет")
-                    .font(.headline)
-
+                HStack {
+                    Image(systemName: "creditcard")
+                    Text("Счет")
+                        .font(.headline)
+                }
+                .foregroundStyle(.black)
+                .fontWeight(.bold)
                 Spacer()
 
                 Picker("Выберите счет", selection: $selectedAccount) {
@@ -195,31 +199,31 @@ struct HomeScreen: View {
                         Text(account.name).tag(account as Account?)
                     }
                 }
-                .tint(.white) // Изменяет цвет выделенного текста на белый
-                .foregroundColor(.white) // Применяется ко всем текстам внутри Picker
+                .tint(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) // Изменяет цвет выделенного текста на белый
+                .foregroundColor(.black) // Применяется ко всем текстам внутри Picker
             }
             .foregroundStyle(.white)
 
             Text("Баланс")
-                .foregroundStyle(.white)
+                .foregroundStyle(.gray)
 
             Text("\(saldo, specifier: "%.2f") ₽")
-                .foregroundColor(saldo >= 0 ? .green : .red)
+                .foregroundColor(.black)
                 .font(.title)
-                .fontWeight(.semibold)
+                .fontWeight(.bold)
 
             Button("Добавить операцию") {
                 isAddTransactionViewPresented = true
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color.black)
+            .background(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)))
             .foregroundStyle(.white)
             .cornerRadius(24)
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .background(Color.gray.opacity(0.8))
+        .background(Color.white)
         .cornerRadius(24)
     }
 
