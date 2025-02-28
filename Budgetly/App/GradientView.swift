@@ -9,14 +9,13 @@ import SwiftUI
 
 struct GradientView: View {
     var body: some View {
-        RadialGradient(
+        LinearGradient(
             gradient: Gradient(colors: [
-                Color(red: 60/255, green: 77/255, blue: 90/255),
-                Color(red: 30/255, green: 45/255, blue: 55/255)
+                Color(red: 230/255, green: 230/255, blue: 235/255),
+                Color(red: 241/255, green: 242/255, blue: 244/255)
             ]),
-            center: .center,
-            startRadius: 20,
-            endRadius: 400
+            startPoint: .top,
+            endPoint: .bottom
         )
         .ignoresSafeArea()
     }
@@ -25,3 +24,4 @@ struct GradientView: View {
 #Preview {
     GradientView()
 }
+
