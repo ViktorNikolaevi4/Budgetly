@@ -225,6 +225,7 @@ struct HomeScreen: View {
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .cornerRadius(24)
+        .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 4)
     }
 
     private var transactionTypeControl: some View {
@@ -233,6 +234,7 @@ struct HomeScreen: View {
             Text("Доходы").tag(TransactionType.income)
         }
         .pickerStyle(.segmented)
+        .frame(width: 240, height: 50)
     }
 
 //    private var timePeriodPicker: some View {
@@ -257,8 +259,9 @@ struct HomeScreen: View {
     private var timePeriodPicker: some View {
         HStack {
             Text("Период")
-                .font(.headline)
-                .foregroundStyle(.white)
+                .font(.title2)
+                .foregroundStyle(.black)
+                .fontWeight(.bold)
 
             Spacer()
 
@@ -267,7 +270,7 @@ struct HomeScreen: View {
                     Text(period.rawValue).tag(period)
                 }
             }
-            .tint(.white)
+            .tint(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)))
             .foregroundColor(.white)
             .onChange(of: selectedTimePeriod) { _, newValue in
                 if newValue == .custom {

@@ -27,7 +27,7 @@ struct ContentView: View {
         TabView {
             HomeScreen()
                 .tabItem {
-                    Label("Главная", systemImage: "chart.pie")
+                    Label("Главная", systemImage: "house.fill")
                 }
             AccountsScreen()
                 .tabItem {
