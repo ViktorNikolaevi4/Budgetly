@@ -36,9 +36,9 @@ struct AddTransactionView: View {
                         Text("Расходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == .expenses ? Color.black : Color.gray)
+                            .background(selectedType == .expenses ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray)
                             .foregroundColor(.white)
-                            .cornerRadius(10)
+                            .cornerRadius(24)
                     }
 
                     Button(action: {
@@ -47,9 +47,9 @@ struct AddTransactionView: View {
                         Text("Доходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == .income ? Color.black : Color.gray)
+                            .background(selectedType == .income ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray)
                             .foregroundColor(.white)
-                            .cornerRadius(10)
+                            .cornerRadius(24)
                     }
                 }
                 .padding()
@@ -75,9 +75,21 @@ struct AddTransactionView: View {
                             Text(category.name)
                                 .padding()
                                 .frame(maxWidth: .infinity)
-                                .background(selectedCategory == category.name ? Color.black : Color.gray)
+                                .frame(height: 50)
+                                .background(selectedCategory == category.name ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray)
                                 .foregroundColor(.white)
-                                .cornerRadius(10)
+                                .cornerRadius(24)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .minimumScaleFactor(0.5)
+                        }
+                        // Добавляем контекстное меню для удаления
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                removeCategory(category)
+                            } label: {
+                                Label("Удалить категорию", systemImage: "trash")
+                            }
                         }
                     }
                     // Добавить новую категорию
@@ -102,9 +114,9 @@ struct AddTransactionView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.black)
+                        .background((Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))))
                         .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .cornerRadius(24)
                 }
                 .padding()
             }
@@ -114,16 +126,18 @@ struct AddTransactionView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Добавление операции")
-                        .font(.title2)
-                        .foregroundStyle(.white)
+                        .font(.title3)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.black)
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
-                            .font(.title2)
-                            .foregroundStyle(.white)
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.black)
                     }
                 }
             }
@@ -158,16 +172,73 @@ struct AddTransactionView: View {
             print("Ошибка при сохранении категории: \(error)")
         }
     }
+    // Функция для удаления категории
+    private func removeCategory(_ category: Category) {
+        guard let account = account else { return }
+
+        // 1. Находим все транзакции, у которых `transaction.category` совпадает с именем удаляемой категории
+        let transactionsToRemove = account.transactions.filter { $0.category == category.name }
+
+        // 2. Удаляем все эти транзакции из modelContext
+        for transaction in transactionsToRemove {
+            modelContext.delete(transaction)
+        }
+
+        // 3. Теперь удаляем саму категорию
+        modelContext.delete(category)
+
+        // 4. Сохраняем изменения
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при удалении категории: \(error)")
+        }
+    }
 
     // Функция для сохранения транзакции
     private func saveTransaction() {
-        if let amountValue = Double(amount), let account = account {
-            let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
-            let newTransaction = Transaction(category: selectedCategory, amount: amountValue, type: transactionType, account: account)
-            modelContext.insert(newTransaction) // Добавляем транзакцию в SwiftData
+        guard
+            let account = account,
+            let amountValue = Double(amount),
+            !selectedCategory.isEmpty
+        else {
+            return
+        }
+        // Текущая дата или дата, выбранная пользователем
+        let newTransactionDate = Date()
+        // Если пользователь выбирает дату вручную — подставьте её вместо Date()
+        let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
+        // Ищем существующую транзакцию, у которой:
+        // 1) такая же категория
+        // 2) такой же тип (доход/расход)
+        // 3) дата совпадает по дню
+        if let existingTransaction = account.transactions.first(where: { transaction in
+            transaction.category == selectedCategory &&
+            transaction.type == transactionType &&
+            Calendar.current.isDate(transaction.date, inSameDayAs: newTransactionDate)
+        }) {
+            // Если нашли, то увеличиваем её сумму
+            existingTransaction.amount += amountValue
+        } else {
+            // Иначе создаём новую
+            let newTransaction = Transaction(
+                category: selectedCategory,
+                amount: amountValue,
+                type: transactionType,
+                account: account
+            )
+            // Не забудьте сохранить дату
+            newTransaction.date = newTransactionDate
+
+            modelContext.insert(newTransaction)
             account.transactions.append(newTransaction)
-            try? modelContext.save() // Сохраняем изменения
+        }
+
+        do {
+            try modelContext.save()
             dismiss()
+        } catch {
+            print("Ошибка при сохранении: \(error)")
         }
     }
 }

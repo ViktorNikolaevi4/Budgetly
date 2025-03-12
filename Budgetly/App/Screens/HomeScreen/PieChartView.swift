@@ -10,14 +10,16 @@ struct PieChartView: View {
     var body: some View {
         VStack {
             Chart(transactions) { transaction in
-                // Используем круговую диаграмму с сектором
                 SectorMark(
                     angle: .value("Amount", transaction.amount),
-                    innerRadius: .ratio(0.5),
+                    innerRadius: .ratio(0.7),
                     outerRadius: .ratio(1.0)
                 )
                 .foregroundStyle(by: .value("Category", transaction.category))
             }
+            .chartLegend(.hidden) // скрываем легенду
+         //   .frame(width: 200, height: 200)
+         //   .frame(width: 150, height: 150)
         }
     }
 }
