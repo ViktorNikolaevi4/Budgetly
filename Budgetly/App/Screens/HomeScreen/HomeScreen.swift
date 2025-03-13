@@ -77,16 +77,16 @@ struct HomeScreen: View {
     }
 
     var body: some View {
-
             NavigationStack {
-                VStack {
-                    accountView
-
-                    transactionTypeControl
+                VStack(spacing: 20) {
+                    VStack(spacing: 32) {
+                        accountView
+                        transactionTypeControl
+                    }
 
                     timePeriodPicker
 
-                    PieChartView(transactions: filteredTransactions) // Перемещен ниже
+                    PieChartView(transactions: filteredTransactions)
 
                     ScrollView {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
@@ -94,15 +94,12 @@ struct HomeScreen: View {
                                 // Карточка
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(transaction.category)
-                                        .font(.body)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                         .minimumScaleFactor(0.8)
 
                                     Text("\(transaction.amount, specifier: "%.0f") ₽")
-                                        .foregroundColor(
-                                            .primary 
-                                        )
+                                        .foregroundColor(.primary)
                                         .font(.headline)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
@@ -116,10 +113,7 @@ struct HomeScreen: View {
                                         .opacity(0.8)
                                 )
                                 .cornerRadius(12)
-                                .shadow(color: .black.opacity(0.1),
-                                        radius: 4,
-                                        x: 0,
-                                        y: 2)
+                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
                                 .contextMenu {
@@ -133,40 +127,13 @@ struct HomeScreen: View {
                                 }
                             }
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical)
+                        .padding()
                     }
                 }
+                .navigationTitle("Мой Бюджет")
                 .navigationBarTitleDisplayMode(.inline)
                 .padding()
-                .toolbar {
-                    ToolbarItem(placement: .principal) { // Центрируем заголовок и делаем белым
-                        Text("Мой Бюджет")
-                            .font(.title3)
-                            .fontWeight(.medium)
-                            .foregroundColor(.black)
-                    }
-                    // Группа элементов в правом верхнем углу
-//                     ToolbarItemGroup(placement: .navigationBarTrailing) {
-//                         // 1) Кнопка для статистики
-//                         Button {
-//                             isStatsViewPresented = true
-//                         } label: {
-//                             Image(systemName: "chart.bar.fill")
-//                                 .foregroundColor(.white)
-//                         }
-//
-//                         // 2) Кнопка для мешочка
-//                         Button {
-//                             isGoldBagViewPresented = true
-//                         } label: {
-//                             Image(systemName: "bag.fill")
-//                                 .foregroundColor(.white)
-//                         }
-//                     }
-                }
-                .background(GradientView()) // Градиентный фон
-                .scrollContentBackground(.hidden) // Убираем фон
+                .background(.backgroundLightGray)
             }
             .onAppear {
             //    seedDefaultCategoriesIfNeeded()
@@ -189,13 +156,14 @@ struct HomeScreen: View {
     private var accountView: some View {
         VStack(spacing: 20) {
             HStack {
-                HStack {
+                HStack(spacing: 4) {
                     Image(systemName: "creditcard")
                     Text("Счет")
                         .font(.headline)
                 }
-                .foregroundStyle(.black)
-                .fontWeight(.bold)
+                .foregroundStyle(.primary)
+                .font(.headline)
+
                 Spacer()
 
                 Picker("Выберите счет", selection: $selectedAccount) {
@@ -205,33 +173,35 @@ struct HomeScreen: View {
                         Text(account.name).tag(account as Account?)
                     }
                 }
-                .tint(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) // Изменяет цвет выделенного текста на белый
-                .foregroundColor(.black) // Применяется ко всем текстам внутри Picker
+                .tint(.royalBlue).opacity(0.85) // Изменяет цвет выделенного текста на белый
             }
-            .foregroundStyle(.white)
 
-            Text("Баланс")
-                .foregroundStyle(.gray)
+            VStack (spacing: 8) {
+                Text("Баланс")
+                    .foregroundStyle(.secondary)
+                    .font(.subheadline)
 
-            Text("\(saldo, specifier: "%.1f") ₽")
-                .foregroundColor(.black)
-                .font(.title)
-                .fontWeight(.bold)
+                Text("\(saldo, specifier: "%.1f") ₽")
+                    .foregroundColor(.primary)
+                    .font(.title)
+                    .fontWeight(.bold)
+            }
 
             Button("Добавить операцию") {
                 isAddTransactionViewPresented = true
             }
             .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)))
+            .frame(height: 48)
+            .background(.appPurple)
             .foregroundStyle(.white)
+            .font(.headline)
             .cornerRadius(24)
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .cornerRadius(24)
-        .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.18), radius: 8, x: 3, y: 6)
     }
 
     private var transactionTypeControl: some View {
@@ -240,35 +210,14 @@ struct HomeScreen: View {
             Text("Доходы").tag(TransactionType.income)
         }
         .pickerStyle(.segmented)
-        .frame(width: 240, height: 50)
+        .frame(width: 240)
     }
-
-
-//    private var timePeriodPicker: some View {
-//        ScrollView(.horizontal, showsIndicators: false) {
-//            HStack(spacing: 5) {
-//                ForEach(TimePeriod.allCases) { period in
-//                    Button(action: { selectedTimePeriod = period }) {
-//                        Text(period.rawValue)
-//                            .font(.caption)
-//                            .frame(width: 55, height: 5)
-//                            .padding()
-//                            .background(selectedTimePeriod == period ? Color.blue : Color.gray)
-//                            .foregroundColor(.white)
-//                            .cornerRadius(8)
-//                    }
-//                }
-//            }
-//        }
-//        .padding(.bottom) // Отступ перед графиком
-//    }
 
     private var timePeriodPicker: some View {
         HStack {
             Text("Период")
-                .font(.title2)
-                .foregroundStyle(.black)
-                .fontWeight(.bold)
+                .font(.title3).bold()
+                .foregroundStyle(.primary)
 
             Spacer()
 
@@ -277,8 +226,7 @@ struct HomeScreen: View {
                     Text(period.rawValue).tag(period)
                 }
             }
-            .tint(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)))
-            .foregroundColor(.white)
+            .tint(.royalBlue).opacity(0.85)
             .onChange(of: selectedTimePeriod) { _, newValue in
                 if newValue == .custom {
                     isCustomPeriodPickerPresented = true
@@ -297,6 +245,7 @@ struct HomeScreen: View {
             )
         }
     }
+
     // Удаление транзакции
     private func deleteTransaction(at offsets: IndexSet) {
         // Индексы соответствуют позициям в filteredTransactions
@@ -313,6 +262,7 @@ struct HomeScreen: View {
         }
     }
 }
+
 //экран, где пользователь выберет даты
 struct CustomPeriodPickerView: View {
     @Environment(\.dismiss) private var dismiss
