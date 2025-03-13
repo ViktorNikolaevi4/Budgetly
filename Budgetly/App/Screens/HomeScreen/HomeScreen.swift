@@ -134,13 +134,14 @@ struct HomeScreen: View {
                         .padding(.vertical)
                     }
                 }
+                .navigationBarTitleDisplayMode(.inline)
                 .padding()
                 .toolbar {
                     ToolbarItem(placement: .principal) { // Центрируем заголовок и делаем белым
                         Text("Мой Бюджет")
                             .font(.title3)
                             .fontWeight(.medium)
-                            .foregroundColor(.black) // Делаем текст белым
+                            .foregroundColor(.black)
                     }
                     // Группа элементов в правом верхнем углу
 //                     ToolbarItemGroup(placement: .navigationBarTrailing) {
@@ -165,6 +166,8 @@ struct HomeScreen: View {
                 .scrollContentBackground(.hidden) // Убираем фон
             }
             .onAppear {
+            //    seedDefaultCategoriesIfNeeded()
+
                 if selectedAccount == nil {
                     selectedAccount = accounts.first
                 }
@@ -225,7 +228,7 @@ struct HomeScreen: View {
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .cornerRadius(24)
-        .shadow(color: Color.black.opacity(0.5), radius: 10, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 4)
     }
 
     private var transactionTypeControl: some View {
@@ -236,6 +239,7 @@ struct HomeScreen: View {
         .pickerStyle(.segmented)
         .frame(width: 240, height: 50)
     }
+
 
 //    private var timePeriodPicker: some View {
 //        ScrollView(.horizontal, showsIndicators: false) {
@@ -279,7 +283,7 @@ struct HomeScreen: View {
             }
 
             .onAppear {
-                selectedTimePeriod = .allTime
+                selectedTimePeriod = .day
             }
         }
         // При желании — sheet или .fullScreenCover

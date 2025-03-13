@@ -5,21 +5,45 @@ struct PieChartView: View {
 
     var transactions: [Transaction]
 
+    /// Общая сумма всех транзакций, которые приходят в этот PieChartView
+    private var totalAmount: Double {
+        transactions.reduce(0) { $0 + $1.amount }
+    }
+
     @State private var selectedTimePeriod: String = "День"
 
+    private var currentType: TransactionType {
+        transactions.first?.type ?? .income
+    }
+
     var body: some View {
-        VStack {
+        ZStack {
+            // Сама диаграмма
             Chart(transactions) { transaction in
                 SectorMark(
                     angle: .value("Amount", transaction.amount),
-                    innerRadius: .ratio(0.7),
+                    innerRadius: .ratio(0.7),  // Можно менять, чтобы центр был больше/меньше
                     outerRadius: .ratio(1.0)
                 )
                 .foregroundStyle(by: .value("Category", transaction.category))
             }
-            .chartLegend(.hidden) // скрываем легенду
-         //   .frame(width: 200, height: 200)
-         //   .frame(width: 150, height: 150)
+            .chartLegend(.hidden)
+        //    .frame(width: 200, height: 200) // Размер диаграммы при желании
+
+            // Текст в центре
+            VStack(spacing: 4) {
+                // Например, пишем «Доходы» или «Расходы»
+                let title = currentType == .income ? "Доходы" : "Расходы"
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+
+                // Сама сумма
+                Text("\(totalAmount, specifier: "%.0f")")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
         }
     }
 }
