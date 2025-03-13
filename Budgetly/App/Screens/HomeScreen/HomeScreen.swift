@@ -119,13 +119,13 @@ struct HomeScreen: View {
                                         y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
-                                .swipeActions {
+                                .contextMenu {
                                     Button(role: .destructive) {
                                         if let index = filteredTransactions.firstIndex(where: { $0.id == transaction.id }) {
                                             deleteTransaction(at: IndexSet(integer: index))
                                         }
                                     } label: {
-                                        Text("Удалить")
+                                        Label("Удалить", systemImage: "trash")
                                     }
                                 }
                             }
