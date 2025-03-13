@@ -111,7 +111,10 @@ struct HomeScreen: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
                                 .frame(maxWidth: .infinity)
-                                .background(Color.colorForCategoryName(transaction.category).opacity(0.8))
+                                .background(
+                                    Color.colorForCategoryName(transaction.category, type: transaction.type)
+                                        .opacity(0.8)
+                                )
                                 .cornerRadius(12)
                                 .shadow(color: .black.opacity(0.1),
                                         radius: 4,

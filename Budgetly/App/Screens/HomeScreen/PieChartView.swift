@@ -25,8 +25,9 @@ struct PieChartView: View {
                     innerRadius: .ratio(0.7),  // Можно менять, чтобы центр был больше/меньше
                     outerRadius: .ratio(1.0)
                 )
-                .foregroundStyle(Color.colorForCategoryName(transaction.category))
-            }
+                .foregroundStyle(
+                    Color.colorForCategoryName(transaction.category, type: transaction.type)
+                )            }
             .chartLegend(.hidden)
         //    .frame(width: 200, height: 200) // Размер диаграммы при желании
 
@@ -62,24 +63,70 @@ struct CustomButtonStyle: ButtonStyle {
 }
 
 extension Color {
-    /// Генерирует цвет на основе хеша строки.
-    /// Для одинаковых названий категорий будет один и тот же цвет.
-    static func colorForCategoryName(_ name: String) -> Color {
-        // Берём хеш от строки
+    /// Словари для хранения уже назначенных цветов
+    private static var assignedColorsForIncome: [String: Color] = [:]
+    private static var assignedColorsForExpenses: [String: Color] = [:]
+
+    /// Счётчики, сколько предопределённых цветов уже использовано
+    private static var usedCountIncome = 0
+    private static var usedCountExpenses = 0
+
+    /// Массив предопределённых цветов
+    private static let predefinedColors: [Color] = [.red, .green, .blue, .orange, .purple, .pink]
+
+    /// Возвращает цвет для (название категории, тип транзакции).
+    /// - Если для этой категории ещё не назначен цвет:
+    ///   - Если мы не исчерпали 6 «predefinedColors», выдаём следующий.
+    ///   - Иначе генерируем цвет на основе хэша названия.
+    /// - Если цвет уже назначен, возвращаем его.
+    static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
+        switch type {
+        case .income:
+            // Если уже есть цвет для этой категории доходов — возвращаем
+            if let assigned = assignedColorsForIncome[name] {
+                return assigned
+            } else {
+                let newColor: Color
+                if usedCountIncome < predefinedColors.count {
+                    newColor = predefinedColors[usedCountIncome]
+                    usedCountIncome += 1
+                } else {
+                    // Генерируем цвет на основе хеша названия
+                    newColor = colorFromHash(name)
+                }
+                assignedColorsForIncome[name] = newColor
+                return newColor
+            }
+
+        case .expenses:
+            // Аналогичная логика для расходов
+            if let assigned = assignedColorsForExpenses[name] {
+                return assigned
+            } else {
+                let newColor: Color
+                if usedCountExpenses < predefinedColors.count {
+                    newColor = predefinedColors[usedCountExpenses]
+                    usedCountExpenses += 1
+                } else {
+                    newColor = colorFromHash(name)
+                }
+                assignedColorsForExpenses[name] = newColor
+                return newColor
+            }
+        }
+    }
+
+    /// Вспомогательный метод для генерации "стабильного" цвета по хэшу строки
+    private static func colorFromHash(_ name: String) -> Color {
         let hash = name.hashValue
-
-        // Из хеша извлекаем hue (оттенок) от 0 до 1
-        // Например, берём остаток по модулю 360, чтобы получить угол в градусах, и делим на 360
-        // Чтобы избежать отрицательных значений, можно взять абсолютное значение или "прокрутить" в позитив
         let hue = Double((hash % 360 + 360) % 360) / 360.0
-
-        // saturation и brightness можно выбрать по вкусу
         let saturation = 0.5
         let brightness = 0.8
-
         return Color(hue: hue, saturation: saturation, brightness: brightness)
     }
 }
+
+
 //// Пример для превью
 //struct PieChartView_Previews: PreviewProvider {
 //    static var previews: some View {
