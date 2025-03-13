@@ -99,9 +99,9 @@ struct HomeScreen: View {
                                         .truncationMode(.tail)
                                         .minimumScaleFactor(0.8)
 
-                                    Text("\(transaction.amount, specifier: "%.0f")")
+                                    Text("\(transaction.amount, specifier: "%.0f") ₽")
                                         .foregroundColor(
-                                            .primary
+                                            .primary 
                                         )
                                         .font(.headline)
                                         .lineLimit(1)
@@ -111,7 +111,7 @@ struct HomeScreen: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
                                 .frame(maxWidth: .infinity)
-                                .background(Color.white)
+                                .background(Color.colorForCategoryName(transaction.category).opacity(0.8))
                                 .cornerRadius(12)
                                 .shadow(color: .black.opacity(0.1),
                                         radius: 4,
@@ -210,7 +210,7 @@ struct HomeScreen: View {
             Text("Баланс")
                 .foregroundStyle(.gray)
 
-            Text("\(saldo, specifier: "%.2f") ₽")
+            Text("\(saldo, specifier: "%.1f") ₽")
                 .foregroundColor(.black)
                 .font(.title)
                 .fontWeight(.bold)
