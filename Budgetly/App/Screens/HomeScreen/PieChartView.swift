@@ -29,7 +29,7 @@ struct PieChartView: View {
                     Color.colorForCategoryName(transaction.category, type: transaction.type)
                 )            }
             .chartLegend(.hidden)
-        //    .frame(width: 200, height: 200) // Размер диаграммы при желании
+            .frame(width: 128, height: 128) // Размер диаграммы при желании
 
             // Текст в центре
             VStack(spacing: 4) {
@@ -72,7 +72,7 @@ extension Color {
     private static var usedCountExpenses = 0
 
     /// Массив предопределённых цветов
-    private static let predefinedColors: [Color] = [.red, .green, .blue, .orange, .purple, .pink]
+    private static let predefinedColors: [Color] = [.appPurple, .redApple, .orangeApple, .pinkApple, .blueApple, .yellowApple]
 
     /// Возвращает цвет для (название категории, тип транзакции).
     /// - Если для этой категории ещё не назначен цвет:

@@ -120,7 +120,7 @@ struct AddTransactionView: View {
                 }
                 .padding()
             }
-            .background(GradientView()) // Градиентный фон
+            .background(Color("BackgroundLightGray")) // фон
             .scrollContentBackground(.hidden) // Убираем фон NavigationStack
        //     .navigationTitle("Добавление операции")
             .toolbar {

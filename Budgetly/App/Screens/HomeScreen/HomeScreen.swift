@@ -78,17 +78,17 @@ struct HomeScreen: View {
 
     var body: some View {
             NavigationStack {
-                VStack(spacing: 20) {
-                    VStack(spacing: 32) {
-                        accountView
-                        transactionTypeControl
-                    }
-
-                    timePeriodPicker
-
-                    PieChartView(transactions: filteredTransactions)
-
-                    ScrollView {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        VStack(spacing: 32) {
+                            accountView
+                            transactionTypeControl
+                        }
+                        
+                        timePeriodPicker
+                        
+                        PieChartView(transactions: filteredTransactions)
+                        
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
                             ForEach(filteredTransactions) { transaction in
                                 // Карточка
@@ -97,7 +97,7 @@ struct HomeScreen: View {
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                         .minimumScaleFactor(0.8)
-
+                                    
                                     Text("\(transaction.amount, specifier: "%.0f") ₽")
                                         .foregroundColor(.primary)
                                         .font(.headline)
@@ -128,6 +128,7 @@ struct HomeScreen: View {
                             }
                         }
                         .padding()
+                        
                     }
                 }
                 .navigationTitle("Мой Бюджет")
