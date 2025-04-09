@@ -32,7 +32,7 @@ struct HomeScreen: View {
     @Environment(\.modelContext) private var modelContext
 
     private let columns = [
-        GridItem(.adaptive(minimum: 100))
+        GridItem(.adaptive(minimum: 80, maximum: 250), spacing: 8)
     ]
 
     /// Баланс за выбранный период (учитывает все доходы и расходы)
@@ -92,18 +92,21 @@ struct HomeScreen: View {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
                             ForEach(filteredTransactions) { transaction in
                                 // Карточка
-                                VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 8) {
                                     Text(transaction.category)
+                                        .font(.body)
                                         .lineLimit(1)
-                                        .truncationMode(.tail)
-                                        .minimumScaleFactor(0.8)
-                                    
+                                        .fixedSize(horizontal: false, vertical: true)
+                                   //     .truncationMode(.tail)
+                                    //    .minimumScaleFactor(0.8)
+
                                     Text("\(transaction.amount, specifier: "%.0f") ₽")
                                         .foregroundColor(.primary)
                                         .font(.headline)
+                                        .fixedSize(horizontal: false, vertical: true)
                                         .lineLimit(1)
-                                        .truncationMode(.tail)
-                                        .minimumScaleFactor(0.8)
+                                    //    .truncationMode(.tail)
+                                      //  .minimumScaleFactor(0.8)
                                 }
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)

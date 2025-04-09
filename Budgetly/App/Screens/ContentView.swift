@@ -50,6 +50,7 @@ struct ContentView: View {
         }
         .background(Color(UIColor.systemGray6)) // Фон TabView
         .onAppear {
+            createDefaultAccountIfNeeded()
             let appearance = UITabBarAppearance()
             appearance.configureWithOpaqueBackground()
 
@@ -69,6 +70,19 @@ struct ContentView: View {
             UITabBar.appearance().scrollEdgeAppearance = appearance
         }
 
+    }
+    private func createDefaultAccountIfNeeded() {
+        guard accounts.isEmpty else { return }
+
+        let defaultAccount = Account(name: "Основной счет")
+        modelContext.insert(defaultAccount)
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка сохранения Основного счета: \(error.localizedDescription)")
+        }
+    }
 
 //        ZStack {
 //            NavigationStack {
@@ -131,7 +145,7 @@ struct ContentView: View {
 //            }
 //        }
     }
-}
+
 
 #Preview {
     ContentView()
