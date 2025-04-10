@@ -32,7 +32,7 @@ struct RegularPaymentsScreen: View {
                             isCreateReminderViewPresented = true
                         }) {
                             Image(systemName: "pencil")
-                                .foregroundColor(.blue)
+                                .foregroundStyle(.appPurple)
                         }
                     }
                 }
@@ -53,8 +53,16 @@ struct RegularPaymentsScreen: View {
                 Text("+ СОЗДАТЬ")
                     .font(.headline)
                     .padding()
-                    .foregroundColor(.blue)
+                    .foregroundColor(.white)
             }
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background(.appPurple)
+            .foregroundStyle(.white)
+            .font(.headline)
+            .cornerRadius(24)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
             .sheet(isPresented: $isCreateReminderViewPresented) {
                 if let payment = selectedPayment {
                     // Открыть представление с редактированием
@@ -66,10 +74,8 @@ struct RegularPaymentsScreen: View {
             }
         }
         .navigationTitle("Регулярные платежи")
+        .navigationBarTitleDisplayMode(.inline)
+
     }
-}
 
-
-#Preview {
-    RegularPaymentsScreen()
 }

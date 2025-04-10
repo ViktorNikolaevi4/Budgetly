@@ -47,6 +47,7 @@ struct CreateReminderView: View {
     }
 
     var body: some View {
+        NavigationStack {
         VStack {
             HStack {
                 Button(action: {
@@ -55,20 +56,19 @@ struct CreateReminderView: View {
                     Text("РАСХОДЫ")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(paymentType == .expenses ? Color.black : Color.gray)
+                        .background(paymentType == .expenses ? Color.appPurple : Color.gray)
                         .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .cornerRadius(24)
                 }
-
                 Button(action: {
                     paymentType = .income
                 }) {
                     Text("ДОХОДЫ")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(paymentType == .income ? Color.black : Color.gray)
+                        .background(paymentType == .income ? Color.appPurple : Color.gray)
                         .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .cornerRadius(24)
                 }
             }
             .padding()
@@ -83,6 +83,7 @@ struct CreateReminderView: View {
                     Text(frequency.rawValue).tag(frequency)
                 }
             }
+            .tint(.appPurple)
             .pickerStyle(MenuPickerStyle()) // Используем меню для удобства
             .padding()
 
@@ -111,19 +112,32 @@ struct CreateReminderView: View {
                 dismiss()
             }) {
                 Text(existingPayment == nil ? "Создать" : "Обновить")
-                    .font(.headline)
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isFormValid ? Color.green : Color.gray)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+                    .frame(height: 48)
+                    .background(.appPurple)
+                    .foregroundStyle(.white)
+                    .font(.headline)
+                    .cornerRadius(24)
             }
             .padding()
             .disabled(!isFormValid)
         }
         .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Кнопка-крестик в левом (или правом) верхнем углу
+            ToolbarItem(placement: .cancellationAction) {
+                Button {
+                    dismiss() // закрываем экран
+                } label: {
+                    Text("Закрыть")
+                        .foregroundColor(.appPurple)
+                }
+            }
+        }
         .padding()
     }
+}
 
 //    var isFormValid: Bool {
 //        !paymentName.isEmpty && !amount.isEmpty

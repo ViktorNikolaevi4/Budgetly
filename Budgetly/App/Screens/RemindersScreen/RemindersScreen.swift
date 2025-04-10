@@ -54,6 +54,6 @@ struct RemindersScreen: View {
         }
     }
 }
-#Preview {
-    RemindersScreen()
-}
+//#Preview {
+//    RemindersScreen()
+//}

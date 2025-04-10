@@ -1,5 +1,4 @@
 
-
 import SwiftUI
 import SwiftData
 
@@ -84,7 +83,7 @@ struct GoldBagView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(assetGroup.name)
                                     .font(.headline)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.appPurple)
                                 Text(assetGroup.type?.name ?? "Нет типа")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
@@ -92,7 +91,7 @@ struct GoldBagView: View {
                             Spacer()
                             Text("\(assetGroup.totalPrice, specifier: "%.2f") ₽")
                                 .font(.headline)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.appPurple)
                         }
                         .padding(.vertical, 4)
                     }
@@ -114,17 +113,22 @@ struct GoldBagView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         Text("\(totalPrice, specifier: "%.2f") ₽")
-                            .foregroundColor(.blue)
+                            .foregroundColor(.appPurple)
                             .font(.headline)
 
                         Button {
                             isAddAssetPresented = true
                         } label: {
                             Image(systemName: "plus.circle")
-                                .font(.title2)
+                                .font(.title)
+                                .foregroundStyle(.appPurple)
                         }
                     }
                 }
+            }
+            // Когда экран появляется, добавляем дефолтные типы (если их ещё нет)
+            .onAppear {
+                createDefaultAssetTypesIfNeeded()
             }
             .sheet(isPresented: $isAddAssetPresented) {
                 AddOrEditAssetView(
@@ -161,6 +165,29 @@ struct GoldBagView: View {
         }
         try? modelContext.save()
     }
+    private func createDefaultAssetTypesIfNeeded() {
+        // Список «дефолтных» названий типов
+        let defaultNames = ["Акции", "Облигации", "Недвижимость"]
+
+        // Превращаем все имеющиеся типы в множество их названий
+        let existingNames = Set(assetTypes.map { $0.name })
+
+        // Для каждого «дефолтного» названия проверяем, нет ли его уже
+        for name in defaultNames {
+            if !existingNames.contains(name) {
+                let newType = AssetType(name: name)
+                modelContext.insert(newType)
+            }
+        }
+
+        // Сохраняем изменения, если что-то добавили
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при сохранении дефолтных типов: \(error.localizedDescription)")
+        }
+    }
+
 }
 
 
@@ -183,7 +210,7 @@ struct AddOrEditAssetView: View {
     /// Название, которое пользователь введёт в алерте
     @State private var newTypeName = ""
 
-    @State private var reductionAmount: Double = 0.0 // Для частичной продажи
+ //   @State private var reductionAmount: Double = 0.0 // Для частичной продажи
 
     init(
         draftAsset: Asset?,
@@ -227,6 +254,7 @@ struct AddOrEditAssetView: View {
                         Text("Новый тип…").tag(TypeSelection.newType)
                     }
                     .pickerStyle(.menu)
+                    .tint(.appPurple)
                     .onChange(of: typeSelection) { newValue in
                         // Если пользователь выбрал "Новый тип…",
                         // сразу показываем алерт с TextField
@@ -236,27 +264,27 @@ struct AddOrEditAssetView: View {
                     }
                 }
 
-                Section("Цена (₽)") {
+                Section("Переоценка стоимости (₽)") {
                     TextField("Введите цену", value: $price, format: .number)
                         .keyboardType(.decimalPad)
                 }
 
                 // Блок для частичной продажи, только если у нас реальный asset
-                if draftAsset != nil {
-                    Section("Продажа части актива") {
-                        TextField("Сумма для продажи", value: $reductionAmount, format: .number)
-                            .keyboardType(.decimalPad)
-                        Button("Продать") {
-                            sellPartOfAsset()
-                        }
-                        .disabled(reductionAmount <= 0 || reductionAmount > price)
-                    }
-                }
+//                if draftAsset != nil {
+//                    Section("Продажа части актива") {
+//                        TextField("Сумма для продажи", value: $reductionAmount, format: .number)
+//                            .keyboardType(.decimalPad)
+//                        Button("Продать") {
+//                            sellPartOfAsset()
+//                        }
+//                        .disabled(reductionAmount <= 0 || reductionAmount > price)
+//                    }
+//                }
             }
             .navigationTitle(draftAsset == nil ? "Новый актив" : "Редактировать актив")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
+                    Button {
                         // Определяем, какой тип в итоге будет (nil, existing, или только что созданный)
                         let finalType: AssetType? = {
                             switch typeSelection {
@@ -273,13 +301,16 @@ struct AddOrEditAssetView: View {
 
                         onSave(name, price, finalType)
                         dismiss()
+                    } label: {
+                        Text("Сохранить")
+                            .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty ? .gray.opacity(0.3) : .appPurple)
                     }
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") {
                         dismiss()
-                    }
+                    }.foregroundStyle(.appPurple)
                 }
             }
             // Тот самый alert iOS16+ с TextField
@@ -312,17 +343,16 @@ struct AddOrEditAssetView: View {
         }
     }
 
-    private func sellPartOfAsset() {
-        guard let draftAsset = draftAsset,
-              reductionAmount > 0,
-              reductionAmount <= price else { return }
-
-        draftAsset.price -= reductionAmount
-        reductionAmount = 0
-        try? modelContext.save()
-    }
+//    private func sellPartOfAsset() {
+//        guard let draftAsset = draftAsset,
+//              reductionAmount > 0,
+//              reductionAmount <= price else { return }
+//
+//        draftAsset.price -= reductionAmount
+//        reductionAmount = 0
+//        try? modelContext.save()
+//    }
 }
-
 
 // Перечисление для выбора типа внутри Picker
 enum TypeSelection: Hashable {
@@ -330,7 +360,3 @@ enum TypeSelection: Hashable {
     case existing(AssetType) // Пользователь выбрал существующий тип
     case newType                 // «Новый тип...»
 }
-
-
-
-

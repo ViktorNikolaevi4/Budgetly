@@ -91,6 +91,7 @@ struct StatsView: View {
                             Text(period.rawValue).tag(period)
                         }
                     }
+                    .tint(.appPurple)
                     .onChange(of: selectedTimePeriod) { _, newValue in
                         if newValue == .custom {
                             isCustomPeriodPickerPresented = true
@@ -117,7 +118,8 @@ struct StatsView: View {
                     Text(group.category)
                     Spacer()
                     Text("\(group.total, specifier: "%.2f") ₽")
-                        .foregroundColor(.green)
+                        .foregroundColor(.black)
+                        .font(.body)
                 }
             }
         case .expenses:
@@ -127,7 +129,8 @@ struct StatsView: View {
                     Text(group.category)
                     Spacer()
                     Text("\(group.total, specifier: "%.2f") ₽")
-                        .foregroundColor(.red)
+                        .foregroundColor(.black)
+                        .font(.body)
                 }
             }
         case .assets:
@@ -143,7 +146,7 @@ struct StatsView: View {
                     }
                     Spacer()
                     Text("\(asset.price, specifier: "%.2f") ₽")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.black)
                 }
             }
         }
