@@ -36,7 +36,7 @@ struct AddTransactionView: View {
                         Text("Расходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == .expenses ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray)
+                            .background(selectedType == .expenses ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray.opacity(0.6))
                             .foregroundColor(.white)
                             .cornerRadius(24)
                     }
@@ -47,7 +47,7 @@ struct AddTransactionView: View {
                         Text("Доходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == .income ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray)
+                            .background(selectedType == .income ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray.opacity(0.6))
                             .foregroundColor(.white)
                             .cornerRadius(24)
                     }
@@ -58,7 +58,7 @@ struct AddTransactionView: View {
                 TextField("Введите сумму", text: $amount)
                     .keyboardType(.decimalPad)
                     .padding()
-                    .background(Color.gray.opacity(0.9)) // Серый фон с прозрачностью
+                    .background(Color.gray.opacity(0.3)) // Серый фон с прозрачностью
                     .cornerRadius(10) // Закругленные углы
                     .foregroundColor(.white) // Цвет вводимого текста
                     .padding(.horizontal)
@@ -76,7 +76,7 @@ struct AddTransactionView: View {
                                 .padding()
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
-                                .background(selectedCategory == category.name ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray)
+                                .background(selectedCategory == category.name ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray.opacity(0.6))
                                 .foregroundColor(.white)
                                 .cornerRadius(24)
                                 .lineLimit(1)
@@ -151,8 +151,38 @@ struct AddTransactionView: View {
                     newCategory = ""
                 })
             }
+            .onAppear {
+                createDefaultCategoriesIfNeeded()
+            }
         }.foregroundStyle(.black)
     }
+    // Создание дефолтных категорий, если их ещё нет
+    private func createDefaultCategoriesIfNeeded() {
+        guard let account = account else { return }
+        // Проверяем наличие категорий с выбранными именами для доходов и расходов для данного счета
+        let expenseExists = allCategories.contains { category in
+            category.type == .expenses && category.name == "Расходы" && category.account.id == account.id
+        }
+        let incomeExists = allCategories.contains { category in
+            category.type == .income && category.name == "Доходы" && category.account.id == account.id
+        }
+
+        if !expenseExists {
+            let expenseCategory = Category(name: "Такси", type: .expenses, account: account)
+            modelContext.insert(expenseCategory)
+        }
+        if !incomeExists {
+            let incomeCategory = Category(name: "Зарплата", type: .income, account: account)
+            modelContext.insert(incomeCategory)
+        }
+
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при сохранении дефолтных категорий: \(error)")
+        }
+    }
+
     // Функция для добавления новой категории
     private func addNewCategory() {
         guard let account = account, !newCategory.isEmpty else {

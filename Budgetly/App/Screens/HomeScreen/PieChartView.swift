@@ -40,7 +40,7 @@ struct PieChartView: View {
                     .foregroundColor(.primary)
 
                 // Сама сумма
-                Text("\(totalAmount, specifier: "%.0f")")
+                Text(totalAmount.toShortStringWithSuffix())
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)

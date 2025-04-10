@@ -32,7 +32,8 @@ struct HomeScreen: View {
     @Environment(\.modelContext) private var modelContext
 
     private let columns = [
-        GridItem(.adaptive(minimum: 80, maximum: 250), spacing: 8)
+        GridItem(.flexible(), spacing: 4),
+        GridItem(.flexible(), spacing: 4)
     ]
 
     /// Баланс за выбранный период (учитывает все доходы и расходы)
@@ -84,33 +85,32 @@ struct HomeScreen: View {
                             accountView
                             transactionTypeControl
                         }
-                        
+
                         timePeriodPicker
-                        
+
                         PieChartView(transactions: filteredTransactions)
-                        
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 100))], spacing: 8) {
+
+                        LazyVGrid(columns: columns, spacing: 8) {
                             ForEach(filteredTransactions) { transaction in
                                 // Карточка
                                 HStack(spacing: 8) {
                                     Text(transaction.category)
                                         .font(.body)
                                         .lineLimit(1)
-                                        .fixedSize(horizontal: false, vertical: true)
+                                     //   .fixedSize(horizontal: false, vertical: true)
                                    //     .truncationMode(.tail)
                                     //    .minimumScaleFactor(0.8)
 
-                                    Text("\(transaction.amount, specifier: "%.0f") ₽")
-                                        .foregroundColor(.primary)
+                                    Text("\(transaction.amount.toShortStringWithSuffix()) ₽")                                        .foregroundColor(.primary)
                                         .font(.headline)
-                                        .fixedSize(horizontal: false, vertical: true)
+                                   //     .fixedSize(horizontal: false, vertical: true)
                                         .lineLimit(1)
                                     //    .truncationMode(.tail)
                                       //  .minimumScaleFactor(0.8)
                                 }
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
-                                .frame(maxWidth: .infinity)
+                            //    .frame(maxWidth: .infinity)
                                 .background(
                                     Color.colorForCategoryName(transaction.category, type: transaction.type)
                                         .opacity(0.8)
@@ -131,7 +131,7 @@ struct HomeScreen: View {
                             }
                         }
                         .padding()
-                        
+
                     }
                 }
                 .navigationTitle("Мой Бюджет")
@@ -247,6 +247,7 @@ struct HomeScreen: View {
                 startDate: $customStartDate,
                 endDate: $customEndDate
             )
+            .presentationDetents([.medium])
         }
     }
 
@@ -293,6 +294,30 @@ struct CustomPeriodPickerView: View {
                     }
                 }
             }
+        }
+    }
+}
+
+extension Double {
+    /// Возвращает строку с сокращением (1,2 тыс., 5,5 млн, 1,0 млрд, etc.)
+    /// с учётом российских обозначений.
+    func toShortStringWithSuffix() -> String {
+        let absValue = abs(self)
+
+        // Можно проверять диапазоны:
+        switch absValue {
+        case 1_000_000_000...: // от 1 млрд
+            let shortened = self / 1_000_000_000
+            return String(format: "%.1f млрд", shortened)
+        case 1_000_000...: // от 1 млн
+            let shortened = self / 1_000_000
+            return String(format: "%.1f млн", shortened)
+//        case 1_000...: // от 1 тыс.
+//            let shortened = self / 1_000
+//            return String(format: "%.1f тыс.", shortened)
+        default:
+            // Если число меньше 1000, показываем целое или с десятыми (на ваш вкус)
+            return String(format: "%.0f", self)
         }
     }
 }
