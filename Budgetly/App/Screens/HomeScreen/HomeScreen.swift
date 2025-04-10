@@ -292,6 +292,7 @@ struct CustomPeriodPickerView: View {
                         // Закрываем sheet
                         dismiss()
                     }
+                    .foregroundStyle(.appPurple)
                 }
             }
         }

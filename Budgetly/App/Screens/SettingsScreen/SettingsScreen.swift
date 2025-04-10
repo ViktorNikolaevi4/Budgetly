@@ -61,6 +61,7 @@ struct SettingsScreen: View {
                            ContactDeveloperView()
                        }
                    }
+            .foregroundStyle(.black)
                }
         }
 

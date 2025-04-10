@@ -21,8 +21,8 @@ struct RemindersScreen: View {
                             }
                             Spacer()
                             Text(reminder.comment)
-                                .font(.caption)
-                                .foregroundStyle(.blue)
+                                .font(.title3)
+                                .foregroundStyle(.appPurple)
                         }
                     }
                     .onDelete { indexSet in
@@ -38,12 +38,14 @@ struct RemindersScreen: View {
                     isAddReminderViewPresented = true
                 }) {
                     Text("+ Создать")
-                        .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.green)
-                        .foregroundColor(.white)
-                        .cornerRadius(8)
+                        .frame(height: 48)
+                        .background(.appPurple)
+                        .foregroundStyle(.white)
+                        .font(.headline)
+                        .cornerRadius(24)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 20)
                 }
                 .padding()
                 .sheet(isPresented: $isAddReminderViewPresented) {
@@ -51,6 +53,7 @@ struct RemindersScreen: View {
                 }
             }
             .navigationTitle("Напоминания")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
