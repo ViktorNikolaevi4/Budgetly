@@ -99,7 +99,7 @@ struct HomeScreen: View {
                                         .lineLimit(1)
                                      //   .fixedSize(horizontal: false, vertical: true)
                                    //     .truncationMode(.tail)
-                                    //    .minimumScaleFactor(0.8)
+                                        .minimumScaleFactor(0.8)
 
                                     Text("\(transaction.amount.toShortStringWithSuffix()) ₽")                                        .foregroundColor(.primary)
                                         .font(.headline)

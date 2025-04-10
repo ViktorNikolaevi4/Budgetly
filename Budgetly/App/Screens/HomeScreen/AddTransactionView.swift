@@ -18,11 +18,10 @@ struct AddTransactionView: View {
     var filteredCategories: [Category] {
         allCategories.filter { $0.type == selectedType }
     }
-    // Сетка с тремя колонками
     private let columns = [
-        GridItem(.flexible()),
-        GridItem(.flexible()),
-        GridItem(.flexible())
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
     ]
 
     var body: some View {
@@ -60,7 +59,7 @@ struct AddTransactionView: View {
                     .padding()
                     .background(Color.gray.opacity(0.3)) // Серый фон с прозрачностью
                     .cornerRadius(10) // Закругленные углы
-                    .foregroundColor(.white) // Цвет вводимого текста
+                    .foregroundColor(.black) // Цвет вводимого текста
                     .padding(.horizontal)
                 // Выбор категории
                 Text("Категории")
@@ -151,9 +150,9 @@ struct AddTransactionView: View {
                     newCategory = ""
                 })
             }
-            .onAppear {
-                createDefaultCategoriesIfNeeded()
-            }
+//            .onAppear {
+//                createDefaultCategoriesIfNeeded()
+//            }
         }.foregroundStyle(.black)
     }
     // Создание дефолтных категорий, если их ещё нет

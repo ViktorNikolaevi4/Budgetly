@@ -23,12 +23,22 @@ struct AccountsScreen: View {
                     }
                 }
             }
+            .listStyle(.plain)
 
             Button(action: {
                 isShowingAlert = true
             }) {
                 Text("Добавить новый счет")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)))
+                    .foregroundColor(.white)
+                    .cornerRadius(24)
             }
+            .padding(.horizontal)
+            .padding(.bottom, 20)
+
             .alert("Новый счет", isPresented: $isShowingAlert) {
                 TextField("Введите название счета", text: $accountName)
                 Button("Создать", action: addAccount)

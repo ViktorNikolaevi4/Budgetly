@@ -102,15 +102,15 @@ struct GoldBagView: View {
             .navigationTitle("Мои активы")
             .toolbar {
                 // Кнопка закрытия в левом верхнем углу
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss() // Закрываем экран
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(.red)
-                    }
-                }
+//                ToolbarItem(placement: .topBarLeading) {
+//                    Button {
+//                        dismiss() // Закрываем экран
+//                    } label: {
+//                        Image(systemName: "xmark.circle.fill")
+//                            .font(.title2)
+//                            .foregroundColor(.red)
+//                    }
+//                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         Text("\(totalPrice, specifier: "%.2f") ₽")
@@ -136,6 +136,7 @@ struct GoldBagView: View {
                         try? modelContext.save()
                     }
                 )
+                .presentationDetents([.medium])
             }
             .sheet(item: $selectedAsset) { asset in
                 AddOrEditAssetView(
@@ -148,6 +149,7 @@ struct GoldBagView: View {
                         try? modelContext.save()
                     }
                 )
+                .presentationDetents([.medium])
             }
         }
     }
