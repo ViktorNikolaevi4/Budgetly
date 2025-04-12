@@ -45,25 +45,47 @@ struct GoldBagView: View {
     @State private var isAddAssetPresented = false
     @State private var selectedAsset: Asset? = nil
 
-    private var groupedAssets: [(name: String, totalPrice: Double, type: AssetType?, assets: [Asset])] {
-        var assetDict: [String: (totalPrice: Double, type: AssetType?, assets: [Asset])] = [:]
+    @State private var expandedTypes: Set<UUID> = []
 
-        for asset in assets {
-            let key = "\(asset.name)_\(asset.assetType?.name ?? "Без типа")"
+    private var groupedAssetsByType: [AssetType?: [Asset]] {
+        Dictionary(grouping: assets, by: { $0.assetType })
+    }
 
-            if assetDict[key] != nil {
-                assetDict[key]?.totalPrice += asset.price
-                assetDict[key]?.assets.append(asset)
-            } else {
-                assetDict[key] = (totalPrice: asset.price, type: asset.assetType, assets: [asset])
+//    private var groupedAssets: [(name: String, totalPrice: Double, type: AssetType?, assets: [Asset])] {
+//        var assetDict: [String: (totalPrice: Double, type: AssetType?, assets: [Asset])] = [:]
+//
+//        for asset in assets {
+//            let key = "\(asset.name)_\(asset.assetType?.name ?? "Без типа")"
+//
+//            if assetDict[key] != nil {
+//                assetDict[key]?.totalPrice += asset.price
+//                assetDict[key]?.assets.append(asset)
+//            } else {
+//                assetDict[key] = (totalPrice: asset.price, type: asset.assetType, assets: [asset])
+//            }
+//        }
+//
+//        return assetDict.map { (name: $0.key.components(separatedBy: "_")[0],
+//                                totalPrice: $0.value.totalPrice,
+//                                type: $0.value.type,
+//                                assets: $0.value.assets) }
+//            .sorted { $0.name < $1.name }
+//    }
+
+    // Сортировка ключей: сначала типы по имени, а группа без типа (nil) — в конце
+    private var sortedAssetTypeKeys: [AssetType?] {
+        groupedAssetsByType.keys.sorted { first, second in
+            switch (first, second) {
+            case (nil, nil):
+                return false
+            case (nil, _):
+                return false  // поместим группу "Без типа" в конец
+            case (_, nil):
+                return true
+            case let (a?, b?):
+                return a.name < b.name
             }
         }
-
-        return assetDict.map { (name: $0.key.components(separatedBy: "_")[0],
-                                totalPrice: $0.value.totalPrice,
-                                type: $0.value.type,
-                                assets: $0.value.assets) }
-            .sorted { $0.name < $1.name }
     }
 
     private var totalPrice: Double {
@@ -73,49 +95,77 @@ struct GoldBagView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(groupedAssets, id: \.name) { assetGroup in
-                    Button {
-                        if let firstAsset = assetGroup.assets.first {
-                            selectedAsset = firstAsset // Открываем редактирование
+                // Проходим по всем ключам (типам)
+                ForEach(sortedAssetTypeKeys, id: \.self) { assetType in
+                    // Используем DisclosureGroup, чтобы обеспечить возможность сворачивания/разворачивания
+                    DisclosureGroup(
+                        // Привязка состояния развернутости для типовых групп
+                        isExpanded: Binding(
+                            get: {
+                                // Для активов без типа (nil) можно сделать так, чтобы они всегда были развернуты
+                                if assetType == nil {
+                                    return true
+                                } else {
+                                    return expandedTypes.contains(assetType!.id)
+                                }
+                            },
+                            set: { newValue in
+                                if let type = assetType {
+                                    if newValue {
+                                        expandedTypes.insert(type.id)
+                                    } else {
+                                        expandedTypes.remove(type.id)
+                                    }
+                                }
+                            }
+                        )
+                    ) {
+                        // Содержимое DisclosureGroup – список активов для данного типа
+                        ForEach(groupedAssetsByType[assetType] ?? []) { asset in
+                            // Оборачиваем каждую строку в кнопку, если требуется переход к редактированию
+                            Button {
+                                selectedAsset = asset
+                            } label: {
+                                HStack {
+                                    Text(asset.name)
+                                    Spacer()
+                                    Text("\(asset.price, specifier: "%.2f") ₽")
+                                        .foregroundColor(.appPurple)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                            // Пример добавления свайп-удаления для конкретного актива
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    delete(asset: asset)
+                                } label: {
+                                    Label("Удалить", systemImage: "trash")
+                                }
+                            }
                         }
                     } label: {
+                        // Заголовок DisclosureGroup – имя типа и суммарная цена группы
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(assetGroup.name)
-                                    .font(.headline)
-                                    .foregroundColor(.appPurple)
-                                Text(assetGroup.type?.name ?? "Нет типа")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                            }
+                            Text(assetType?.name ?? "Без типа")
+                                .font(.headline)
+                                .foregroundColor(.appPurple)
                             Spacer()
-                            Text("\(assetGroup.totalPrice, specifier: "%.2f") ₽")
+                            let total = (groupedAssetsByType[assetType] ?? []).reduce(0) { $0 + $1.price }
+                            Text("\(total, specifier: "%.2f") ₽")
                                 .font(.headline)
                                 .foregroundColor(.appPurple)
                         }
                         .padding(.vertical, 4)
                     }
                 }
-                .onDelete(perform: deleteAssets)
             }
             .navigationTitle("Мои активы")
             .toolbar {
-                // Кнопка закрытия в левом верхнем углу
-//                ToolbarItem(placement: .topBarLeading) {
-//                    Button {
-//                        dismiss() // Закрываем экран
-//                    } label: {
-//                        Image(systemName: "xmark.circle.fill")
-//                            .font(.title2)
-//                            .foregroundColor(.red)
-//                    }
-//                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         Text("\(totalPrice, specifier: "%.2f") ₽")
                             .foregroundColor(.appPurple)
                             .font(.headline)
-
                         Button {
                             isAddAssetPresented = true
                         } label: {
@@ -126,10 +176,11 @@ struct GoldBagView: View {
                     }
                 }
             }
-            // Когда экран появляется, добавляем дефолтные типы (если их ещё нет)
+            // Создаём дефолтные типы, если их ещё нет
             .onAppear {
                 createDefaultAssetTypesIfNeeded()
             }
+            // Открытие экрана добавления нового актива
             .sheet(isPresented: $isAddAssetPresented) {
                 AddOrEditAssetView(
                     draftAsset: nil,
@@ -137,11 +188,16 @@ struct GoldBagView: View {
                     onSave: { newName, newPrice, chosenType in
                         let newAsset = Asset(name: newName, price: newPrice, assetType: chosenType)
                         modelContext.insert(newAsset)
-                        try? modelContext.save()
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("Ошибка сохранения: \(error.localizedDescription)")
+                        }
                     }
                 )
                 .presentationDetents([.medium])
             }
+            // Редактирование выбранного актива
             .sheet(item: $selectedAsset) { asset in
                 AddOrEditAssetView(
                     draftAsset: asset,
@@ -150,7 +206,11 @@ struct GoldBagView: View {
                         asset.name = newName
                         asset.price = newPrice
                         asset.assetType = chosenType
-                        try? modelContext.save()
+                        do {
+                            try modelContext.save()
+                        } catch {
+                            print("Ошибка сохранения: \(error.localizedDescription)")
+                        }
                     }
                 )
                 .presentationDetents([.medium])
@@ -158,21 +218,20 @@ struct GoldBagView: View {
         }
     }
 
-    private func deleteAssets(at offsets: IndexSet) {
-        for index in offsets {
-            let asset = assets[index]
-            modelContext.delete(asset)
+    // Функция удаления одного актива
+    private func delete(asset: Asset) {
+        modelContext.delete(asset)
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при удалении: \(error.localizedDescription)")
         }
-        try? modelContext.save()
     }
-    private func createDefaultAssetTypesIfNeeded() {
-        // Список «дефолтных» названий типов
-        let defaultNames = ["Акции", "Облигации", "Недвижимость"]
 
-        // Превращаем все имеющиеся типы в множество их названий
+    private func createDefaultAssetTypesIfNeeded() {
+        let defaultNames = ["Акции", "Облигации", "Недвижимость"]
         let existingNames = Set(assetTypes.map { $0.name })
 
-        // Для каждого «дефолтного» названия проверяем, нет ли его уже
         for name in defaultNames {
             if !existingNames.contains(name) {
                 let newType = AssetType(name: name)
@@ -180,15 +239,45 @@ struct GoldBagView: View {
             }
         }
 
-        // Сохраняем изменения, если что-то добавили
         do {
             try modelContext.save()
         } catch {
             print("Ошибка при сохранении дефолтных типов: \(error.localizedDescription)")
         }
     }
-
 }
+
+//    private func deleteAssets(at offsets: IndexSet) {
+//        for index in offsets {
+//            let asset = assets[index]
+//            modelContext.delete(asset)
+//        }
+//        try? modelContext.save()
+//    }
+//    private func createDefaultAssetTypesIfNeeded() {
+//        // Список «дефолтных» названий типов
+//        let defaultNames = ["Акции", "Облигации", "Недвижимость"]
+//
+//        // Превращаем все имеющиеся типы в множество их названий
+//        let existingNames = Set(assetTypes.map { $0.name })
+//
+//        // Для каждого «дефолтного» названия проверяем, нет ли его уже
+//        for name in defaultNames {
+//            if !existingNames.contains(name) {
+//                let newType = AssetType(name: name)
+//                modelContext.insert(newType)
+//            }
+//        }
+//
+//        // Сохраняем изменения, если что-то добавили
+//        do {
+//            try modelContext.save()
+//        } catch {
+//            print("Ошибка при сохранении дефолтных типов: \(error.localizedDescription)")
+//        }
+//    }
+
+//}
 
 
 // View для добавления/редактирования актива
