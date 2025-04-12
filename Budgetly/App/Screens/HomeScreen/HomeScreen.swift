@@ -333,11 +333,24 @@ struct CustomPeriodPickerView: View {
                         .cornerRadius(12)
                         .padding(.horizontal, 16)
                 }
-
+                // Кнопка "Применить"
+                Button(action: {
+                    dismiss() // Закрываем и применяем фильтр
+                }) {
+                    Text("Применить")
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(.appPurple)
+                        .foregroundStyle(.white)
+                        .font(.headline)
+                        .cornerRadius(24)
+                        .padding()
+                }
+                .padding(.bottom, 24)
             }
             Spacer()
             .environment(\.locale, Locale(identifier: "ru_RU"))
-            .navigationBarTitleDisplayMode(.inline)
+          //  .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
