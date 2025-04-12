@@ -25,6 +25,7 @@ struct HomeScreen: View {
     @State private var customStartDate: Date = Date()
     @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
+    @State private var isShowingPeriodMenu = false
 
     @State private var isGoldBagViewPresented = false
     @State private var isStatsViewPresented = false
@@ -157,6 +158,17 @@ struct HomeScreen: View {
 //            }
     }
 
+    private var selectedPeriodTitle: String {
+        if selectedTimePeriod == .custom {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ru_RU")
+            formatter.dateFormat = "d MMM yyyy"
+            return "\(formatter.string(from: customStartDate)) - \(formatter.string(from: customEndDate))"
+        } else {
+            return selectedTimePeriod.rawValue
+        }
+    }
+
     private var accountView: some View {
         VStack(spacing: 20) {
             HStack {
@@ -204,8 +216,9 @@ struct HomeScreen: View {
         .padding(16)
         .frame(maxWidth: .infinity)
         .background(Color.white)
-        .cornerRadius(24)
-        .shadow(color: Color.black.opacity(0.18), radius: 8, x: 3, y: 6)
+        .cornerRadius(28)
+        .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+        .padding(.horizontal, 6)
     }
 
     private var transactionTypeControl: some View {
@@ -225,23 +238,29 @@ struct HomeScreen: View {
 
             Spacer()
 
-            Picker("Выберите период", selection: $selectedTimePeriod) {
+            Button {
+                isShowingPeriodMenu = true
+            } label: {
+                HStack {
+                    Text(selectedPeriodTitle)  // Используем новое свойство здесь
+                        .foregroundColor(.royalBlue.opacity(0.85))
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.royalBlue.opacity(0.85))
+                }
+            }
+            .confirmationDialog("Выберите период", isPresented: $isShowingPeriodMenu, titleVisibility: .visible) {
                 ForEach(TimePeriod.allCases) { period in
-                    Text(period.rawValue).tag(period)
+                    Button(period.rawValue) {
+                        selectedTimePeriod = period
+                        if period == .custom {
+                            isCustomPeriodPickerPresented = true
+                        }
+                    }
                 }
-            }
-            .tint(.royalBlue).opacity(0.85)
-            .onChange(of: selectedTimePeriod) { _, newValue in
-                if newValue == .custom {
-                    isCustomPeriodPickerPresented = true
-                }
-            }
-
-            .onAppear {
-                selectedTimePeriod = .day
+                Button("Отмена", role: .cancel) {}
             }
         }
-        // При желании — sheet или .fullScreenCover
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
             CustomPeriodPickerView(
                 startDate: $customStartDate,
@@ -250,6 +269,8 @@ struct HomeScreen: View {
             .presentationDetents([.medium])
         }
     }
+
+
 
     // Удаление транзакции
     private func deleteTransaction(at offsets: IndexSet) {
@@ -276,25 +297,47 @@ struct CustomPeriodPickerView: View {
     @Binding var endDate: Date
 
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Начало периода")) {
-                    DatePicker("С", selection: $startDate, displayedComponents: .date)
-                }
-                Section(header: Text("Конец периода")) {
-                    DatePicker("По", selection: $endDate, displayedComponents: .date)
-                }
-            }
-            .navigationTitle("Выберите период")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") {
-                        // Закрываем sheet
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 40) {
+                HStack {
+                    Text("Выберите период")
+                        .font(.title2)
+                        .bold()
+
+                    Spacer()
+
+                    Button(action: {
                         dismiss()
+                    }) {
+                        Image(systemName: "xmark.circle.fill")
+                            .resizable()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(Color(UIColor.systemGray3))
                     }
-                    .foregroundStyle(.appPurple)
                 }
+                .padding(.horizontal)
+                .padding(.top, 20)
+
+                VStack(spacing: 16) {
+                    DatePicker("Дата начала", selection: $startDate, displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .padding()
+                        .background(Color(uiColor: .systemGray6))
+                        .cornerRadius(12)
+                        .padding(.horizontal, 16)
+
+                    DatePicker("Дата окончания", selection: $endDate, displayedComponents: .date)
+                        .datePickerStyle(.compact)
+                        .padding()
+                        .background(Color(uiColor: .systemGray6))
+                        .cornerRadius(12)
+                        .padding(.horizontal, 16)
+                }
+
             }
+            Spacer()
+            .environment(\.locale, Locale(identifier: "ru_RU"))
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }

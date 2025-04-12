@@ -156,31 +156,31 @@ struct AddTransactionView: View {
         }.foregroundStyle(.black)
     }
     // Создание дефолтных категорий, если их ещё нет
-    private func createDefaultCategoriesIfNeeded() {
-        guard let account = account else { return }
-        // Проверяем наличие категорий с выбранными именами для доходов и расходов для данного счета
-        let expenseExists = allCategories.contains { category in
-            category.type == .expenses && category.name == "Расходы" && category.account.id == account.id
-        }
-        let incomeExists = allCategories.contains { category in
-            category.type == .income && category.name == "Доходы" && category.account.id == account.id
-        }
-
-        if !expenseExists {
-            let expenseCategory = Category(name: "Такси", type: .expenses, account: account)
-            modelContext.insert(expenseCategory)
-        }
-        if !incomeExists {
-            let incomeCategory = Category(name: "Зарплата", type: .income, account: account)
-            modelContext.insert(incomeCategory)
-        }
-
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка при сохранении дефолтных категорий: \(error)")
-        }
-    }
+//    private func createDefaultCategoriesIfNeeded() {
+//        guard let account = account else { return }
+//        // Проверяем наличие категорий с выбранными именами для доходов и расходов для данного счета
+//        let expenseExists = allCategories.contains { category in
+//            category.type == .expenses && category.name == "Расходы" && category.account.id == account.id
+//        }
+//        let incomeExists = allCategories.contains { category in
+//            category.type == .income && category.name == "Доходы" && category.account.id == account.id
+//        }
+//
+//        if !expenseExists {
+//            let expenseCategory = Category(name: "Такси", type: .expenses, account: account)
+//            modelContext.insert(expenseCategory)
+//        }
+//        if !incomeExists {
+//            let incomeCategory = Category(name: "Зарплата", type: .income, account: account)
+//            modelContext.insert(incomeCategory)
+//        }
+//
+//        do {
+//            try modelContext.save()
+//        } catch {
+//            print("Ошибка при сохранении дефолтных категорий: \(error)")
+//        }
+//    }
 
     // Функция для добавления новой категории
     private func addNewCategory() {
