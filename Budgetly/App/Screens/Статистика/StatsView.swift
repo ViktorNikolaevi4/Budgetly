@@ -30,6 +30,9 @@ struct StatsView: View {
     @State private var customStartDate: Date = Date()
     @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
+    @State private var isShowingPeriodPopover = false
+    @State private var isShowingDateSheet = false
+
 
     @Environment(\.dismiss) private var dismiss
 
@@ -66,7 +69,9 @@ struct StatsView: View {
             CustomPeriodPickerView(
                 startDate: customStartDate,
                 endDate: customEndDate,
-                onApply: { _, _ in }
+                onApply: { start, end in
+                    customStartDate = start
+                    customEndDate = end }
             )
         }
     }
@@ -81,32 +86,81 @@ struct StatsView: View {
         .pickerStyle(.segmented)
     }
 
-    // MARK: - Пикер периода (День, Неделя и т.д.)
+    // MARK: - Пикер периода (Popover и выбор дат)
     private var periodPicker: some View {
         Group {
             if selectedSegment != .assets {
                 HStack {
                     Text("Период:")
-                    Picker("Период", selection: $selectedTimePeriod) {
-                        ForEach(TimePeriod.allCases) { period in
-                            Text(period.rawValue).tag(period)
+                        .font(.title3).bold()
+
+                    Spacer()
+
+                    Button {
+                        isShowingPeriodPopover.toggle()
+                    } label: {
+                        HStack {
+                            Text(selectedPeriodTitle)
+                                .foregroundColor(.appPurple.opacity(0.85))
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption)
+                                .foregroundColor(.appPurple.opacity(0.85))
                         }
                     }
-                    .tint(.appPurple)
-                    .onChange(of: selectedTimePeriod) { _, newValue in
-                        if newValue == .custom {
-                            isCustomPeriodPickerPresented = true
+                    .popover(isPresented: $isShowingPeriodPopover, arrowEdge: .top) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(TimePeriod.allCases) { period in
+                                Button(action: {
+                                    selectedTimePeriod = period
+                                    isShowingPeriodPopover = false
+
+                                    if period == .custom {
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                            isCustomPeriodPickerPresented = true
+                                        }
+                                    }
+                                }) {
+                                    HStack {
+                                        Text(period.rawValue)
+                                            .foregroundColor(.primary)
+                                            .padding(.vertical, 8)
+                                        Spacer()
+                                        if period == selectedTimePeriod {
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(.appPurple)
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                }
+                            }
                         }
+                        .padding(.vertical, 8)
+                        .frame(width: 250)
+                        .background(Color(uiColor: .systemBackground))
+                        .cornerRadius(12)
+                        .shadow(radius: 5)
+                        .presentationCompactAdaptation(.popover)
                     }
                 }
-                .onAppear {
-                    selectedTimePeriod = .allTime
+                // Sheet для кастомного периода
+                .sheet(isPresented: $isCustomPeriodPickerPresented) {
+                    CustomPeriodPickerView(
+                        startDate: customStartDate,
+                        endDate: customEndDate
+                    ) { start, end in
+                        customStartDate = start
+                        customEndDate = end
+                        selectedTimePeriod = .custom
+                    }
+                    .presentationDetents([.medium])
                 }
             } else {
-                EmptyView() // Возвращаем пустую вью
+                EmptyView()
             }
         }
     }
+
+
 
     // MARK: - Список элементов (транзакций или активов) в зависимости от выбора
     @ViewBuilder
@@ -189,6 +243,18 @@ struct StatsView: View {
     private var groupedExpenseTransactions: [(category: String, total: Double)] {
         groupedTransactions(filteredExpenseTransactions)
     }
+
+    private var selectedPeriodTitle: String {
+        if selectedTimePeriod == .custom {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ru_RU")
+            formatter.dateFormat = "d MMM yyyy"
+            return "\(formatter.string(from: customStartDate)) - \(formatter.string(from: customEndDate))"
+        } else {
+            return selectedTimePeriod.rawValue
+        }
+    }
+
 
     // MARK: - Проверка, попадает ли дата транзакции в выбранный период
     private func isInSelectedPeriod(_ transaction: Transaction) -> Bool {
