@@ -4,16 +4,17 @@ import Observation
 import SwiftData
 
 enum TimePeriod: String, CaseIterable, Identifiable {
-    case day = "День"
-    case week = "Неделя"
-    case month = "Месяц"
+    case today = "Сегодня"
+    case currentWeek = "Текущая неделя"
+    case currentMonth = "Текущий месяц"
+    case previousMonth = "Прошлый месяц"
+    case last3Months = "Последние 3 месяца"
     case year = "Год"
     case allTime = "Все время"
-    case custom = "Выбрать период" // Новый пункт
+    case custom = "Выбрать период"
 
     var id: String { rawValue }
 }
-
 struct HomeScreen: View {
     @Query private var transactions: [Transaction]
     @Query private var accounts: [Account]
@@ -21,7 +22,7 @@ struct HomeScreen: View {
     @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
-    @State private var selectedTimePeriod: TimePeriod = .day
+    @State private var selectedTimePeriod: TimePeriod = .today
  //   @State private var customStartDate: Date = Date()
  //   @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
@@ -60,22 +61,53 @@ struct HomeScreen: View {
 
         return account.transactions.filter { transaction in
             switch selectedTimePeriod {
-            case .day:
+            case .today:
                 return calendar.isDateInToday(transaction.date)
-            case .week:
+
+            case .currentWeek:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
-            case .month:
+
+            case .currentMonth:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
+
+            case .previousMonth:
+                guard let startOfCurrentMonth = calendar.date(
+                    from: calendar.dateComponents([.year, .month], from: now)
+                ) else {
+                    return false
+                }
+                guard let endOfPreviousMonth = calendar.date(byAdding: .day, value: -1, to: startOfCurrentMonth) else {
+                    return false
+                }
+                guard let startOfPreviousMonth = calendar.date(
+                    from: calendar.dateComponents([.year, .month], from: endOfPreviousMonth)
+                ) else {
+                    return false
+                }
+                return (transaction.date >= startOfPreviousMonth && transaction.date <= endOfPreviousMonth)
+
+            case .last3Months:
+                // Транзакции за последние 3 месяца (90 дней условно, либо «календарные» 3 месяца)
+                guard let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now) else {
+                    return false
+                }
+                return transaction.date >= threeMonthsAgo && transaction.date <= now
+
             case .year:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
+
             case .allTime:
                 return true
+
             case .custom:
-                guard let startDate = appliedStartDate, let endDate = appliedEndDate else { return false }
-                return transaction.date >= startDate && transaction.date <= endDate
+                guard let startDate = appliedStartDate, let endDate = appliedEndDate else {
+                    return false
+                }
+                return (transaction.date >= startDate && transaction.date <= endDate)
             }
         }
     }
+
     /// Транзакции, выбранные по периоду и типу (для списка и диаграммы)
     var filteredTransactions: [Transaction] {
         allPeriodTransactions.filter { $0.type == selectedTransactionType }
@@ -254,40 +286,54 @@ struct HomeScreen: View {
                         .foregroundColor(.royalBlue.opacity(0.85))
                 }
             }
-            .popover(isPresented: $isShowingPeriodMenu, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(TimePeriod.allCases) { period in
-                        Button(action: {
+            .popover(isPresented: $isShowingPeriodMenu, arrowEdge: .top) {
+                VStack(spacing: 0) {
+                    ForEach(TimePeriod.allCases.indices, id: \.self) { index in
+                        let period = TimePeriod.allCases[index]
+
+                        Button {
+                            // Закрываем popover
                             isShowingPeriodMenu = false
-//                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                selectedTimePeriod = period
-                                if period == .custom {
+                            // Меняем выбранный период
+                            selectedTimePeriod = period
+                            // Если пользователь выбрал "Выбрать период"
+                            if period == .custom {
+                                // С небольшой задержкой открываем sheet
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                     isCustomPeriodPickerPresented = true
-//                                }
+                                }
                             }
-                        }) {
+                        } label: {
                             HStack {
                                 Text(period.rawValue)
                                     .foregroundColor(.primary)
                                     .padding(.vertical, 8)
                                 Spacer()
+                                // Если этот период сейчас выбран, показываем галочку
                                 if period == selectedTimePeriod {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(.royalBlue)
+                                        // Цвет можно сделать единым, например .appPurple
+                                        .foregroundColor(.appPurple)
                                 }
                             }
                             .padding(.horizontal, 16)
                         }
 
+                        // Добавляем Divider, если это не последний элемент
+                        if index < TimePeriod.allCases.count - 1 {
+                            Divider()
+                                .foregroundColor(Color(.systemGray4))
+                        }
                     }
                 }
-                .padding(.vertical, 8)
-                .frame(width: 250)
+                .padding(.vertical, 8)               // Внешний вертикальный отступ для списка
+                .frame(width: 250)                   // Фиксированная ширина popover
                 .background(Color(uiColor: .systemBackground))
                 .cornerRadius(12)
                 .shadow(radius: 5)
                 .presentationCompactAdaptation(.popover)
             }
+
         }
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
             CustomPeriodPickerView(

@@ -108,12 +108,12 @@ struct StatsView: View {
                         }
                     }
                     .popover(isPresented: $isShowingPeriodPopover, arrowEdge: .top) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            ForEach(TimePeriod.allCases) { period in
+                        VStack(spacing: 0) {
+                            ForEach(TimePeriod.allCases.indices, id: \.self) { index in
+                                let period = TimePeriod.allCases[index]
                                 Button(action: {
                                     selectedTimePeriod = period
                                     isShowingPeriodPopover = false
-
                                     if period == .custom {
                                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                                             isCustomPeriodPickerPresented = true
@@ -132,6 +132,11 @@ struct StatsView: View {
                                     }
                                     .padding(.horizontal, 16)
                                 }
+                                // Если это не последний элемент – добавить Divider (подчеркивание)
+                                if index < TimePeriod.allCases.count - 1 {
+                                    Divider()
+                                        .foregroundColor(Color(.systemGray4))
+                                }
                             }
                         }
                         .padding(.vertical, 8)
@@ -141,6 +146,7 @@ struct StatsView: View {
                         .shadow(radius: 5)
                         .presentationCompactAdaptation(.popover)
                     }
+
                 }
                 // Sheet для кастомного периода
                 .sheet(isPresented: $isCustomPeriodPickerPresented) {
@@ -261,18 +267,35 @@ struct StatsView: View {
         let now = Date()
         let calendar = Calendar.current
         switch selectedTimePeriod {
-        case .day:
+        case .today:
             return calendar.isDateInToday(transaction.date)
-        case .week:
+        case .currentWeek:
             return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
-        case .month:
+        case .currentMonth:
             return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
+        case .previousMonth:
+            guard let startOfCurrentMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now)) else {
+                return false
+            }
+            guard let endOfPreviousMonth = calendar.date(byAdding: .day, value: -1, to: startOfCurrentMonth) else {
+                return false
+            }
+            guard let startOfPreviousMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: endOfPreviousMonth)) else {
+                return false
+            }
+            return transaction.date >= startOfPreviousMonth && transaction.date <= endOfPreviousMonth
+        case .last3Months:
+            guard let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now) else {
+                return false
+            }
+            return transaction.date >= threeMonthsAgo && transaction.date <= now
         case .year:
             return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
         case .allTime:
             return true
         case .custom:
-            return (transaction.date >= customStartDate && transaction.date <= customEndDate)
+            return transaction.date >= customStartDate && transaction.date <= customEndDate
         }
     }
+
 }
