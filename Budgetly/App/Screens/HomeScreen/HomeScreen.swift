@@ -58,18 +58,14 @@ struct HomeScreen: View {
         guard let account = selectedAccount else { return [] }
         let now = Date()
         let calendar = Calendar.current
-
         return account.transactions.filter { transaction in
             switch selectedTimePeriod {
             case .today:
                 return calendar.isDateInToday(transaction.date)
-
             case .currentWeek:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
-
             case .currentMonth:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
-
             case .previousMonth:
                 guard let startOfCurrentMonth = calendar.date(
                     from: calendar.dateComponents([.year, .month], from: now)
@@ -87,18 +83,14 @@ struct HomeScreen: View {
                 return (transaction.date >= startOfPreviousMonth && transaction.date <= endOfPreviousMonth)
 
             case .last3Months:
-                // Транзакции за последние 3 месяца (90 дней условно, либо «календарные» 3 месяца)
                 guard let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now) else {
                     return false
                 }
                 return transaction.date >= threeMonthsAgo && transaction.date <= now
-
             case .year:
                 return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
-
             case .allTime:
                 return true
-
             case .custom:
                 guard let startDate = appliedStartDate, let endDate = appliedEndDate else {
                     return false
