@@ -130,8 +130,8 @@ struct GoldBagView: View {
                                     Text(asset.name)
                                     Spacer()
                                     Text("\(asset.price, specifier: "%.2f") ₽")
-                                        .foregroundColor(.appPurple)
                                 }
+                                .foregroundColor(.black)
                                 .padding(.vertical, 4)
                             }
                             // Пример добавления свайп-удаления для конкретного актива
@@ -145,33 +145,37 @@ struct GoldBagView: View {
                         }
                     } label: {
                         // Заголовок DisclosureGroup – имя типа и суммарная цена группы
-                        HStack {
+                        VStack(alignment: .leading, spacing: 5) {
                             Text(assetType?.name ?? "Без типа")
-                                .font(.headline)
-                                .foregroundColor(.appPurple)
-                            Spacer()
+                                .font(.title3).bold()
+                                .foregroundColor(.black)
                             let total = (groupedAssetsByType[assetType] ?? []).reduce(0) { $0 + $1.price }
                             Text("\(total, specifier: "%.2f") ₽")
-                                .font(.headline)
-                                .foregroundColor(.appPurple)
+                                .font(.subheadline)
+                                .foregroundColor(.gray.opacity(0.8))
                         }
                         .padding(.vertical, 4)
                     }
+                    .tint(.black)
                 }
             }
-            .navigationTitle("Мои активы")
+         //   .navigationTitle("Мои активы")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
+                        Text("Мои активы")
+                            .font(.title2)
+                            .bold().foregroundColor(.black)
+                        Spacer()
                         Text("\(totalPrice, specifier: "%.2f") ₽")
-                            .foregroundColor(.appPurple)
-                            .font(.headline)
+                            .foregroundColor(.black)
+                            .font(.title3).bold()
                         Button {
                             isAddAssetPresented = true
                         } label: {
                             Image(systemName: "plus.circle")
                                 .font(.title)
-                                .foregroundStyle(.appPurple)
+                                .foregroundStyle(.black)
                         }
                     }
                 }
