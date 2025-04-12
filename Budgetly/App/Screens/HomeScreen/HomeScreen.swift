@@ -244,7 +244,7 @@ struct HomeScreen: View {
             Spacer()
 
             Button {
-                isShowingPeriodMenu = true
+                isShowingPeriodMenu.toggle()
             } label: {
                 HStack {
                     Text(selectedPeriodTitle)
@@ -254,16 +254,39 @@ struct HomeScreen: View {
                         .foregroundColor(.royalBlue.opacity(0.85))
                 }
             }
-            .confirmationDialog("Выберите период", isPresented: $isShowingPeriodMenu, titleVisibility: .visible) {
-                ForEach(TimePeriod.allCases) { period in
-                    Button(period.rawValue) {
-                        selectedTimePeriod = period
-                        if period == .custom {
-                            isCustomPeriodPickerPresented = true
+            .popover(isPresented: $isShowingPeriodMenu, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(TimePeriod.allCases) { period in
+                        Button(action: {
+                            isShowingPeriodMenu = false
+//                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                selectedTimePeriod = period
+                                if period == .custom {
+                                    isCustomPeriodPickerPresented = true
+//                                }
+                            }
+                        }) {
+                            HStack {
+                                Text(period.rawValue)
+                                    .foregroundColor(.primary)
+                                    .padding(.vertical, 8)
+                                Spacer()
+                                if period == selectedTimePeriod {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.royalBlue)
+                                }
+                            }
+                            .padding(.horizontal, 16)
                         }
+
                     }
                 }
-                Button("Отмена", role: .cancel) {}
+                .padding(.vertical, 8)
+                .frame(width: 250)
+                .background(Color(uiColor: .systemBackground))
+                .cornerRadius(12)
+                .shadow(radius: 5)
+                .presentationCompactAdaptation(.popover)
             }
         }
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
