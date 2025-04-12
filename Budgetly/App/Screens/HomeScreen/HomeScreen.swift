@@ -22,10 +22,13 @@ struct HomeScreen: View {
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
     @State private var selectedTimePeriod: TimePeriod = .day
-    @State private var customStartDate: Date = Date()
-    @State private var customEndDate: Date = Date()
+ //   @State private var customStartDate: Date = Date()
+ //   @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
     @State private var isShowingPeriodMenu = false
+
+    @State private var appliedStartDate: Date?
+    @State private var appliedEndDate: Date?
 
     @State private var isGoldBagViewPresented = false
     @State private var isStatsViewPresented = false
@@ -68,8 +71,8 @@ struct HomeScreen: View {
             case .allTime:
                 return true
             case .custom:
-                  // Проверяем, что дата транзакции лежит между customStartDate и customEndDate
-                  return transaction.date >= customStartDate && transaction.date <= customEndDate
+                guard let startDate = appliedStartDate, let endDate = appliedEndDate else { return false }
+                return transaction.date >= startDate && transaction.date <= endDate
             }
         }
     }
@@ -159,11 +162,13 @@ struct HomeScreen: View {
     }
 
     private var selectedPeriodTitle: String {
-        if selectedTimePeriod == .custom {
+        if selectedTimePeriod == .custom,
+           let startDate = appliedStartDate,
+           let endDate = appliedEndDate {
             let formatter = DateFormatter()
             formatter.locale = Locale(identifier: "ru_RU")
             formatter.dateFormat = "d MMM yyyy"
-            return "\(formatter.string(from: customStartDate)) - \(formatter.string(from: customEndDate))"
+            return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
         } else {
             return selectedTimePeriod.rawValue
         }
@@ -242,7 +247,7 @@ struct HomeScreen: View {
                 isShowingPeriodMenu = true
             } label: {
                 HStack {
-                    Text(selectedPeriodTitle)  // Используем новое свойство здесь
+                    Text(selectedPeriodTitle)
                         .foregroundColor(.royalBlue.opacity(0.85))
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
@@ -263,15 +268,15 @@ struct HomeScreen: View {
         }
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
             CustomPeriodPickerView(
-                startDate: $customStartDate,
-                endDate: $customEndDate
-            )
+                startDate: appliedStartDate ?? Date(),
+                endDate: appliedEndDate ?? Date()
+            ) { start, end in
+                appliedStartDate = start
+                appliedEndDate = end
+            }
             .presentationDetents([.medium])
         }
     }
-
-
-
     // Удаление транзакции
     private func deleteTransaction(at offsets: IndexSet) {
         // Индексы соответствуют позициям в filteredTransactions
@@ -293,8 +298,16 @@ struct HomeScreen: View {
 struct CustomPeriodPickerView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @Binding var startDate: Date
-    @Binding var endDate: Date
+    @State private var startDate: Date
+    @State private var endDate: Date
+
+    var onApply: (Date, Date) -> Void
+
+    init(startDate: Date, endDate: Date, onApply: @escaping (Date, Date) -> Void) {
+        _startDate = State(initialValue: startDate)
+        _endDate = State(initialValue: endDate)
+        self.onApply = onApply
+    }
 
     var body: some View {
         NavigationStack {
@@ -335,6 +348,7 @@ struct CustomPeriodPickerView: View {
                 }
                 // Кнопка "Применить"
                 Button(action: {
+                    onApply(startDate, endDate)
                     dismiss() // Закрываем и применяем фильтр
                 }) {
                     Text("Применить")

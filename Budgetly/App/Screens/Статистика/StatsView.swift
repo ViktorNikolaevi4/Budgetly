@@ -64,8 +64,9 @@ struct StatsView: View {
         // Если выбрали "Выбрать период", показываем выбор дат
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
             CustomPeriodPickerView(
-                startDate: $customStartDate,
-                endDate: $customEndDate
+                startDate: customStartDate,
+                endDate: customEndDate,
+                onApply: { _, _ in }
             )
         }
     }
