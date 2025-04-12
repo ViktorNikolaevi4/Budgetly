@@ -386,10 +386,10 @@ struct CustomPeriodPickerView: View {
                 .padding(.bottom, 24)
             }
             Spacer()
-            .environment(\.locale, Locale(identifier: "ru_RU"))
-          //  .navigationBarTitleDisplayMode(.inline)
         }
+        .environment(\.locale, Locale(identifier: "ru_RU"))
     }
+
 }
 
 extension Double {
