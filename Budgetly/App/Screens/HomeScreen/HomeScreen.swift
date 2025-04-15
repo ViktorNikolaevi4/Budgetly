@@ -156,7 +156,7 @@ struct HomeScreen: View {
                                         .opacity(0.8)
                                 )
                                 .cornerRadius(12)
-                                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                              //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
                                 .contextMenu {
@@ -257,9 +257,10 @@ struct HomeScreen: View {
         .frame(maxWidth: .infinity)
         .background(Color.white)
         .cornerRadius(28)
-        .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
         .padding(.horizontal, 6)
+        .shadow(color: Color.black.opacity(0.2), radius: 3)
     }
+
 
     private var transactionTypeControl: some View {
         Picker("", selection: $selectedTransactionType) {
