@@ -1,13 +1,20 @@
 import SwiftUI
 import Charts
 
+struct AggregatedData: Identifiable {
+    let id = UUID()
+    let category: String
+    let totalAmount: Double
+    let type: TransactionType
+}
+
 struct PieChartView: View {
 
     var transactions: [Transaction]
 
     /// Общая сумма всех транзакций, которые приходят в этот PieChartView
     private var totalAmount: Double {
-        transactions.reduce(0) { $0 + $1.amount }
+        aggregatedData.reduce(0) { $0 + $1.totalAmount }
     }
 
     @State private var selectedTimePeriod: String = "День"
@@ -16,17 +23,34 @@ struct PieChartView: View {
         transactions.first?.type ?? .income
     }
 
+    private var aggregatedData: [AggregatedData] {
+        // Сгруппируем по названию категории
+        let groupedByCategory = Dictionary(grouping: transactions, by: { $0.category })
+
+        // Преобразуем каждую группу в AggregatedData
+        return groupedByCategory.map { (category, groupTransactions) in
+            let sum = groupTransactions.reduce(0) { $0 + $1.amount }
+            let transactionType = groupTransactions.first?.type ?? .income
+            return AggregatedData(
+                category: category,
+                totalAmount: sum,
+                type: transactionType
+            )
+        }
+    }
+
+
     var body: some View {
         ZStack {
             // Сама диаграмма
-            Chart(transactions) { transaction in
+            Chart(aggregatedData) { data in
                 SectorMark(
-                    angle: .value("Amount", transaction.amount),
+                    angle: .value("Amount", data.totalAmount),
                     innerRadius: .ratio(0.7),  // Можно менять, чтобы центр был больше/меньше
                     outerRadius: .ratio(1.0)
                 )
                 .foregroundStyle(
-                    Color.colorForCategoryName(transaction.category, type: transaction.type)
+                    Color.colorForCategoryName(data.category, type: data.type)
                 )            }
             .chartLegend(.hidden)
             .frame(width: 128, height: 128) // Размер диаграммы при желании

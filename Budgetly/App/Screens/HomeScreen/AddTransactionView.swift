@@ -223,7 +223,7 @@ struct AddTransactionView: View {
             print("Ошибка при удалении категории: \(error)")
         }
     }
-
+    
     // Функция для сохранения транзакции
     private func saveTransaction() {
         guard
@@ -233,39 +233,25 @@ struct AddTransactionView: View {
         else {
             return
         }
-        // Текущая дата или дата, выбранная пользователем
+        // Дата транзакции (по умолчанию текущая)
         let newTransactionDate = Date()
-        // Если пользователь выбирает дату вручную — подставьте её вместо Date()
+        // Определяем тип (расход/доход)
         let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
-        // Ищем существующую транзакцию, у которой:
-        // 1) такая же категория
-        // 2) такой же тип (доход/расход)
-        // 3) дата совпадает по дню
-        if let existingTransaction = account.transactions.first(where: { transaction in
-            transaction.category == selectedCategory &&
-            transaction.type == transactionType &&
-            Calendar.current.isDate(transaction.date, inSameDayAs: newTransactionDate)
-        }) {
-            // Если нашли, то увеличиваем её сумму
-            existingTransaction.amount += amountValue
-        } else {
-            // Иначе создаём новую
-            let newTransaction = Transaction(
-                category: selectedCategory,
-                amount: amountValue,
-                type: transactionType,
-                account: account
-            )
-            // Не забудьте сохранить дату
-            newTransaction.date = newTransactionDate
-
-            modelContext.insert(newTransaction)
-            account.transactions.append(newTransaction)
-        }
-
+        // Создаём новую транзакцию, не пытаясь искать существующую и не суммируя
+        let newTransaction = Transaction(
+            category: selectedCategory,
+            amount: amountValue,
+            type: transactionType,
+            account: account
+        )
+        newTransaction.date = newTransactionDate
+        // Добавляем в контекст и в массив транзакций счёта
+        modelContext.insert(newTransaction)
+        account.transactions.append(newTransaction)
+        // Сохраняем
         do {
             try modelContext.save()
-            dismiss()
+            dismiss() // Закрываем текущий экран
         } catch {
             print("Ошибка при сохранении: \(error)")
         }

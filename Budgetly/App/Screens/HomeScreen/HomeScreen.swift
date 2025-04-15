@@ -15,6 +15,13 @@ enum TimePeriod: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 }
+/// Модель для хранения агрегированных данных по одной категории
+struct AggregatedTransaction: Identifiable {
+    let id = UUID()            // Для ForEach (уникальный идентификатор)
+    let category: String       // Название категории
+    let totalAmount: Double    // Сумма по категории
+}
+
 struct HomeScreen: View {
     @Query private var transactions: [Transaction]
     @Query private var accounts: [Account]
@@ -105,6 +112,18 @@ struct HomeScreen: View {
         allPeriodTransactions.filter { $0.type == selectedTransactionType }
     }
 
+    private var aggregatedTransactions: [AggregatedTransaction] {
+        // 1. Сгруппировать по названию категории (Dictionary<GroupKey, [Transaction]>)
+        let groupedByCategory = Dictionary(grouping: filteredTransactions, by: { $0.category })
+
+        // 2. Преобразовать каждую группу в AggregatedTransaction
+        //    Ключ — категория, значение — массив транзакций
+        return groupedByCategory.map { (category, transactions) in
+            let total = transactions.reduce(0) { $0 + $1.amount }
+            return AggregatedTransaction(category: category, totalAmount: total)
+        }
+    }
+
     var body: some View {
             NavigationStack {
                 ScrollView {
@@ -113,49 +132,42 @@ struct HomeScreen: View {
                             accountView
                             transactionTypeControl
                         }
-
                         timePeriodPicker
-
                         PieChartView(transactions: filteredTransactions)
-
                         LazyVGrid(columns: columns, spacing: 8) {
-                            ForEach(filteredTransactions) { transaction in
-                                // Карточка
+                            ForEach(aggregatedTransactions) { agg in
+                                // "agg" — это AggregatedTransaction
                                 HStack(spacing: 8) {
-                                    Text(transaction.category)
+                                    Text(agg.category)
                                         .font(.body)
                                         .lineLimit(1)
-                                     //   .fixedSize(horizontal: false, vertical: true)
-                                   //     .truncationMode(.tail)
                                         .minimumScaleFactor(0.8)
 
-                                    Text("\(transaction.amount.toShortStringWithSuffix()) ₽")                                        .foregroundColor(.primary)
+                                    Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
+                                        .foregroundColor(.primary)
                                         .font(.headline)
-                                   //     .fixedSize(horizontal: false, vertical: true)
                                         .lineLimit(1)
-                                    //    .truncationMode(.tail)
-                                      //  .minimumScaleFactor(0.8)
                                 }
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
                             //    .frame(maxWidth: .infinity)
                                 .background(
-                                    Color.colorForCategoryName(transaction.category, type: transaction.type)
+                                    Color.colorForCategoryName(agg.category, type: selectedTransactionType)
                                         .opacity(0.8)
                                 )
                                 .cornerRadius(12)
                                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        if let index = filteredTransactions.firstIndex(where: { $0.id == transaction.id }) {
-                                            deleteTransaction(at: IndexSet(integer: index))
-                                        }
-                                    } label: {
-                                        Label("Удалить", systemImage: "trash")
-                                    }
-                                }
+//                                .contextMenu {
+//                                    Button(role: .destructive) {
+//                                        if let index = filteredTransactions.firstIndex(where: { $0.id == transaction.id }) {
+//                                            deleteTransaction(at: IndexSet(integer: index))
+//                                        }
+//                                    } label: {
+//                                        Label("Удалить", systemImage: "trash")
+//                                    }
+//                                }
                             }
                         }
                         .padding()
