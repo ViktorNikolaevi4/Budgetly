@@ -159,15 +159,14 @@ struct HomeScreen: View {
                                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
-//                                .contextMenu {
-//                                    Button(role: .destructive) {
-//                                        if let index = filteredTransactions.firstIndex(where: { $0.id == transaction.id }) {
-//                                            deleteTransaction(at: IndexSet(integer: index))
-//                                        }
-//                                    } label: {
-//                                        Label("Удалить", systemImage: "trash")
-//                                    }
-//                                }
+                                .contextMenu {
+                                    // При нажатии "Удалить" удаляем только за период
+                                    Button(role: .destructive) {
+                                        deleteAllTransactionsInPeriod(for: agg.category)
+                                    } label: {
+                                        Label("Удалить (\(agg.category)) за период", systemImage: "trash")
+                                    }
+                                }
                             }
                         }
                         .padding()
@@ -326,7 +325,7 @@ struct HomeScreen: View {
                         // Добавляем Divider, если это не последний элемент
                         if index < TimePeriod.allCases.count - 1 {
                             Divider()
-                                .foregroundColor(Color(.systemGray4))
+                                .foregroundStyle(Color(.systemGray4))
                         }
                     }
                 }
@@ -351,20 +350,24 @@ struct HomeScreen: View {
         }
     }
     // Удаление транзакции
-    private func deleteTransaction(at offsets: IndexSet) {
-        // Индексы соответствуют позициям в filteredTransactions
-        for index in offsets {
-            let transactionToDelete = filteredTransactions[index]
-            // Удаляем из SwiftData (modelContext)
-            modelContext.delete(transactionToDelete)
+    private func deleteAllTransactionsInPeriod(for categoryName: String) {
+        // Собираем все "сырые" транзакции, которые видны (т.е. прошли фильтр)
+        // и у которых нужная категория
+        let toDelete = filteredTransactions.filter { $0.category == categoryName }
+
+        // Удаляем каждую
+        for transaction in toDelete {
+            modelContext.delete(transaction)
         }
-        // Сохраняем изменения
+        // Сохраняем
         do {
             try modelContext.save()
         } catch {
-            print("Ошибка при удалении транзакции: \(error.localizedDescription)")
+            print("Ошибка при удалении транзакций: \(error.localizedDescription)")
         }
     }
+
+
 }
 
 //экран, где пользователь выберет даты
@@ -411,6 +414,7 @@ struct CustomPeriodPickerView: View {
                         .background(Color(uiColor: .systemGray6))
                         .cornerRadius(12)
                         .padding(.horizontal, 16)
+                        .tint(.appPurple)
 
                     DatePicker("Дата окончания", selection: $endDate, displayedComponents: .date)
                         .datePickerStyle(.compact)
@@ -418,6 +422,7 @@ struct CustomPeriodPickerView: View {
                         .background(Color(uiColor: .systemGray6))
                         .cornerRadius(12)
                         .padding(.horizontal, 16)
+                        .tint(.appPurple)
                 }
                 // Кнопка "Применить"
                 Button(action: {

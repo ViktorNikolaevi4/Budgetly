@@ -344,7 +344,7 @@ struct AddOrEditAssetView: View {
                         }
 
                         // Пункт "Новый тип…"
-                        Text("Новый тип…").tag(TypeSelection.newType)
+                        Text("Создать новый тип…").tag(TypeSelection.newType)
                     }
                     .pickerStyle(.menu)
                     .tint(.appPurple)
