@@ -60,11 +60,12 @@ struct PieChartView: View {
                 // Например, пишем «Доходы» или «Расходы»
                 let title = currentType == .income ? "Доходы" : "Расходы"
                 Text(title)
-                    .font(.subheadline)
-                    .foregroundColor(.primary)
-
+                    .font(.custom("SFPro-Regular", size: 15.0))
+                    .foregroundColor(Color(white: 0.0, opacity: 0.5))
+                    .multilineTextAlignment(.center)
+                    .frame(height: 20.0, alignment: .center)
                 // Сама сумма
-                Text(totalAmount.toShortStringWithSuffix())
+                Text("\(totalAmount.toShortStringWithSuffix()) ₽")
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)

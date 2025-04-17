@@ -5,13 +5,13 @@ import SwiftData
 
 enum TimePeriod: String, CaseIterable, Identifiable {
     case today = "Сегодня"
-    case currentWeek = "Текущая неделя"
-    case currentMonth = "Текущий месяц"
+    case currentWeek = "Эта неделя"
+    case currentMonth = "Этот месяц"
     case previousMonth = "Прошлый месяц"
     case last3Months = "Последние 3 месяца"
-    case year = "Год"
-    case allTime = "Все время"
-    case custom = "Выбрать период"
+    case year = "Этот Год"
+    case allTime = "За все время"
+    case custom = "Свой период"
 
     var id: String { rawValue }
 }
@@ -23,7 +23,6 @@ struct AggregatedTransaction: Identifiable {
 }
 
 struct HomeScreen: View {
-    @Query private var transactions: [Transaction]
     @Query private var accounts: [Account]
 
     @State private var selectedAccount: Account?
@@ -37,9 +36,6 @@ struct HomeScreen: View {
 
     @State private var appliedStartDate: Date?
     @State private var appliedEndDate: Date?
-
-    @State private var isGoldBagViewPresented = false
-    @State private var isStatsViewPresented = false
 
     @Environment(\.modelContext) private var modelContext
 
@@ -63,49 +59,65 @@ struct HomeScreen: View {
     /// Все транзакции выбранного счёта за выбранный период (без учёта типа)
     private var allPeriodTransactions: [Transaction] {
         guard let account = selectedAccount else { return [] }
-        let now = Date()
-        let calendar = Calendar.current
-        return account.transactions.filter { transaction in
-            switch selectedTimePeriod {
-            case .today:
-                return calendar.isDateInToday(transaction.date)
-            case .currentWeek:
-                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .weekOfYear)
-            case .currentMonth:
-                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .month)
-            case .previousMonth:
-                guard let startOfCurrentMonth = calendar.date(
-                    from: calendar.dateComponents([.year, .month], from: now)
-                ) else {
-                    return false
-                }
-                guard let endOfPreviousMonth = calendar.date(byAdding: .day, value: -1, to: startOfCurrentMonth) else {
-                    return false
-                }
-                guard let startOfPreviousMonth = calendar.date(
-                    from: calendar.dateComponents([.year, .month], from: endOfPreviousMonth)
-                ) else {
-                    return false
-                }
-                return (transaction.date >= startOfPreviousMonth && transaction.date <= endOfPreviousMonth)
 
-            case .last3Months:
-                guard let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now) else {
-                    return false
-                }
-                return transaction.date >= threeMonthsAgo && transaction.date <= now
-            case .year:
-                return calendar.isDate(transaction.date, equalTo: now, toGranularity: .year)
-            case .allTime:
-                return true
-            case .custom:
-                guard let startDate = appliedStartDate, let endDate = appliedEndDate else {
-                    return false
-                }
-                return (transaction.date >= startDate && transaction.date <= endDate)
-            }
+        guard let (start, end) = periodRange(for: selectedTimePeriod) else {
+            return account.transactions
+        }
+
+        return account.transactions.filter { tx in
+            (tx.date >= start) && (tx.date <= end)
         }
     }
+
+    private func periodRange(for period: TimePeriod,
+                             now: Date = .init(),
+                             calendar: Calendar = .current) -> (Date, Date)? {
+        switch period {
+        case .today:
+            let start = calendar.startOfDay(for: now)
+            return (start, now)
+
+        case .currentWeek:
+            guard let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start else { return nil }
+            return (start, now)
+
+        case .currentMonth:
+            guard let start = calendar.dateInterval(of: .month, for: now)?.start else { return nil }
+            return (start, now)
+
+        case .previousMonth:
+            guard
+                let startOfCurMonth = calendar.dateInterval(of: .month, for: now)?.start,
+                let endPrev = calendar.date(byAdding: .day, value: -1, to: startOfCurMonth),
+                let startPrev = calendar.dateInterval(of: .month, for: endPrev)?.start
+            else { return nil }
+            return (startPrev, endPrev)
+
+        case .last3Months:
+            guard let start = calendar.date(byAdding: .month, value: -3, to: now) else { return nil }
+            return (start, now)
+
+        case .year:
+            guard let start = calendar.dateInterval(of: .year, for: now)?.start else { return nil }
+            return (start, now)
+
+        case .custom:
+            if let s = appliedStartDate, let e = appliedEndDate { return (s, e) }
+            return nil                 // не выбрали — падаем на default
+
+        case .allTime:
+            return nil                 // «За всё время» не требует диапазона
+        }
+    }
+
+    /// Формат «1 апр» либо «1 апр 2025» в зависимости от того,
+    /// совпадают ли годы начала и конца
+//    private func format(_ date: Date,
+//                        includeYear: Bool,
+//                        formatter: DateFormatter) -> String {
+//        formatter.dateFormat = includeYear ? "d MMM yyyy" : "d MMM"
+//        return formatter.string(from: date)
+//    }
 
     /// Транзакции, выбранные по периоду и типу (для списка и диаграммы)
     var filteredTransactions: [Transaction] {
@@ -195,18 +207,22 @@ struct HomeScreen: View {
 //                StatsView()
 //            }
     }
+    /// Диапазон дат для подписи под заголовком (`nil` – если «За всё время»)
+    private var periodCaption: String? {
+        guard let (start, end) = periodRange(for: selectedTimePeriod) else { return nil }
 
-    private var selectedPeriodTitle: String {
-        if selectedTimePeriod == .custom,
-           let startDate = appliedStartDate,
-           let endDate = appliedEndDate {
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "ru_RU")
-            formatter.dateFormat = "d MMM yyyy"
-            return "\(formatter.string(from: startDate)) - \(formatter.string(from: endDate))"
-        } else {
-            return selectedTimePeriod.rawValue
+        // «Сегодня» → одна дата
+        if selectedTimePeriod == .today {
+            return DateFormatter.rus.string(from: end, includeYear: true)          // «17 апр 2025»
         }
+
+        // Диапазон
+        let sameYear = Calendar.current.component(.year, from: start) ==
+                       Calendar.current.component(.year, from: end)
+
+        let left  = DateFormatter.rus.string(from: start, includeYear: !sameYear)
+        let right = DateFormatter.rus.string(from: end,   includeYear: true)
+        return "\(left) – \(right)"
     }
 
     private var accountView: some View {
@@ -283,6 +299,8 @@ LinearGradient(stops: [
     }
 
     private var timePeriodPicker: some View {
+        VStack(alignment: .center, spacing: 4) {
+
         HStack {
             Text("Период")
                 .font(.title3).bold()
@@ -293,13 +311,14 @@ LinearGradient(stops: [
             Button {
                 isShowingPeriodMenu.toggle()
             } label: {
-                HStack {
-                    Text(selectedPeriodTitle)
+                HStack(spacing: 2) {
+                    Text(selectedTimePeriod.rawValue)
                         .foregroundColor(.appPurple.opacity(0.85))
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
                         .foregroundColor(.appPurple.opacity(0.85))
                 }
+              }
             }
             .popover(isPresented: $isShowingPeriodMenu, arrowEdge: .top) {
                 VStack(spacing: 0) {
@@ -348,7 +367,11 @@ LinearGradient(stops: [
                 .shadow(radius: 5)
                 .presentationCompactAdaptation(.popover)
             }
-
+            if let caption = periodCaption {
+                Text(caption)
+                    .font(.body.weight(.medium))   
+                    .foregroundStyle(.black)
+            }
         }
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
             CustomPeriodPickerView(
@@ -401,7 +424,7 @@ struct CustomPeriodPickerView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 40) {
                 HStack {
-                    Text("Выберите период")
+                    Text("Свой период")
                         .font(.title2)
                         .bold()
 
@@ -447,7 +470,7 @@ struct CustomPeriodPickerView: View {
                         .background(.appPurple)
                         .foregroundStyle(.white)
                         .font(.headline)
-                        .cornerRadius(24)
+                        .cornerRadius(16)
                         .padding()
                 }
                 .padding(.bottom, 24)
@@ -480,5 +503,17 @@ extension Double {
             // Если число меньше 1000, показываем целое или с десятыми (на ваш вкус)
             return String(format: "%.0f", self)
         }
+    }
+}
+// Короткие вспомогатели
+extension DateFormatter {
+    static let rus: DateFormatter = {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "ru_RU")
+        return df
+    }()
+    func string(from date: Date, includeYear: Bool) -> String {
+        dateFormat = includeYear ? "d MMM yyyy" : "d MMM"
+        return string(from: date)
     }
 }
