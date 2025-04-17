@@ -96,7 +96,16 @@ extension Color {
     private static var usedCountExpenses = 0
 
     /// Массив предопределённых цветов
-    private static let predefinedColors: [Color] = [.appPurple, .redApple, .orangeApple, .pinkApple, .blueApple, .yellowApple]
+    private static let predefinedColors: [Color] = [.appPurple,
+                                                    .redApple,
+                                                    .orangeApple,
+                                                    .pinkApple,
+                                                    .blueApple,
+                                                    .yellowApple,
+                                                    .pinkApple1,
+                                                    .lightPurprApple,
+                                                    .bolotoApple,
+                                                    .purpurApple]
 
     /// Возвращает цвет для (название категории, тип транзакции).
     /// - Если для этой категории ещё не назначен цвет:

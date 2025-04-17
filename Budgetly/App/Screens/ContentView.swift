@@ -58,7 +58,7 @@ struct ContentView: View {
             appearance.backgroundColor = UIColor.systemGray6
 
             // Настройка цветов иконок и текста
-            let selectedColor = UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)
+            let selectedColor = UIColor(.appPurple)
 
             appearance.stackedLayoutAppearance.selected.iconColor = selectedColor
             appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: selectedColor]

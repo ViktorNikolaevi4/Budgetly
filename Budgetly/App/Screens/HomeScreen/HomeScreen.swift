@@ -217,7 +217,7 @@ struct HomeScreen: View {
                     Text("Счет")
                         .font(.headline)
                 }
-                .foregroundStyle(.primary)
+                .foregroundStyle(.white)
                 .font(.headline)
 
                 Spacer()
@@ -229,34 +229,45 @@ struct HomeScreen: View {
                         Text(account.name).tag(account as Account?)
                     }
                 }
-                .tint(.royalBlue).opacity(0.85) // Изменяет цвет выделенного текста на белый
+                .tint(.white).opacity(0.85) // Изменяет цвет выделенного текста на белый
             }
 
             VStack (spacing: 8) {
                 Text("Баланс")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.7))
                     .font(.subheadline)
 
                 Text("\(saldo, specifier: "%.1f") ₽")
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
                     .font(.title)
                     .fontWeight(.bold)
             }
 
-            Button("Добавить операцию") {
+            Button {
                 isAddTransactionViewPresented = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "dollarsign.ring.dashed")
+                        .imageScale(.medium) // или .large
+                    Text("Добавить операцию")
+                        .font(.headline)
+                }
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(.appPurple)
+                .foregroundStyle(.white)
+                .cornerRadius(16)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 48)
-            .background(.appPurple)
-            .foregroundStyle(.white)
-            .font(.headline)
-            .cornerRadius(24)
         }
         .padding(16)
         .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .cornerRadius(28)
+        .background(
+LinearGradient(stops: [
+    Gradient.Stop(color: Color(red: 79.0 / 255.0, green: 184.0 / 255.0, blue: 1.0), location: 0.0),
+    Gradient.Stop(color: Color(red: 32.0 / 255.0, green: 60.0 / 255.0, blue: 1.0), location: 1.0)],
+               startPoint: .topLeading,
+               endPoint: .bottomTrailing)
+        )
+        .cornerRadius(20)
         .padding(.horizontal, 6)
         .shadow(color: Color.black.opacity(0.2), radius: 3)
     }
@@ -284,10 +295,10 @@ struct HomeScreen: View {
             } label: {
                 HStack {
                     Text(selectedPeriodTitle)
-                        .foregroundColor(.royalBlue.opacity(0.85))
+                        .foregroundColor(.appPurple.opacity(0.85))
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
-                        .foregroundColor(.royalBlue.opacity(0.85))
+                        .foregroundColor(.appPurple.opacity(0.85))
                 }
             }
             .popover(isPresented: $isShowingPeriodMenu, arrowEdge: .top) {
