@@ -35,9 +35,9 @@ struct AddTransactionView: View {
                         Text("Расходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == .expenses ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray.opacity(0.6))
+                            .background(selectedType == .expenses ? Color.appPurple : Color.gray.opacity(0.6))
                             .foregroundColor(.white)
-                            .cornerRadius(24)
+                            .cornerRadius(16)
                     }
 
                     Button(action: {
@@ -46,9 +46,9 @@ struct AddTransactionView: View {
                         Text("Доходы")
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(selectedType == .income ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray.opacity(0.6))
+                            .background(selectedType == .income ? Color.appPurple : Color.gray.opacity(0.6))
                             .foregroundColor(.white)
-                            .cornerRadius(24)
+                            .cornerRadius(16)
                     }
                 }
                 .padding()
@@ -75,9 +75,9 @@ struct AddTransactionView: View {
                                 .padding()
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 50)
-                                .background(selectedCategory == category.name ? (Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))) : Color.gray.opacity(0.6))
+                                .background(selectedCategory == category.name ? Color.appPurple : Color.gray.opacity(0.6))
                                 .foregroundColor(.white)
-                                .cornerRadius(24)
+                                .cornerRadius(16)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                                 .minimumScaleFactor(0.5)
@@ -113,9 +113,9 @@ struct AddTransactionView: View {
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background((Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1))))
+                        .background((Color.appPurple))
                         .foregroundColor(.white)
-                        .cornerRadius(24)
+                        .cornerRadius(16)
                 }
                 .padding()
             }
@@ -258,6 +258,3 @@ struct AddTransactionView: View {
     }
 }
 
-#Preview {
-    AddTransactionView()
-}
