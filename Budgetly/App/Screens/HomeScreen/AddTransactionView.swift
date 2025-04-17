@@ -18,106 +18,103 @@ struct AddTransactionView: View {
     var filteredCategories: [Category] {
         allCategories.filter { $0.type == selectedType }
     }
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 2)
 
     var body: some View {
         NavigationStack {
-            VStack {
-                // Выбор типа: Доход или Расход
-                HStack {
-                    Button(action: {
-                        selectedType = .expenses
-                    }) {
-                        Text("Расходы")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(selectedType == .expenses ? Color.appPurple : Color.gray.opacity(0.6))
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
-                    }
+            VStack(spacing: 16) {
 
-                    Button(action: {
-                        selectedType = .income
-                    }) {
-                        Text("Доходы")
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(selectedType == .income ? Color.appPurple : Color.gray.opacity(0.6))
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
-                    }
-                }
-                .padding()
+                        HStack {
+                            Button(action: {
+                                selectedType = .expenses
+                            }) {
+                                Text("Расходы")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(selectedType == .expenses ? Color.appPurple : Color.gray.opacity(0.6))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                            }
 
-                // Ввод суммы
-                TextField("Введите сумму", text: $amount)
-                    .keyboardType(.decimalPad)
-                    .padding()
-                    .background(Color.gray.opacity(0.3)) // Серый фон с прозрачностью
-                    .cornerRadius(10) // Закругленные углы
-                    .foregroundColor(.black) // Цвет вводимого текста
-                    .padding(.horizontal)
-                // Выбор категории
-                Text("Категории")
-                    .font(.headline)
-
-                // Используем LazyVGrid для отображения категорий в несколько строк
-                LazyVGrid(columns: columns, spacing: 10) {
-                    ForEach(filteredCategories, id: \.name) { category in
-                        Button(action: {
-                            selectedCategory = category.name
-                        }) {
-                            Text(category.name)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 50)
-                                .background(selectedCategory == category.name ? Color.appPurple : Color.gray.opacity(0.6))
-                                .foregroundColor(.white)
-                                .cornerRadius(16)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .minimumScaleFactor(0.5)
-                        }
-                        // Добавляем контекстное меню для удаления
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                removeCategory(category)
-                            } label: {
-                                Label("Удалить категорию", systemImage: "trash")
+                            Button(action: {
+                                selectedType = .income
+                            }) {
+                                Text("Доходы")
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(selectedType == .income ? Color.appPurple : Color.gray.opacity(0.6))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
                             }
                         }
-                    }
-                    // Добавить новую категорию
-                    Button(action: {
+                        .padding(.top)
+                        .padding(.horizontal)
+
+                        // Ввод суммы
+                        TextField("Введите сумму", text: $amount)
+                            .keyboardType(.decimalPad)
+                            .padding()
+                            .background(Color.gray.opacity(0.3)) // Серый фон с прозрачностью
+                            .cornerRadius(10) // Закругленные углы
+                            .foregroundColor(.black) // Цвет вводимого текста
+                            .padding(.horizontal)
+                HStack {
+                        // Выбор категории
+                        Text("Категории")
+                            .font(.headline)
+                   Spacer()
+                    Button {
                         isShowingAlert = true
-                    }) {
+                    } label: {
                         Image(systemName: "plus.circle")
-                            .font(.largeTitle)
-                           //  bold()
-                            .foregroundColor(.black)
+                            .font(.title)
+                            .foregroundStyle(.black)
                     }
                 }
-                .padding()
+                .padding(.horizontal)
 
-                Spacer()
-
-                // Кнопка сохранения транзакции
-                Button(action: {
-                    saveTransaction()
-                }) {
-                    Text("Добавить")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background((Color.appPurple))
-                        .foregroundColor(.white)
-                        .cornerRadius(16)
+                ScrollView {
+                    // Используем LazyVGrid для отображения категорий в несколько строк
+                    LazyVGrid(columns: columns, spacing: 10) {
+                        ForEach(filteredCategories, id: \.name) { category in
+                            Button {
+                                selectedCategory = category.name
+                            } label: {
+                                Text(category.name)
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8) // слегка сжимать, если всё‑таки не помещается
+                                    .padding(.vertical, 8)
+                                    .frame(maxWidth: .infinity) // растянуться на ширину столбца
+                                    .background(selectedCategory == category.name
+                                                ? Color.appPurple
+                                                : Color.gray.opacity(0.6))
+                                    .foregroundColor(.white)
+                                    .cornerRadius(16)
+                            }
+                             .contextMenu {
+                                Button(role: .destructive) {
+                                    removeCategory(category)
+                                 } label: {
+                                    Label("Удалить категорию", systemImage: "trash")
+                              }
+                           }
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+                    }
                 }
-                .padding()
+                // Кнопка сохранения транзакции
+                        Button("Добавить") {
+                            saveTransaction()
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(Color.appPurple)
+                        .foregroundStyle(.white)
+                        .cornerRadius(16)
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
             }
             .background(Color("BackgroundLightGray")) // фон
             .scrollContentBackground(.hidden) // Убираем фон NavigationStack
@@ -155,32 +152,6 @@ struct AddTransactionView: View {
 //            }
         }.foregroundStyle(.black)
     }
-    // Создание дефолтных категорий, если их ещё нет
-//    private func createDefaultCategoriesIfNeeded() {
-//        guard let account = account else { return }
-//        // Проверяем наличие категорий с выбранными именами для доходов и расходов для данного счета
-//        let expenseExists = allCategories.contains { category in
-//            category.type == .expenses && category.name == "Расходы" && category.account.id == account.id
-//        }
-//        let incomeExists = allCategories.contains { category in
-//            category.type == .income && category.name == "Доходы" && category.account.id == account.id
-//        }
-//
-//        if !expenseExists {
-//            let expenseCategory = Category(name: "Такси", type: .expenses, account: account)
-//            modelContext.insert(expenseCategory)
-//        }
-//        if !incomeExists {
-//            let incomeCategory = Category(name: "Зарплата", type: .income, account: account)
-//            modelContext.insert(incomeCategory)
-//        }
-//
-//        do {
-//            try modelContext.save()
-//        } catch {
-//            print("Ошибка при сохранении дефолтных категорий: \(error)")
-//        }
-//    }
 
     // Функция для добавления новой категории
     private func addNewCategory() {
@@ -257,4 +228,3 @@ struct AddTransactionView: View {
         }
     }
 }
-
