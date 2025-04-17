@@ -248,12 +248,12 @@ struct HomeScreen: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "dollarsign.ring.dashed")
-                        .imageScale(.medium) // или .large
+                        .imageScale(.large) 
                     Text("Добавить операцию")
                         .font(.headline)
                 }
                 .frame(maxWidth: .infinity, minHeight: 48)
-                .background(.appPurple)
+                .background(Color.white.opacity(0.2))
                 .foregroundStyle(.white)
                 .cornerRadius(16)
             }
