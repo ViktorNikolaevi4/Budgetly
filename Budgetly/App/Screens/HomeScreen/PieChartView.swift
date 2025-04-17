@@ -100,7 +100,7 @@ extension Color {
     private static let predefinedColors: [Color] = [.appPurple,
                                                     .redApple,
                                                     .orangeApple,
-                                                    .pinkApple,
+                                                    .yellow,
                                                     .blueApple,
                                                     .yellowApple,
                                                     .pinkApple1,

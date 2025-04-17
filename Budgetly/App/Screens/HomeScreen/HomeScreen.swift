@@ -148,6 +148,9 @@ struct HomeScreen: View {
                         PieChartView(transactions: filteredTransactions)
                         LazyVGrid(columns: columns, spacing: 8) {
                             ForEach(aggregatedTransactions) { agg in
+                                let bgColor = Color.colorForCategoryName(agg.category,
+                                                                        type: selectedTransactionType)
+                                    let textColor: Color = (bgColor == .yellow) ? .black : .white
                                 // "agg" — это AggregatedTransaction
                                 HStack(spacing: 8) {
                                     Text(agg.category)
@@ -156,17 +159,15 @@ struct HomeScreen: View {
                                         .minimumScaleFactor(0.8)
 
                                     Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
-                                        .foregroundColor(.primary)
+                                       // .foregroundColor(.primary)
                                         .font(.headline)
                                         .lineLimit(1)
                                 }
+                                .foregroundStyle(textColor)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
                             //    .frame(maxWidth: .infinity)
-                                .background(
-                                    Color.colorForCategoryName(agg.category, type: selectedTransactionType)
-                                        .opacity(0.8)
-                                )
+                                .background(bgColor.opacity(0.8))
                                 .cornerRadius(12)
                               //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
