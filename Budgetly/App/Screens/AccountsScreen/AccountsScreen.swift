@@ -32,9 +32,9 @@ struct AccountsScreen: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color(UIColor(red: 85/255, green: 80/255, blue: 255/255, alpha: 1)))
+                    .background(Color.appPurple)
                     .foregroundColor(.white)
-                    .cornerRadius(24)
+                    .cornerRadius(16)
             }
             .padding(.horizontal)
             .padding(.bottom, 20)

@@ -348,9 +348,7 @@ struct AddOrEditAssetView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.appPurple)
-                    .onChange(of: typeSelection) { newValue in
-                        // Если пользователь выбрал "Новый тип…",
-                        // сразу показываем алерт с TextField
+                    .onChange(of: typeSelection) { oldValue, newValue in
                         if case .newType = newValue {
                             isShowingNewTypeAlert = true
                         }
