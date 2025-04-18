@@ -39,10 +39,11 @@ struct HomeScreen: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    private let columns = Array(
-        repeating: GridItem(.flexible(), spacing: 8, alignment: .leading),
-        count: 2
-    )
+    private let columns = [
+        GridItem(.adaptive(minimum: 0),
+                 spacing: 8,
+                 alignment: .leading)
+    ]
     /// Баланс за выбранный период (учитывает все доходы и расходы)
     private var saldo: Double {
         let income = allPeriodTransactions
@@ -153,17 +154,22 @@ struct HomeScreen: View {
                                                                         type: selectedTransactionType)
                                     let textColor: Color = (bgColor == .yellow) ? .black : .white
                                 // "agg" — это AggregatedTransaction
-                                let isLong = agg.category.count > 10
-                                HStack(spacing: 8) {
+                            //    let isLong = agg.category.count > 10
+                                HStack() {
                                     Text(agg.category)
                                         .font(.body)
                                         .lineLimit(1)
-                                        .minimumScaleFactor(0.8)
+                                      //  .minimumScaleFactor(0.8)
+                                       // .fixedSize(horizontal: false,
+                                               //    vertical: true)
+
+
 
                                     Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
                                        // .foregroundColor(.primary)
                                         .font(.headline)
                                         .lineLimit(1)
+                                       // .minimumScaleFactor(0.8)
                                 }
                                 .foregroundStyle(textColor)
                                 .padding(.horizontal, 8)
@@ -171,7 +177,8 @@ struct HomeScreen: View {
                             //    .frame(maxWidth: .infinity)
                                 .background(bgColor.opacity(0.8))
                                 .cornerRadius(12)
-                                .gridCellColumns(isLong ? 2 : 1)
+                                .fixedSize()
+                              //  .gridCellColumns(isLong ? 2 : 1)
                               //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
