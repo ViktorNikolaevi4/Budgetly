@@ -39,11 +39,10 @@ struct HomeScreen: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 4),
-        GridItem(.flexible(), spacing: 4)
-    ]
-
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: 8, alignment: .leading),
+        count: 2
+    )
     /// Баланс за выбранный период (учитывает все доходы и расходы)
     private var saldo: Double {
         let income = allPeriodTransactions
@@ -146,12 +145,15 @@ struct HomeScreen: View {
                         }
                         timePeriodPicker
                         PieChartView(transactions: filteredTransactions)
-                        LazyVGrid(columns: columns, spacing: 8) {
+                        LazyVGrid(columns: columns,
+                                  alignment: .leading,
+                                  spacing: 8) {
                             ForEach(aggregatedTransactions) { agg in
                                 let bgColor = Color.colorForCategoryName(agg.category,
                                                                         type: selectedTransactionType)
                                     let textColor: Color = (bgColor == .yellow) ? .black : .white
                                 // "agg" — это AggregatedTransaction
+                                let isLong = agg.category.count > 10
                                 HStack(spacing: 8) {
                                     Text(agg.category)
                                         .font(.body)
@@ -169,6 +171,7 @@ struct HomeScreen: View {
                             //    .frame(maxWidth: .infinity)
                                 .background(bgColor.opacity(0.8))
                                 .cornerRadius(12)
+                                .gridCellColumns(isLong ? 2 : 1)
                               //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
@@ -182,8 +185,9 @@ struct HomeScreen: View {
                                 }
                             }
                         }
-                        .padding()
-
+                                  .frame(maxWidth: .infinity, alignment: .leading)
+                                  // Отступы от экрана
+                                  .padding(.horizontal, 16)
                     }
                 }
                 .navigationTitle("Мой Бюджет")
