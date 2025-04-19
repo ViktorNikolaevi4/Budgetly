@@ -43,7 +43,7 @@ struct RemindersScreen: View {
                         .background(.appPurple)
                         .foregroundStyle(.white)
                         .font(.headline)
-                        .cornerRadius(24)
+                        .cornerRadius(16)
                         .padding(.horizontal, 16)
                         .padding(.bottom, 20)
                 }

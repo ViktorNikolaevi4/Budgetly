@@ -58,7 +58,7 @@ struct CreateReminderView: View {
                         .padding()
                         .background(paymentType == .expenses ? Color.appPurple : Color.gray)
                         .foregroundColor(.white)
-                        .cornerRadius(24)
+                        .cornerRadius(16)
                 }
                 Button(action: {
                     paymentType = .income
@@ -68,7 +68,7 @@ struct CreateReminderView: View {
                         .padding()
                         .background(paymentType == .income ? Color.appPurple : Color.gray)
                         .foregroundColor(.white)
-                        .cornerRadius(24)
+                        .cornerRadius(16)
                 }
             }
             .padding()
@@ -117,7 +117,7 @@ struct CreateReminderView: View {
                     .background(.appPurple)
                     .foregroundStyle(.white)
                     .font(.headline)
-                    .cornerRadius(24)
+                    .cornerRadius(16)
             }
             .padding()
             .disabled(!isFormValid)
@@ -126,7 +126,7 @@ struct CreateReminderView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // Кнопка-крестик в левом (или правом) верхнем углу
-            ToolbarItem(placement: .cancellationAction) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     dismiss() // закрываем экран
                 } label: {
