@@ -1,9 +1,3 @@
-//
-//  StatsView.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 06.02.2025.
-//
 
 import SwiftUI
 import SwiftData
@@ -73,6 +67,17 @@ struct StatsView: View {
                     customStartDate = start
                     customEndDate = end }
             )
+        }
+    }
+
+    // MARK: - Активы, отсортированные по цене ↓
+    private var sortedAssets: [Asset] {
+        assets.sorted {
+            if $0.price != $1.price {
+                return $0.price > $1.price      // сначала большая цена
+            } else {
+                return $0.name < $1.name        // потом алфавит
+            }
         }
     }
 
@@ -194,9 +199,9 @@ struct StatsView: View {
                         .font(.body)
                 }
             }
-        case .assets:
             // Показываем список всех активов (без фильтра по датам)
-            List(assets) { asset in
+        case .assets:
+            List(sortedAssets) { asset in          // ←  вместо  List(assets)
                 HStack {
                     VStack(alignment: .leading) {
                         Text(asset.name)
@@ -206,7 +211,7 @@ struct StatsView: View {
                             .foregroundColor(.gray)
                     }
                     Spacer()
-                    Text("\(asset.price, specifier: "%.2f") ₽")
+                    Text(String(format: "%.2f ₽", asset.price))
                         .foregroundColor(.black)
                 }
             }
@@ -224,7 +229,13 @@ struct StatsView: View {
             let total = txs.reduce(0) { $0 + $1.amount }
             return (category: category, total: total)
         }
-        .sorted { $0.category < $1.category }
+        .sorted {
+            if $0.total != $1.total {
+                return $0.total > $1.total   // сначала по сумме (по убыванию)
+            } else {
+                return $0.category < $1.category // потом по алфавиту
+            }
+        }
     }
 
     // MARK: - Фильтр доходов по периоду
@@ -297,5 +308,4 @@ struct StatsView: View {
             return transaction.date >= customStartDate && transaction.date <= customEndDate
         }
     }
-
 }
