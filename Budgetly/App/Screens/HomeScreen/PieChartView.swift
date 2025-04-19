@@ -144,16 +144,3 @@ extension Color {
         return Color(hue: hue, saturation: saturation, brightness: brightness)
     }
 }
-
-
-//// Пример для превью
-//struct PieChartView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        PieChartView(transactions: [
-//            Transaction(id: UUID(), category: "Food", amount: 500.0, date: Date(), type: .expenses),
-//            Transaction(id: UUID(), category: "Transport", amount: 300.0, date: Date(), type: .expenses),
-//            Transaction(id: UUID(), category: "Entertainment", amount: 200.0, date: Date(), type: .expenses)
-//        ])
-//    }
-//}
-
