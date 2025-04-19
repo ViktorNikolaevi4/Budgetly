@@ -22,6 +22,67 @@ struct AggregatedTransaction: Identifiable {
     let totalAmount: Double    // Сумма по категории
 }
 
+/// Простой потоковый (wrap)‑лейаут
+struct FlowLayout: Layout {
+
+    var spacing: CGFloat = 4          // отступы между элементами
+
+    func sizeThatFits(proposal: ProposedViewSize,
+                      subviews: Subviews,
+                      cache: inout ()) -> CGSize {
+
+        // Максимальная ширина, которую нам разрешили
+        let maxWidth = proposal.width ?? .infinity
+
+        var rowWidth:  CGFloat = 0     // ширина текущей строки
+        var rowHeight: CGFloat = 0     // высота текущей строки
+        var totalHeight: CGFloat = 0   // суммарная высота
+
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+
+            // Перепрыгиваем на новую строку?
+            if rowWidth + size.width > maxWidth {
+                totalHeight += rowHeight + spacing
+                rowWidth  = 0
+                rowHeight = 0
+            }
+            rowWidth  += size.width + spacing
+            rowHeight  = max(rowHeight, size.height)
+        }
+        // прибавляем последнюю строку
+        totalHeight += rowHeight
+        return CGSize(width: maxWidth, height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect,
+                       proposal: ProposedViewSize,
+                       subviews: Subviews,
+                       cache: inout ()) {
+
+        let maxX = bounds.maxX
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+
+        for view in subviews {
+            let size = view.sizeThatFits(.unspecified)
+
+            if x + size.width > maxX {          // перенос
+                x = bounds.minX
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+
+            view.place(at: CGPoint(x: x, y: y),
+                       proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+
 struct HomeScreen: View {
     @Query private var accounts: [Account]
 
@@ -40,7 +101,7 @@ struct HomeScreen: View {
     @Environment(\.modelContext) private var modelContext
 
     private let columns = [
-        GridItem(.adaptive(minimum: 0),
+        GridItem(.adaptive(minimum: 110),
                  spacing: 8,
                  alignment: .leading)
     ]
@@ -134,6 +195,13 @@ struct HomeScreen: View {
             let total = transactions.reduce(0) { $0 + $1.amount }
             return AggregatedTransaction(category: category, totalAmount: total)
         }
+        .sorted {
+            if $0.totalAmount != $1.totalAmount {
+                return $0.totalAmount > $1.totalAmount
+            } else {
+                return $0.category < $1.category
+            }
+        }
     }
 
     var body: some View {
@@ -146,9 +214,7 @@ struct HomeScreen: View {
                         }
                         timePeriodPicker
                         PieChartView(transactions: filteredTransactions)
-                        LazyVGrid(columns: columns,
-                                  alignment: .leading,
-                                  spacing: 8) {
+                        FlowLayout(spacing: 8) {
                             ForEach(aggregatedTransactions) { agg in
                                 let bgColor = Color.colorForCategoryName(agg.category,
                                                                         type: selectedTransactionType)
@@ -177,7 +243,7 @@ struct HomeScreen: View {
                             //    .frame(maxWidth: .infinity)
                                 .background(bgColor.opacity(0.8))
                                 .cornerRadius(12)
-                                .fixedSize()
+                               // .fixedSize()
                               //  .gridCellColumns(isLong ? 2 : 1)
                               //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
@@ -194,7 +260,7 @@ struct HomeScreen: View {
                         }
                                   .frame(maxWidth: .infinity, alignment: .leading)
                                   // Отступы от экрана
-                                  .padding(.horizontal, 16)
+                                 // .padding(.horizontal, 16)
                     }
                 }
                 .navigationTitle("Мой Бюджет")

@@ -88,13 +88,8 @@ struct CustomButtonStyle: ButtonStyle {
 }
 
 extension Color {
-    /// Словари для хранения уже назначенных цветов
-    private static var assignedColorsForIncome: [String: Color] = [:]
-    private static var assignedColorsForExpenses: [String: Color] = [:]
-
-    /// Счётчики, сколько предопределённых цветов уже использовано
-    private static var usedCountIncome = 0
-    private static var usedCountExpenses = 0
+        private static let incomeColorsKey = "AssignedColorsForIncome"
+        private static let expensesColorsKey = "AssignedColorsForExpenses"
 
     /// Массив предопределённых цветов
     private static let predefinedColors: [Color] = [.appPurple,
@@ -109,46 +104,36 @@ extension Color {
                                                     .purpurApple]
 
     /// Возвращает цвет для (название категории, тип транзакции).
-    /// - Если для этой категории ещё не назначен цвет:
-    ///   - Если мы не исчерпали 6 «predefinedColors», выдаём следующий.
-    ///   - Иначе генерируем цвет на основе хэша названия.
-    /// - Если цвет уже назначен, возвращаем его.
-    static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
-        switch type {
-        case .income:
-            // Если уже есть цвет для этой категории доходов — возвращаем
-            if let assigned = assignedColorsForIncome[name] {
-                return assigned
-            } else {
-                let newColor: Color
-                if usedCountIncome < predefinedColors.count {
-                    newColor = predefinedColors[usedCountIncome]
-                    usedCountIncome += 1
-                } else {
-                    // Генерируем цвет на основе хеша названия
-                    newColor = colorFromHash(name)
-                }
-                assignedColorsForIncome[name] = newColor
-                return newColor
+        static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
+            // Выбираем ключ и словарь в зависимости от типа транзакции
+            let key = type == .income ? incomeColorsKey : expensesColorsKey
+            var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+
+            // Если цвет уже назначен, возвращаем его
+            if let colorComponents = assignedColors[name],
+               colorComponents.count == 3 {
+                return Color(red: colorComponents[0], green: colorComponents[1], blue: colorComponents[2])
             }
 
-        case .expenses:
-            // Аналогичная логика для расходов
-            if let assigned = assignedColorsForExpenses[name] {
-                return assigned
+            // Назначаем новый цвет
+            let newColor: Color
+            let totalCategories = assignedColors.count
+            if totalCategories < predefinedColors.count {
+                // Используем предопределённый цвет
+                newColor = predefinedColors[totalCategories]
             } else {
-                let newColor: Color
-                if usedCountExpenses < predefinedColors.count {
-                    newColor = predefinedColors[usedCountExpenses]
-                    usedCountExpenses += 1
-                } else {
-                    newColor = colorFromHash(name)
-                }
-                assignedColorsForExpenses[name] = newColor
-                return newColor
+                // Генерируем цвет на основе хэша
+                newColor = colorFromHash(name)
             }
+
+            // Сохраняем цвет в UserDefaults
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
+            UIColor(newColor).getRed(&red, green: &green, blue: &blue, alpha: nil)
+            assignedColors[name] = [Double(red), Double(green), Double(blue)]
+            UserDefaults.standard.set(assignedColors, forKey: key)
+
+            return newColor
         }
-    }
 
     /// Вспомогательный метод для генерации "стабильного" цвета по хэшу строки
     private static func colorFromHash(_ name: String) -> Color {
