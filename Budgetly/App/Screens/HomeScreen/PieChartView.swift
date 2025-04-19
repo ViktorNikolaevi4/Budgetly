@@ -134,7 +134,6 @@ extension Color {
 
             return newColor
         }
-
     /// Вспомогательный метод для генерации "стабильного" цвета по хэшу строки
     private static func colorFromHash(_ name: String) -> Color {
         let hash = name.hashValue
