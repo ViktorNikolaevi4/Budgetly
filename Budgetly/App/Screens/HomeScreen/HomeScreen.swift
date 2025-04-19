@@ -89,7 +89,7 @@ struct HomeScreen: View {
     @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
-    @State private var selectedTimePeriod: TimePeriod = .today
+    @State private var selectedTimePeriod: TimePeriod = .currentMonth
  //   @State private var customStartDate: Date = Date()
  //   @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false

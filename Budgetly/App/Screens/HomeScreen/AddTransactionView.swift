@@ -126,7 +126,7 @@ struct AddTransactionView: View {
                         .fontWeight(.medium)
                         .foregroundStyle(.black)
                 }
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         dismiss()
                     }) {
