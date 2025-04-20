@@ -205,47 +205,48 @@ struct HomeScreen: View {
     }
 
     var body: some View {
-            NavigationStack {
+        NavigationStack {
+            VStack(spacing: 20) {
+
+                accountView
+                transactionTypeControl
+
                 ScrollView {
                     VStack(spacing: 20) {
-                        VStack(spacing: 32) {
-                            accountView
-                            transactionTypeControl
-                        }
                         timePeriodPicker
                         PieChartView(transactions: filteredTransactions)
                         FlowLayout(spacing: 8) {
                             ForEach(aggregatedTransactions) { agg in
                                 let bgColor = Color.colorForCategoryName(agg.category,
-                                                                        type: selectedTransactionType)
-                                    let textColor: Color = (bgColor == .yellow) ? .black : .white
+                                                                         type: selectedTransactionType)
+                                let textColor: Color = (bgColor == .yellow) ? .black : .white
                                 // "agg" — это AggregatedTransaction
-                            //    let isLong = agg.category.count > 10
+                                //    let isLong = agg.category.count > 10
                                 HStack() {
                                     Text(agg.category)
                                         .font(.body)
                                         .lineLimit(1)
-                                      //  .minimumScaleFactor(0.8)
-                                       // .fixedSize(horizontal: false,
-                                               //    vertical: true)
+                                    //  .minimumScaleFactor(0.8)
+                                    // .fixedSize(horizontal: false,
+                                    //    vertical: true)
 
 
 
                                     Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
-                                       // .foregroundColor(.primary)
+                                    // .foregroundColor(.primary)
                                         .font(.headline)
                                         .lineLimit(1)
-                                       // .minimumScaleFactor(0.8)
+                                    // .minimumScaleFactor(0.8)
                                 }
                                 .foregroundStyle(textColor)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
-                            //    .frame(maxWidth: .infinity)
+                                //    .frame(maxWidth: .infinity)
                                 .background(bgColor.opacity(0.8))
                                 .cornerRadius(12)
-                               // .fixedSize()
-                              //  .gridCellColumns(isLong ? 2 : 1)
-                              //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                                // .fixedSize()
+                                //  .gridCellColumns(isLong ? 2 : 1)
+                                //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                                 // Пример swipeActions (iOS 15+),
                                 // но в гриде он будет работать чуть менее очевидно:
                                 .contextMenu {
@@ -258,16 +259,19 @@ struct HomeScreen: View {
                                 }
                             }
                         }
-                                  .frame(maxWidth: .infinity, alignment: .leading)
-                                  // Отступы от экрана
-                                 // .padding(.horizontal, 16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        // Отступы от экрана
+                        // .padding(.horizontal, 16)
                     }
+
                 }
                 .navigationTitle("Мой Бюджет")
                 .navigationBarTitleDisplayMode(.inline)
                 .padding()
                 .background(.backgroundLightGray)
             }
+            .background(.backgroundLightGray)
+        }
             .onAppear {
             //    seedDefaultCategoriesIfNeeded()
 
@@ -287,6 +291,7 @@ struct HomeScreen: View {
 //                StatsView()
 //            }
     }
+
     /// Диапазон дат для подписи под заголовком (`nil` – если «За всё время»)
     private var periodCaption: String? {
         guard let (start, end) = periodRange(for: selectedTimePeriod) else { return nil }
@@ -365,7 +370,7 @@ LinearGradient(stops: [
         )
         .cornerRadius(20)
         .padding(.horizontal, 6)
-        .shadow(color: Color.black.opacity(0.2), radius: 3)
+        .shadow(color: Color(white: 0.0, opacity: 0.18), radius: 24.0, x: 6.0, y: 12.0)
     }
 
 
