@@ -206,61 +206,17 @@ struct HomeScreen: View {
 
     var body: some View {
             NavigationStack {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        VStack(spacing: 32) {
-                            accountView
-                            transactionTypeControl
+                VStack(spacing: 24) {
+                    VStack(spacing: 32) {
+                        accountView
+                        transactionTypeControl
+                    }
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            timePeriodPicker
+                            PieChartView(transactions: filteredTransactions)
+                            categoryTags
                         }
-                        timePeriodPicker
-                        PieChartView(transactions: filteredTransactions)
-                        FlowLayout(spacing: 8) {
-                            ForEach(aggregatedTransactions) { agg in
-                                let bgColor = Color.colorForCategoryName(agg.category,
-                                                                        type: selectedTransactionType)
-                                    let textColor: Color = (bgColor == .yellow) ? .black : .white
-                                // "agg" — это AggregatedTransaction
-                            //    let isLong = agg.category.count > 10
-                                HStack() {
-                                    Text(agg.category)
-                                        .font(.body)
-                                        .lineLimit(1)
-                                      //  .minimumScaleFactor(0.8)
-                                       // .fixedSize(horizontal: false,
-                                               //    vertical: true)
-
-
-
-                                    Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
-                                       // .foregroundColor(.primary)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                       // .minimumScaleFactor(0.8)
-                                }
-                                .foregroundStyle(textColor)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                            //    .frame(maxWidth: .infinity)
-                                .background(bgColor.opacity(0.8))
-                                .cornerRadius(12)
-                               // .fixedSize()
-                              //  .gridCellColumns(isLong ? 2 : 1)
-                              //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                                // Пример swipeActions (iOS 15+),
-                                // но в гриде он будет работать чуть менее очевидно:
-                                .contextMenu {
-                                    // При нажатии "Удалить" удаляем только за период
-                                    Button(role: .destructive) {
-                                        deleteAllTransactionsInPeriod(for: agg.category)
-                                    } label: {
-                                        Label("Удалить (\(agg.category)) за период", systemImage: "trash")
-                                    }
-                                }
-                            }
-                        }
-                                  .frame(maxWidth: .infinity, alignment: .leading)
-                                  // Отступы от экрана
-                                 // .padding(.horizontal, 16)
                     }
                 }
                 .navigationTitle("Мой Бюджет")
@@ -357,15 +313,63 @@ struct HomeScreen: View {
         .padding(16)
         .frame(maxWidth: .infinity)
         .background(
-LinearGradient(stops: [
-    Gradient.Stop(color: Color(red: 79.0 / 255.0, green: 184.0 / 255.0, blue: 1.0), location: 0.0),
-    Gradient.Stop(color: Color(red: 32.0 / 255.0, green: 60.0 / 255.0, blue: 1.0), location: 1.0)],
-               startPoint: .topLeading,
-               endPoint: .bottomTrailing)
+            LinearGradient(stops: [
+                Gradient.Stop(color: Color(red: 79.0 / 255.0, green: 184.0 / 255.0, blue: 1.0), location: 0.0),
+                Gradient.Stop(color: Color(red: 32.0 / 255.0, green: 60.0 / 255.0, blue: 1.0), location: 1.0)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing)
         )
         .cornerRadius(20)
         .padding(.horizontal, 6)
-        .shadow(color: Color.black.opacity(0.2), radius: 3)
+        .shadow(color: Color.black.opacity(0.2), radius: 16, x: 3, y: 6)
+    }
+
+    private var categoryTags: some View {
+        FlowLayout(spacing: 8) {
+            ForEach(aggregatedTransactions) { agg in
+                let bgColor = Color.colorForCategoryName(agg.category,
+                                                        type: selectedTransactionType)
+                    let textColor: Color = (bgColor == .yellow) ? .black : .white
+                // "agg" — это AggregatedTransaction
+            //    let isLong = agg.category.count > 10
+                HStack() {
+                    Text(agg.category)
+                        .font(.body)
+                        .lineLimit(1)
+                      //  .minimumScaleFactor(0.8)
+                       // .fixedSize(horizontal: false,
+                               //    vertical: true)
+
+
+
+                    Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
+                       // .foregroundColor(.primary)
+                        .font(.headline)
+                        .lineLimit(1)
+                       // .minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(textColor)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+            //    .frame(maxWidth: .infinity)
+                .background(bgColor.opacity(0.8))
+                .cornerRadius(12)
+               // .fixedSize()
+              //  .gridCellColumns(isLong ? 2 : 1)
+              //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                // Пример swipeActions (iOS 15+),
+                // но в гриде он будет работать чуть менее очевидно:
+                .contextMenu {
+                    // При нажатии "Удалить" удаляем только за период
+                    Button(role: .destructive) {
+                        deleteAllTransactionsInPeriod(for: agg.category)
+                    } label: {
+                        Label("Удалить (\(agg.category)) за период", systemImage: "trash")
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
 
