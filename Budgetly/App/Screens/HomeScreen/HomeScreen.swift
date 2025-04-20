@@ -563,28 +563,32 @@ struct CustomPeriodPickerView: View {
 }
 
 extension Double {
-    /// Возвращает строку с сокращением (1,2 тыс., 5,5 млн, 1,0 млрд, etc.)
-    /// с учётом российских обозначений.
+    var formattedWithSeparator: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = " " // пробел как разделитель тысяч
+        formatter.maximumFractionDigits = 0
+        formatter.locale = Locale(identifier: "ru_RU")
+        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
+    }
+
     func toShortStringWithSuffix() -> String {
         let absValue = abs(self)
 
-        // Можно проверять диапазоны:
         switch absValue {
-        case 1_000_000_000...: // от 1 млрд
+        case 1_000_000_000...:
             let shortened = self / 1_000_000_000
             return String(format: "%.1f млрд", shortened)
-        case 1_000_000...: // от 1 млн
+        case 1_000_000...:
             let shortened = self / 1_000_000
             return String(format: "%.1f млн", shortened)
-//        case 1_000...: // от 1 тыс.
-//            let shortened = self / 1_000
-//            return String(format: "%.1f тыс.", shortened)
         default:
-            // Если число меньше 1000, показываем целое или с десятыми (на ваш вкус)
-            return String(format: "%.0f", self)
+            // До 1 миллиона используем разделение пробелом
+            return formattedWithSeparator
         }
     }
 }
+
 // Короткие вспомогатели
 extension DateFormatter {
     static let rus: DateFormatter = {
