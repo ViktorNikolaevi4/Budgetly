@@ -279,7 +279,9 @@ struct HomeScreen: View {
 //                GoldBagView()
 //            }
             .sheet(isPresented: $isAddTransactionViewPresented) {
-                AddTransactionView(account: selectedAccount)
+                AddTransactionView(account: selectedAccount) { addedType in
+                    selectedTransactionType = addedType // ← здесь переключается сегмент
+                }
             }
 //            .sheet(isPresented: $isStatsViewPresented) {
 //                StatsView()

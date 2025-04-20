@@ -3,6 +3,7 @@ import SwiftData
 
 struct AddTransactionView: View {
     var account: Account? // Связанный счёт
+    var onTransactionAdded: ((TransactionType) -> Void)?
 
     @Environment(\.modelContext) private var modelContext
     @Query private var allCategories: [Category]
@@ -222,6 +223,7 @@ struct AddTransactionView: View {
         // Сохраняем
         do {
             try modelContext.save()
+            onTransactionAdded?(transactionType)
             dismiss() // Закрываем текущий экран
         } catch {
             print("Ошибка при сохранении: \(error)")
