@@ -206,14 +206,16 @@ struct HomeScreen: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-
-                accountView
-                transactionTypeControl
+            VStack(spacing: 24) {
+                VStack(spacing: 32) {
+                    accountView
+                    transactionTypeControl
+                }
 
                 ScrollView {
                     VStack(spacing: 20) {
                         timePeriodPicker
+
                         PieChartView(transactions: filteredTransactions)
                         FlowLayout(spacing: 8) {
                             ForEach(aggregatedTransactions) { agg in
@@ -362,15 +364,15 @@ struct HomeScreen: View {
         .padding(16)
         .frame(maxWidth: .infinity)
         .background(
-LinearGradient(stops: [
-    Gradient.Stop(color: Color(red: 79.0 / 255.0, green: 184.0 / 255.0, blue: 1.0), location: 0.0),
-    Gradient.Stop(color: Color(red: 32.0 / 255.0, green: 60.0 / 255.0, blue: 1.0), location: 1.0)],
-               startPoint: .topLeading,
-               endPoint: .bottomTrailing)
+            LinearGradient(stops: [
+                Gradient.Stop(color: Color(red: 79.0 / 255.0, green: 184.0 / 255.0, blue: 1.0), location: 0.0),
+                Gradient.Stop(color: Color(red: 32.0 / 255.0, green: 60.0 / 255.0, blue: 1.0), location: 1.0)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing)
         )
         .cornerRadius(20)
         .padding(.horizontal, 6)
-        .shadow(color: Color(white: 0.0, opacity: 0.18), radius: 24.0, x: 6.0, y: 12.0)
+        .shadow(color: Color.black.opacity(0.2), radius: 16, x: 3, y: 6)
     }
 
 
