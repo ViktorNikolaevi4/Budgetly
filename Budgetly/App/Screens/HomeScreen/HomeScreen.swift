@@ -100,11 +100,11 @@ struct HomeScreen: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    private let columns = [
-        GridItem(.adaptive(minimum: 110),
-                 spacing: 8,
-                 alignment: .leading)
-    ]
+//    private let columns = [
+//        GridItem(.adaptive(minimum: 110),
+//                 spacing: 8,
+//                 alignment: .leading)
+//    ]
     /// Баланс за выбранный период (учитывает все доходы и расходы)
     private var saldo: Double {
         let income = allPeriodTransactions
