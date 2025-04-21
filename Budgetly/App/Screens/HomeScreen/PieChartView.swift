@@ -53,7 +53,7 @@ struct PieChartView: View {
                     Color.colorForCategoryName(data.category, type: data.type)
                 )            }
             .chartLegend(.hidden)
-            .frame(width: 156, height: 156) // Размер диаграммы при желании
+            .frame(width: 165, height: 165) // Размер диаграммы при желании
 
             // Текст в центре
             VStack(spacing: 4) {
