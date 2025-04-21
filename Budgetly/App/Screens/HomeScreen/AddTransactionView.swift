@@ -119,7 +119,6 @@ struct AddTransactionView: View {
             }
             .background(Color("BackgroundLightGray")) // фон
             .scrollContentBackground(.hidden) // Убираем фон NavigationStack
-       //     .navigationTitle("Добавление операции")
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Добавление операции")
@@ -148,9 +147,6 @@ struct AddTransactionView: View {
                     newCategory = ""
                 })
             }
-//            .onAppear {
-//                createDefaultCategoriesIfNeeded()
-//            }
         }.foregroundStyle(.black)
     }
 

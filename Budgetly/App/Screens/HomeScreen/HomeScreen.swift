@@ -90,8 +90,6 @@ struct HomeScreen: View {
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
     @State private var selectedTimePeriod: TimePeriod = .currentMonth
- //   @State private var customStartDate: Date = Date()
- //   @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
     @State private var isShowingPeriodMenu = false
 
@@ -100,11 +98,6 @@ struct HomeScreen: View {
 
     @Environment(\.modelContext) private var modelContext
 
-//    private let columns = [
-//        GridItem(.adaptive(minimum: 110),
-//                 spacing: 8,
-//                 alignment: .leading)
-//    ]
     /// Баланс за выбранный период (учитывает все доходы и расходы)
     private var saldo: Double {
         let income = allPeriodTransactions
@@ -171,15 +164,6 @@ struct HomeScreen: View {
         }
     }
 
-    /// Формат «1 апр» либо «1 апр 2025» в зависимости от того,
-    /// совпадают ли годы начала и конца
-//    private func format(_ date: Date,
-//                        includeYear: Bool,
-//                        formatter: DateFormatter) -> String {
-//        formatter.dateFormat = includeYear ? "d MMM yyyy" : "d MMM"
-//        return formatter.string(from: date)
-//    }
-
     /// Транзакции, выбранные по периоду и типу (для списка и диаграммы)
     var filteredTransactions: [Transaction] {
         allPeriodTransactions.filter { $0.type == selectedTransactionType }
@@ -232,17 +216,12 @@ struct HomeScreen: View {
                     selectedAccount = accounts.first
                 }
             }
-//            .sheet(isPresented: $isGoldBagViewPresented) {
-//                GoldBagView()
-//            }
             .sheet(isPresented: $isAddTransactionViewPresented) {
                 AddTransactionView(account: selectedAccount) { addedType in
                     selectedTransactionType = addedType // ← здесь переключается сегмент
                 }
             }
-//            .sheet(isPresented: $isStatsViewPresented) {
-//                StatsView()
-//            }
+
     }
 
     /// Диапазон дат для подписи под заголовком (`nil` – если «За всё время»)
@@ -330,35 +309,20 @@ struct HomeScreen: View {
             ForEach(aggregatedTransactions) { agg in
                 let bgColor = Color.colorForCategoryName(agg.category, type: selectedTransactionType)
                 let textColor: Color = (bgColor == .yellow) ? .black : .white
-                // "agg" — это AggregatedTransaction
-                //    let isLong = agg.category.count > 10
                 HStack() {
                     Text(agg.category)
                         .font(.body)
                         .lineLimit(1)
-                    //  .minimumScaleFactor(0.8)
-                    // .fixedSize(horizontal: false,
-                    //    vertical: true)
-
-
 
                     Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
-                    // .foregroundColor(.primary)
                         .font(.headline)
                         .lineLimit(1)
-                    // .minimumScaleFactor(0.8)
                 }
                 .foregroundStyle(textColor)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
-                //    .frame(maxWidth: .infinity)
                 .background(bgColor)
                 .cornerRadius(20)
-                // .fixedSize()
-                //  .gridCellColumns(isLong ? 2 : 1)
-                //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
-                // Пример swipeActions (iOS 15+),
-                // но в гриде он будет работать чуть менее очевидно:
                 .contextMenu {
                     // При нажатии "Удалить" удаляем только за период
                     Button(role: .destructive) {

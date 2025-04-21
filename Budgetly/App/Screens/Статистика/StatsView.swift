@@ -45,18 +45,6 @@ struct StatsView: View {
             .padding()
             .navigationTitle("Статистика")
             .navigationBarTitleDisplayMode(.inline)
-//            .toolbar {
-//                // Кнопка-крестик слева
-//                ToolbarItem(placement: .topBarLeading) {
-//                    Button {
-//                        dismiss() // Закрываем Sheet
-//                    } label: {
-//                        Image(systemName: "xmark.circle.fill")
-//                            .font(.title)
-//                            .foregroundColor(.red)
-//                    }
-//                }
-//            }
         }
         // Если выбрали "Выбрать период", показываем выбор дат
         .sheet(isPresented: $isCustomPeriodPickerPresented) {

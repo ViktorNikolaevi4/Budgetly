@@ -54,8 +54,3 @@ struct AddReminderView: View {
         newReminder.scheduleNotification()
     }
 }
-
-//
-//#Preview {
-//    AddReminderView()
-//}

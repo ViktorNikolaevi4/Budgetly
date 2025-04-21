@@ -51,27 +51,6 @@ struct GoldBagView: View {
         Dictionary(grouping: assets, by: { $0.assetType })
     }
 
-//    private var groupedAssets: [(name: String, totalPrice: Double, type: AssetType?, assets: [Asset])] {
-//        var assetDict: [String: (totalPrice: Double, type: AssetType?, assets: [Asset])] = [:]
-//
-//        for asset in assets {
-//            let key = "\(asset.name)_\(asset.assetType?.name ?? "Без типа")"
-//
-//            if assetDict[key] != nil {
-//                assetDict[key]?.totalPrice += asset.price
-//                assetDict[key]?.assets.append(asset)
-//            } else {
-//                assetDict[key] = (totalPrice: asset.price, type: asset.assetType, assets: [asset])
-//            }
-//        }
-//
-//        return assetDict.map { (name: $0.key.components(separatedBy: "_")[0],
-//                                totalPrice: $0.value.totalPrice,
-//                                type: $0.value.type,
-//                                assets: $0.value.assets) }
-//            .sorted { $0.name < $1.name }
-//    }
-
     // Сортировка ключей: сначала типы по имени, а группа без типа (nil) — в конце
     private var sortedAssetTypeKeys: [AssetType?] {
         groupedAssetsByType.keys.sorted { first, second in
@@ -251,39 +230,6 @@ struct GoldBagView: View {
     }
 }
 
-//    private func deleteAssets(at offsets: IndexSet) {
-//        for index in offsets {
-//            let asset = assets[index]
-//            modelContext.delete(asset)
-//        }
-//        try? modelContext.save()
-//    }
-//    private func createDefaultAssetTypesIfNeeded() {
-//        // Список «дефолтных» названий типов
-//        let defaultNames = ["Акции", "Облигации", "Недвижимость"]
-//
-//        // Превращаем все имеющиеся типы в множество их названий
-//        let existingNames = Set(assetTypes.map { $0.name })
-//
-//        // Для каждого «дефолтного» названия проверяем, нет ли его уже
-//        for name in defaultNames {
-//            if !existingNames.contains(name) {
-//                let newType = AssetType(name: name)
-//                modelContext.insert(newType)
-//            }
-//        }
-//
-//        // Сохраняем изменения, если что-то добавили
-//        do {
-//            try modelContext.save()
-//        } catch {
-//            print("Ошибка при сохранении дефолтных типов: \(error.localizedDescription)")
-//        }
-//    }
-
-//}
-
-
 // View для добавления/редактирования актива
 struct AddOrEditAssetView: View {
     @Environment(\.dismiss) private var dismiss
@@ -359,18 +305,6 @@ struct AddOrEditAssetView: View {
                     TextField("Введите цену", value: $price, format: .number)
                         .keyboardType(.decimalPad)
                 }
-
-                // Блок для частичной продажи, только если у нас реальный asset
-//                if draftAsset != nil {
-//                    Section("Продажа части актива") {
-//                        TextField("Сумма для продажи", value: $reductionAmount, format: .number)
-//                            .keyboardType(.decimalPad)
-//                        Button("Продать") {
-//                            sellPartOfAsset()
-//                        }
-//                        .disabled(reductionAmount <= 0 || reductionAmount > price)
-//                    }
-//                }
             }
             .navigationTitle(draftAsset == nil ? "Новый актив" : "Редактировать актив")
             .toolbar {
@@ -434,15 +368,6 @@ struct AddOrEditAssetView: View {
         }
     }
 
-//    private func sellPartOfAsset() {
-//        guard let draftAsset = draftAsset,
-//              reductionAmount > 0,
-//              reductionAmount <= price else { return }
-//
-//        draftAsset.price -= reductionAmount
-//        reductionAmount = 0
-//        try? modelContext.save()
-//    }
 }
 
 // Перечисление для выбора типа внутри Picker

@@ -139,11 +139,6 @@ struct CreateReminderView: View {
     }
 }
 
-//    var isFormValid: Bool {
-//        !paymentName.isEmpty && !amount.isEmpty
-//    }
-
-
     private func saveOrUpdateReminder() {
         guard let amountValue = Double(amount) else { return }
 

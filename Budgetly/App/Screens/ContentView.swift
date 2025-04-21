@@ -83,68 +83,7 @@ struct ContentView: View {
             print("Ошибка сохранения Основного счета: \(error.localizedDescription)")
         }
     }
-
-//        ZStack {
-//            NavigationStack {
-//                VStack {
-//                    if selectedView == .contentView {
-//                        mainContentView
-//                    } else if selectedView == .accounts {
-//                        AccountsView()
-//                    } else if selectedView == .regularPayments {
-//                        RegularPaymentsView()
-//                    }
-//                    else if selectedView == .reminders {
-//                        RemindersView()
-//                    }
-//                    else if selectedView == .contacTheDeveloper {
-//                        ContactDeveloperView()
-//                    }
-//                    else if selectedView == .registration {
-//                        RegistrationView()
-//                    }
-//                }
-//                .navigationTitle("Бюджет")
-//                .toolbar {
-//                    ToolbarItem(placement: .topBarTrailing) {
-//                        Button {
-//                            withAnimation {
-//                                isMenuVisible.toggle()
-//                            }
-//                        } label: {
-//                            Image(systemName: "gearshape.fill")
-//                                .font(.title3)
-//                                .foregroundColor(.black)
-//                        }
-//                    }
-//                }
-//            }
-//
-//            if isMenuVisible {
-//                SideMenuView(
-//                    isMenuVisible: $isMenuVisible,
-//                    selectedView: $selectedView,
-//                    isRateAppViewPresented: $isRateAppViewPresented
-//                )
-//            }
-//
-//            if isRateAppViewPresented {
-//                Color.black.opacity(0.4) // Полупрозрачный фон
-//                    .ignoresSafeArea()
-//                    .onTapGesture {
-//                        isRateAppViewPresented = false
-//                    }
-//
-//                RateAppView(isPresented: $isRateAppViewPresented)
-//            }
-//        }
-//        .onAppear {
-//            if accounts.isEmpty {
-//                let account = Account(name: "Основной Счет")
-//                modelContext.insert(account)
-//            }
-//        }
-    }
+}
 
 
 #Preview {
