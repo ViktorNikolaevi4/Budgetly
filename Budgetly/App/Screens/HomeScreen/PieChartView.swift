@@ -24,19 +24,15 @@ struct PieChartView: View {
     }
 
     private var aggregatedData: [AggregatedData] {
-        // Сгруппируем по названию категории
-        let groupedByCategory = Dictionary(grouping: transactions, by: { $0.category })
-
-        // Преобразуем каждую группу в AggregatedData
-        return groupedByCategory.map { (category, groupTransactions) in
-            let sum = groupTransactions.reduce(0) { $0 + $1.amount }
-            let transactionType = groupTransactions.first?.type ?? .income
-            return AggregatedData(
-                category: category,
-                totalAmount: sum,
-                type: transactionType
-            )
-        }
+        Dictionary(grouping: transactions, by: \.category)
+            .map { category, txs in
+                AggregatedData(
+                    category: category,
+                    totalAmount: txs.reduce(0) { $0 + $1.amount },
+                    type: txs.first?.type ?? .income
+                )
+            }
+            .sorted { $0.totalAmount > $1.totalAmount } // вот тут по убыванию
     }
 
     var body: some View {
