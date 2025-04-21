@@ -328,8 +328,7 @@ struct HomeScreen: View {
     private var categoryTags: some View {
         FlowLayout(spacing: 8) {
             ForEach(aggregatedTransactions) { agg in
-                let bgColor = Color.colorForCategoryName(agg.category,
-                                                         type: selectedTransactionType)
+                let bgColor = Color.colorForCategoryName(agg.category, type: selectedTransactionType)
                 let textColor: Color = (bgColor == .yellow) ? .black : .white
                 // "agg" — это AggregatedTransaction
                 //    let isLong = agg.category.count > 10
@@ -350,11 +349,11 @@ struct HomeScreen: View {
                     // .minimumScaleFactor(0.8)
                 }
                 .foregroundStyle(textColor)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
                 //    .frame(maxWidth: .infinity)
-                .background(bgColor.opacity(0.8))
-                .cornerRadius(12)
+                .background(bgColor)
+                .cornerRadius(20)
                 // .fixedSize()
                 //  .gridCellColumns(isLong ? 2 : 1)
                 //  .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
