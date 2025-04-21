@@ -39,14 +39,13 @@ struct PieChartView: View {
         }
     }
 
-
     var body: some View {
         ZStack {
             // Сама диаграмма
             Chart(aggregatedData) { data in
                 SectorMark(
                     angle: .value("Amount", data.totalAmount),
-                    innerRadius: .ratio(0.7),  // Можно менять, чтобы центр был больше/меньше
+                    innerRadius: .ratio(0.75),  // Можно менять, чтобы центр был больше/меньше
                     outerRadius: .ratio(1.0)
                 )
                 .foregroundStyle(
