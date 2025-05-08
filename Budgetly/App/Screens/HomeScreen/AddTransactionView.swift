@@ -11,6 +11,7 @@ struct AddTransactionView: View {
 
     @State private var selectedType: CategoryType = .expenses
     @State private var amount: String = ""
+    @FocusState private var isAmountFieldFocused: Bool
     @State private var selectedCategory: String = "Здоровье"
     @State private var newCategory: String = ""
     @State private var isShowingAlert = false // Флаг для отображения алерта
@@ -31,16 +32,23 @@ struct AddTransactionView: View {
                 }
                 .pickerStyle(.segmented)
                 .tint(.appPurple)
+                .frame(maxWidth: .infinity)
                 .padding(.horizontal)
-                .padding(.top)
+                .padding(.top, 4)
                         // Ввод суммы
                         TextField("Введите сумму", text: $amount)
                             .keyboardType(.decimalPad)
                             .padding()
-                            .background(Color.gray.opacity(0.3)) // Серый фон с прозрачностью
+                            .background(Color.white) // Серый фон с прозрачностью
                             .cornerRadius(10) // Закругленные углы
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
+                            )
+                            .focused($isAmountFieldFocused)
                             .foregroundColor(.black) // Цвет вводимого текста
                             .padding(.horizontal)
+                        //    .focused($isAmountFieldFocused)
 //                HStack {
 //                        // Выбор категории
 //                        Text("Категории")
@@ -129,7 +137,15 @@ struct AddTransactionView: View {
                     newCategory = ""
                 })
             }
-        }.foregroundStyle(.black)
+        }
+        .foregroundStyle(.black)
+        .onAppear {
+            // небольшая задержка, чтобы гарантировать, что текст‑филд уже в иерархии
+            DispatchQueue.main.async {
+                isAmountFieldFocused = true
+            }
+        }
+
     }
 
     // Функция для добавления новой категории
