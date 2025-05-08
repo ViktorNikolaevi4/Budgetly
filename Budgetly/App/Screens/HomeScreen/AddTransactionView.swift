@@ -23,14 +23,46 @@ struct AddTransactionView: View {
     }
 
     private var filteredCategories: [Category] {
-        categoriesForThisAccount
-            .filter { $0.type == selectedType }
-            .sorted { lhs, rhs in
-                if lhs.name == Category.uncategorizedName { return true }
-                if rhs.name == Category.uncategorizedName { return false }
-                return lhs.name.localizedCompare(rhs.name) == .orderedAscending
-            }
+      guard let acct = account else { return [] }
+
+      // 1) приводим ваш CategoryType к TransactionType
+      let txType: TransactionType = selectedType == .income
+        ? .income
+        : .expenses
+
+      // 2) берём все категории этого счёта и выбранного типа
+      let cats = allCategories
+        .filter { $0.account.id == acct.id && $0.type == selectedType }
+
+      // 3) сортируем по числу транзакций, по сумме, потом по имени
+      return cats.sorted { lhs, rhs in
+          // 3.1 «Без категории» всегда первой
+           if lhs.name == Category.uncategorizedName { return true }
+           if rhs.name == Category.uncategorizedName { return false }
+
+        // транзакции lhs
+        let lhsTx = acct.transactions.filter {
+          $0.type == txType && $0.category == lhs.name
+        }
+        let rhsTx = acct.transactions.filter {
+          $0.type == txType && $0.category == rhs.name
+        }
+
+        // 1) сравниваем по количеству
+        if lhsTx.count != rhsTx.count {
+          return lhsTx.count > rhsTx.count
+        }
+        // 2) по сумме
+        let lhsSum = lhsTx.reduce(0) { $0 + $1.amount }
+        let rhsSum = rhsTx.reduce(0) { $0 + $1.amount }
+        if lhsSum != rhsSum {
+          return lhsSum > rhsSum
+        }
+        // 3) и в конце — по алфавиту
+        return lhs.name.localizedCompare(rhs.name) == .orderedAscending
+      }
     }
+
 
     struct FlowLayout: Layout {
         var spacing: CGFloat = 10
@@ -150,7 +182,7 @@ struct AddTransactionView: View {
                     .padding(.vertical, 10)
                 }
                 // Кнопка сохранения транзакции
-                        Button("Добавить") {
+                        Button("Сохранить") {
                             saveTransaction()
                         }
                         .font(.headline)
@@ -305,4 +337,3 @@ struct CategoryBadge: View {
         )
     }
 }
-
