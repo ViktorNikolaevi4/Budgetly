@@ -323,7 +323,6 @@ struct AddOrEditAssetView: View {
                                 return nil
                             }
                         }()
-
                         onSave(name, price, finalType)
                         dismiss()
                     } label: {
@@ -367,9 +366,7 @@ struct AddOrEditAssetView: View {
             })
         }
     }
-
 }
-
 // Перечисление для выбора типа внутри Picker
 enum TypeSelection: Hashable {
     case none                // «Без типа»

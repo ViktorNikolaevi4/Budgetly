@@ -31,7 +31,7 @@ struct AddTransactionView: View {
                 return lhs.name.localizedCompare(rhs.name) == .orderedAscending
             }
     }
-    
+
     struct FlowLayout: Layout {
         var spacing: CGFloat = 10
 
@@ -91,7 +91,7 @@ struct AddTransactionView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
                 // Выбор «расходы / доходы»
                 Picker("Тип операции", selection: $selectedType) {
                     Text("Расходы").tag(CategoryType.expenses)
