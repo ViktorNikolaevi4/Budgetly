@@ -209,13 +209,17 @@ struct HomeScreen: View {
             .padding()
             .background(.backgroundLightGray)
         }
-            .onAppear {
-            //    seedDefaultCategoriesIfNeeded()
-
-                if selectedAccount == nil {
-                    selectedAccount = accounts.first
-                }
-            }
+        .onAppear {
+                  if selectedAccount == nil { selectedAccount = accounts.first }
+                  if let acc = selectedAccount {
+                      Category.ensureUncategorized(for: acc, in: modelContext)
+                  }
+        }
+        .onChange(of: selectedAccount) { acc in
+            if let acc = acc {
+                      Category.ensureUncategorized(for: acc, in: modelContext)
+                  }
+        }
             .sheet(isPresented: $isAddTransactionViewPresented) {
                 AddTransactionView(account: selectedAccount) { addedType in
                     selectedTransactionType = addedType // ← здесь переключается сегмент

@@ -12,15 +12,82 @@ struct AddTransactionView: View {
     @State private var selectedType: CategoryType = .expenses
     @State private var amount: String = ""
     @FocusState private var isAmountFieldFocused: Bool
-    @State private var selectedCategory: String = "Здоровье"
+    @State private var selectedCategory: String = Category.uncategorizedName
     @State private var newCategory: String = ""
     @State private var isShowingAlert = false // Флаг для отображения алерта
+    @State private var hasEnsuredCategories = false
 
-    // Категории для доходов и расходов
-    var filteredCategories: [Category] {
-        allCategories.filter { $0.type == selectedType }
+    private var categoriesForThisAccount: [Category] {
+        guard let acct = account else { return [] }
+        return allCategories.filter { $0.account.id == acct.id }
     }
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 2)
+
+    private var filteredCategories: [Category] {
+        categoriesForThisAccount
+            .filter { $0.type == selectedType }
+            .sorted { lhs, rhs in
+                if lhs.name == Category.uncategorizedName { return true }
+                if rhs.name == Category.uncategorizedName { return false }
+                return lhs.name.localizedCompare(rhs.name) == .orderedAscending
+            }
+    }
+    
+    struct FlowLayout: Layout {
+        var spacing: CGFloat = 10
+
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+            let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+            var totalHeight: CGFloat = 0
+            var totalWidth: CGFloat = 0
+            var lineWidth: CGFloat = 0
+            var lineHeight: CGFloat = 0
+
+            for size in sizes {
+                if lineWidth + size.width > (proposal.width ?? 0) && lineWidth > 0 {
+                    totalWidth = max(totalWidth, lineWidth)
+                    totalHeight += lineHeight + spacing
+                    lineWidth = 0
+                    lineHeight = 0
+                }
+                lineWidth += size.width + spacing
+                lineHeight = max(lineHeight, size.height)
+            }
+
+            totalWidth = max(totalWidth, lineWidth)
+            totalHeight += lineHeight
+
+            return CGSize(width: max(totalWidth - spacing, 0), height: totalHeight)
+        }
+
+        func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+            let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+            var lineWidth: CGFloat = 0
+            var lineHeight: CGFloat = 0
+            var y: CGFloat = bounds.minY
+            var x: CGFloat = bounds.minX
+
+            for (index, subview) in subviews.enumerated() {
+                let size = sizes[index]
+
+                if lineWidth + size.width > bounds.width && lineWidth > 0 {
+                    x = bounds.minX
+                    y += lineHeight + spacing
+                    lineWidth = 0
+                    lineHeight = 0
+                }
+
+                subview.place(
+                    at: CGPoint(x: x, y: y + (size.height / 2)),
+                    anchor: .leading,
+                    proposal: ProposedViewSize(width: size.width, height: size.height)
+                )
+
+                x += size.width + spacing
+                lineWidth += size.width + spacing
+                lineHeight = max(lineHeight, size.height)
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -63,35 +130,24 @@ struct AddTransactionView: View {
 //                    }
 //                }
                 ScrollView {
-                    // Используем LazyVGrid для отображения категорий в несколько строк
-                    LazyVGrid(columns: columns, spacing: 10) {
+                    FlowLayout(spacing: 10) {
                         ForEach(filteredCategories, id: \.name) { category in
                             Button {
                                 selectedCategory = category.name
                             } label: {
-                                Text(category.name)
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8) // слегка сжимать, если всё‑таки не помещается
-                                    .padding(.vertical, 8)
-                                    .frame(maxWidth: .infinity) // растянуться на ширину столбца
-                                    .background(selectedCategory == category.name
-                                                ? Color.appPurple
-                                                : Color.gray.opacity(0.6))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(16)
+                                CategoryBadge(category: category, isSelected: selectedCategory == category.name)
                             }
-                             .contextMenu {
+                            .contextMenu {
                                 Button(role: .destructive) {
                                     removeCategory(category)
-                                 } label: {
+                                } label: {
                                     Label("Удалить категорию", systemImage: "trash")
-                              }
-                           }
+                                }
+                            }
                         }
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                 }
                 // Кнопка сохранения транзакции
                         Button("Добавить") {
@@ -140,12 +196,11 @@ struct AddTransactionView: View {
         }
         .foregroundStyle(.black)
         .onAppear {
-            // небольшая задержка, чтобы гарантировать, что текст‑филд уже в иерархии
             DispatchQueue.main.async {
                 isAmountFieldFocused = true
+
             }
         }
-
     }
 
     // Функция для добавления новой категории
@@ -224,3 +279,30 @@ struct AddTransactionView: View {
         }
     }
 }
+
+struct CategoryBadge: View {
+    let category: Category
+    let isSelected: Bool
+
+    private static let badgeWidth: CGFloat = 84.3
+    private static let badgeHeight: CGFloat = 68
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(category.name)
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(width: Self.badgeWidth, height: Self.badgeHeight)
+        .background(Color.white) // Фон всегда белый
+        .foregroundColor(.black) // Текст чёрный
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isSelected ? Color.appPurple : .clear, lineWidth: 2) // Обводка только для выбранной категории
+        )
+    }
+}
+

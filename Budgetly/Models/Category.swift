@@ -31,3 +31,16 @@ class Category: Identifiable {
         self.account = account
     }
 }
+
+extension Category {
+    static let uncategorizedName = "Без категории"
+    static func ensureUncategorized(for account: Account, in context: ModelContext) {
+    guard !account.hasSeededCategories else { return }
+    // создаём нужные две категории
+    context.insert(Category(name: uncategorizedName, type: .expenses, account: account))
+    context.insert(Category(name: uncategorizedName, type: .income,   account: account))
+    account.hasSeededCategories = true
+    try? context.save()
+  }
+}
+

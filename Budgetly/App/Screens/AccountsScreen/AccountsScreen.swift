@@ -51,6 +51,8 @@ struct AccountsScreen: View {
         guard !accountName.isEmpty else { return }
         let newAccount = Account(name: accountName)
         modelContext.insert(newAccount)
+        // 🔑 единственный вызов
+        Category.ensureUncategorized(for: newAccount, in: modelContext)
         accountName = ""
     }
 }

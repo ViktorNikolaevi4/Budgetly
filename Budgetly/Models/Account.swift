@@ -1,9 +1,4 @@
-//
-//  Account.swift
-//  Budgetly
-//
-//  Created by Виктор Корольков on 14.11.2024.
-//
+
 import Foundation
 import SwiftData
 
@@ -11,6 +6,7 @@ import SwiftData
 class Account: Identifiable {
     var id: UUID
     var name: String
+    var hasSeededCategories: Bool = false
     var transactions: [Transaction] = []
     var categories: [Category] = []
 
