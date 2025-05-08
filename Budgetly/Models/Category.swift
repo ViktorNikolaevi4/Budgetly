@@ -1,7 +1,9 @@
 import Foundation
 import SwiftData
 
-enum CategoryType: String {
+enum CategoryType: String, CaseIterable, Identifiable {
+    var id: Self { self }
+
     case expenses = "Расходы"
     case income = "Доходы"
 }

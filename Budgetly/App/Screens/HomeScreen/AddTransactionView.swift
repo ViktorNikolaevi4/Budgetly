@@ -24,33 +24,15 @@ struct AddTransactionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-
-                        HStack {
-                            Button(action: {
-                                selectedType = .expenses
-                            }) {
-                                Text("Расходы")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(selectedType == .expenses ? Color.appPurple : Color.gray.opacity(0.6))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(16)
-                            }
-
-                            Button(action: {
-                                selectedType = .income
-                            }) {
-                                Text("Доходы")
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(selectedType == .income ? Color.appPurple : Color.gray.opacity(0.6))
-                                    .foregroundColor(.white)
-                                    .cornerRadius(16)
-                            }
-                        }
-                        .padding(.top)
-                        .padding(.horizontal)
-
+                // Выбор «расходы / доходы»
+                Picker("Тип операции", selection: $selectedType) {
+                    Text("Расходы").tag(CategoryType.expenses)
+                    Text("Доходы").tag(CategoryType.income)
+                }
+                .pickerStyle(.segmented)
+                .tint(.appPurple)
+                .padding(.horizontal)
+                .padding(.top)
                         // Ввод суммы
                         TextField("Введите сумму", text: $amount)
                             .keyboardType(.decimalPad)
@@ -59,21 +41,19 @@ struct AddTransactionView: View {
                             .cornerRadius(10) // Закругленные углы
                             .foregroundColor(.black) // Цвет вводимого текста
                             .padding(.horizontal)
-                HStack {
-                        // Выбор категории
-                        Text("Категории")
-                            .font(.headline)
-                   Spacer()
-                    Button {
-                        isShowingAlert = true
-                    } label: {
-                        Image(systemName: "plus.circle")
-                            .font(.title)
-                            .foregroundStyle(.black)
-                    }
-                }
-                .padding(.horizontal)
-
+//                HStack {
+//                        // Выбор категории
+//                        Text("Категории")
+//                            .font(.headline)
+//                   Spacer()
+//                    Button {
+//                        isShowingAlert = true
+//                    } label: {
+//                        Image(systemName: "plus.circle")
+//                            .font(.title)
+//                            .foregroundStyle(.black)
+//                    }
+//                }
                 ScrollView {
                     // Используем LazyVGrid для отображения категорий в несколько строк
                     LazyVGrid(columns: columns, spacing: 10) {
@@ -121,20 +101,22 @@ struct AddTransactionView: View {
             .scrollContentBackground(.hidden) // Убираем фон NavigationStack
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("Добавление операции")
+                    Text("Новая операция")
                         .font(.title3)
                         .fontWeight(.medium)
                         .foregroundStyle(.black)
                 }
+                // кнопка «Отменить»
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Отменить") { dismiss() }
+                        .font(.title3)
+                        .foregroundStyle(.appPurple)
+                }
+                // 🚀 новая кнопка «Добавить» для создания категории
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.title3)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.black)
-                    }
+                    Button("Добавить") { isShowingAlert = true }
+                        .font(.title3)
+                        .foregroundStyle(.appPurple)
                 }
             }
             // Алерт для добавления новой категории
