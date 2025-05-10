@@ -327,6 +327,7 @@ struct AddTransactionView: View {
                     newCategory = ""
                 })
             }
+            .navigationBarTitleDisplayMode(.inline)
         }
         .foregroundStyle(.black)
         .onAppear {
