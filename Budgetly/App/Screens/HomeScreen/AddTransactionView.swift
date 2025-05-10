@@ -151,29 +151,32 @@ struct AddTransactionView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
-                // Выбор «расходы / доходы»
-                Picker("Тип операции", selection: $selectedType) {
-                    Text("Расходы").tag(CategoryType.expenses)
-                    Text("Доходы").tag(CategoryType.income)
-                }
-                .pickerStyle(.segmented)
-                .tint(.appPurple)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal)
-                //  .padding(.top, 4)
-                // Ввод суммы
-                TextField("Введите сумму", text: $amount)
-                    .keyboardType(.decimalPad)
-                    .padding()
-                    .background(Color.white) // Серый фон с прозрачностью
-                    .cornerRadius(10) // Закругленные углы
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
-                    )
-                    .focused($isAmountFieldFocused)
-                    .foregroundColor(.black) // Цвет вводимого текста
+                VStack(spacing: 30) {
+                    // Выбор «расходы / доходы»
+                    Picker("Тип операции", selection: $selectedType) {
+                        Text("Расходы").tag(CategoryType.expenses)
+                        Text("Доходы").tag(CategoryType.income)
+                    }
+                    .pickerStyle(.segmented)
+                    .tint(.appPurple)
+                    .frame(maxWidth: .infinity)
                     .padding(.horizontal)
+                    //  .padding(.top, 4)
+                    // Ввод суммы
+                    TextField("Введите сумму", text: $amount)
+                        .keyboardType(.decimalPad)
+                        .padding()
+                        .background(Color.white) // Серый фон с прозрачностью
+                        .cornerRadius(10) // Закругленные углы
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
+                        )
+                        .focused($isAmountFieldFocused)
+                        .foregroundColor(.black) // Цвет вводимого текста
+                        .padding(.horizontal)
+                }
+                .padding(.vertical, -45)
                 //    .focused($isAmountFieldFocused)
                 //                HStack {
                 //                        // Выбор категории
@@ -188,7 +191,7 @@ struct AddTransactionView: View {
                 //                            .foregroundStyle(.black)
                 //                    }
                 //                }
-                ScrollView {
+              ScrollView {
                     FlowLayout(spacing: 8) {
                         ForEach(Array(visibleCategories.enumerated()), id: \.offset) { idx, catOpt in
                             if let cat = catOpt {
@@ -213,7 +216,7 @@ struct AddTransactionView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    // .padding(.vertical, 10)
+                    .padding(.vertical, 60)
                 }
                 // MARK: – Дата и Повтор
                 HStack(spacing: 12) {
