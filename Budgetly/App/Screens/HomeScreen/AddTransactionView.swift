@@ -151,7 +151,7 @@ struct AddTransactionView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
-                VStack(spacing: 30) {
+                VStack(spacing: 16) {
                     // Выбор «расходы / доходы»
                     Picker("Тип операции", selection: $selectedType) {
                         Text("Расходы").tag(CategoryType.expenses)
@@ -161,7 +161,7 @@ struct AddTransactionView: View {
                     .tint(.appPurple)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal)
-                    //  .padding(.top, 4)
+                      .padding(.top, 8)
                     // Ввод суммы
                     TextField("Введите сумму", text: $amount)
                         .keyboardType(.decimalPad)
@@ -175,8 +175,7 @@ struct AddTransactionView: View {
                         .focused($isAmountFieldFocused)
                         .foregroundColor(.black) // Цвет вводимого текста
                         .padding(.horizontal)
-                }
-                .padding(.vertical, -45)
+                }.padding(.top, 0)
                 //    .focused($isAmountFieldFocused)
                 //                HStack {
                 //                        // Выбор категории
@@ -216,10 +215,10 @@ struct AddTransactionView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 60)
+                 //   .padding(.vertical, 60)
                 }
                 // MARK: – Дата и Повтор
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     // Кнопка для выбора даты
                     Button {
                         // TODO: здесь показываем DatePicker или ваш DatePickerSheet
@@ -237,9 +236,9 @@ struct AddTransactionView: View {
                                 .foregroundColor(.primary)
                         }
                         .padding()
-                        .frame(maxWidth: .infinity)
+                        .frame(width: 176, height: 64)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 10)
                                 .fill(Color.white)
                         )
                     }
@@ -260,14 +259,15 @@ struct AddTransactionView: View {
                                 .foregroundColor(.primary)
                         }
                         .padding()
-                        .frame(maxWidth: .infinity)
+                        .frame(width: 176, height: 64)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 10)
                                 .fill(Color.white)
                         )
                     }
                 }
                 .padding(.horizontal)
+                .padding(.vertical, 10)
 
                 // Кнопка сохранения транзакции
                 Button("Сохранить") {
