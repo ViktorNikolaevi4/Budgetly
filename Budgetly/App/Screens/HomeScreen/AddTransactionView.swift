@@ -301,10 +301,18 @@ struct AddTransactionView: View {
                 }
             }
             .sheet(isPresented: $showAllCategories) {
-                AllCategoriesView(
-                           allCats: filteredCategories,        // <- сюда filteredCategories
-                           selected: $selectedCategory
-                )
+                if let acct = account {
+                    AllCategoriesView(
+                        account: acct,
+                        allCats: filteredCategories,
+                        selected: $selectedCategory
+                    )
+                } else {
+                    // сюда можно попадать, только если account == nil,
+                    // но на практике этот экран вы вызываете только когда account не nil
+                    Text("Нет подключённого счёта")
+                        .foregroundColor(.red)
+                }
             }
             // Алерт для добавления новой категории
             .alert("Новая категория", isPresented: $isShowingAlert) {
@@ -431,9 +439,14 @@ struct CategoryBadge: View {
 
 // Новый вью для показа всех категорий
 struct AllCategoriesView: View {
+    let account: Account
     let allCats: [Category]
     @Binding var selected: String
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+
+    @State private var categoryToDelete: Category?
+    @State private var isShowingDeleteAlert = false
 
     var body: some View {
         NavigationStack {
@@ -446,8 +459,18 @@ struct AllCategoriesView: View {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.appPurple)
                         }
+                        // кнопка удаления
+                        Button {
+                            // сохраняем в temp-переменную и показываем алерт
+                            categoryToDelete = cat
+                            isShowingDeleteAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 8)
                     }
-                    // чтобы весь ряд был «кликабельным»
                     .contentShape(Rectangle())
                     .onTapGesture {
                         selected = cat.name
@@ -470,7 +493,8 @@ struct AllCategoriesView: View {
                     VStack {
                         Text("Категории")
                         Text("Pасхода")
-                    }.font(.headline)
+                    }
+                    .font(.headline)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -486,6 +510,34 @@ struct AllCategoriesView: View {
                     }
                 }
             }
+            .alert("Удалить категорию?", isPresented: $isShowingDeleteAlert, presenting: categoryToDelete) { cat in
+                Button("Удалить", role: .destructive) {
+                    deleteCategory(cat)
+                }
+                Button("Отменить", role: .cancel) { }
+            } message: { cat in
+                Text("При удалении категории «\(cat.name)» все её транзакции тоже будут удалены.")
+            }
+        }
+    }
+    private func deleteCategory(_ cat: Category) {
+        // 1) удаляем все транзакции этого аккаунта в данной категории
+        let txToDelete = account.transactions.filter { $0.category == cat.name }
+        txToDelete.forEach { modelContext.delete($0) }
+
+        // 2) удаляем саму категорию
+        modelContext.delete(cat)
+
+        // 3) если удалённая категория была выбрана — сбросим выбор на «Без категории»
+        if selected == cat.name {
+            selected = Category.uncategorizedName
+        }
+
+        // 4) сохраняем изменения
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при удалении категории и транзакций:", error)
         }
     }
 }
