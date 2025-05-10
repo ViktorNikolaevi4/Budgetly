@@ -27,6 +27,13 @@ struct AddTransactionView: View {
         return allCategories.filter { $0.account.id == acct.id }
     }
 
+    private let dateTimeFormatter: DateFormatter = {
+        let fmt = DateFormatter()
+        fmt.locale = Locale.current
+        fmt.dateFormat = "d MMM yyyy • HH:mm"
+        return fmt
+    }()
+
     private var filteredCategories: [Category] {
       guard let acct = account else { return [] }
 
@@ -150,7 +157,7 @@ struct AddTransactionView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 16) {
                 VStack(spacing: 16) {
                     // Выбор «расходы / доходы»
                     Picker("Тип операции", selection: $selectedType) {
@@ -215,7 +222,7 @@ struct AddTransactionView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                 //   .padding(.vertical, 60)
+                    .padding(.vertical, 10)
                 }
                 // MARK: – Дата и Повтор
                 HStack(spacing: 8) {
@@ -226,17 +233,17 @@ struct AddTransactionView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 4) {
                                 Image(systemName: "calendar")
-                                    .font(.title3)
+                                    .font(.subheadline)
                                 Text("Дата")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            Text(selectedDate, style: .date)
+                                    .font(.subheadline)
+                            } .foregroundStyle(.appPurple)
+                            Text(dateTimeFormatter.string(from: selectedDate))
                                 .font(.subheadline)
                                 .foregroundColor(.primary)
                         }
-                        .padding()
-                        .frame(width: 176, height: 64)
+                        .padding(.vertical)
+                        .padding(.leading, 10)
+                        .frame(width: 176, height: 64, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(Color.white)
@@ -248,18 +255,19 @@ struct AddTransactionView: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 4) {
-                                Image(systemName: "repeat")
-                                    .font(.title3)
+                                Image(systemName: "clock.arrow.trianglehead.2.counterclockwise.rotate.90")
+                                    .font(.subheadline)
                                 Text("Повтор")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                                    .font(.subheadline)
+
+                            }.foregroundStyle(.appPurple)
                             Text(repeatRule)
                                 .font(.subheadline)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.gray.opacity(0.7))
                         }
-                        .padding()
-                        .frame(width: 176, height: 64)
+                        .padding(.vertical)
+                        .padding(.leading, 10)
+                        .frame(width: 176, height: 64, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(Color.white)
