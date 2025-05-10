@@ -82,7 +82,6 @@ struct FlowLayout: Layout {
     }
 }
 
-
 struct HomeScreen: View {
     @Query private var accounts: [Account]
 
@@ -212,12 +211,12 @@ struct HomeScreen: View {
         .onAppear {
                   if selectedAccount == nil { selectedAccount = accounts.first }
                   if let acc = selectedAccount {
-                      Category.ensureUncategorized(for: acc, in: modelContext)
+                      Category.seedDefaults(for: acc, in: modelContext)
                   }
         }
         .onChange(of: selectedAccount) { acc in
             if let acc = acc {
-                      Category.ensureUncategorized(for: acc, in: modelContext)
+                Category.seedDefaults(for: acc, in: modelContext)
                   }
         }
             .sheet(isPresented: $isAddTransactionViewPresented) {

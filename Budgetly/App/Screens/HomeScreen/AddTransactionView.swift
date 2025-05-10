@@ -9,6 +9,8 @@ struct AddTransactionView: View {
     @Query private var allCategories: [Category]
     @Environment(\.dismiss) var dismiss
 
+    @State private var showAllCategories = false
+
     @State private var selectedType: CategoryType = .expenses
     @State private var amount: String = ""
     @FocusState private var isAmountFieldFocused: Bool
@@ -16,6 +18,9 @@ struct AddTransactionView: View {
     @State private var newCategory: String = ""
     @State private var isShowingAlert = false // Флаг для отображения алерта
     @State private var hasEnsuredCategories = false
+
+    @State private var selectedDate: Date = Date()
+    @State private var repeatRule: String = "Никогда"
 
     private var categoriesForThisAccount: [Category] {
         guard let acct = account else { return [] }
@@ -63,6 +68,28 @@ struct AddTransactionView: View {
       }
     }
 
+    private var visibleCategories: [Category?] {
+        // все категории данного типа, уже отсортированные
+        let cats = filteredCategories
+
+        // если их не больше 7 — просто показываем все
+        guard cats.count > 7 else {
+            return cats.map { Optional($0) }
+        }
+
+        // берём первые 7
+        var top7 = Array(cats.prefix(7))
+
+        // если выбранная категория есть в общем списке,
+        // но НЕ входит в эти top7 — подменяем ей первую ячейку
+        if let sel = cats.first(where: { $0.name == selectedCategory }),
+           !top7.contains(where: { $0.id == sel.id }) {
+            top7[0] = sel
+        }
+
+        // и добавляем кнопку “Ещё”
+        return top7.map { Optional($0) } + [nil]
+    }
 
     struct FlowLayout: Layout {
         var spacing: CGFloat = 10
@@ -123,7 +150,7 @@ struct AddTransactionView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading) {
                 // Выбор «расходы / доходы»
                 Picker("Тип операции", selection: $selectedType) {
                     Text("Расходы").tag(CategoryType.expenses)
@@ -133,65 +160,123 @@ struct AddTransactionView: View {
                 .tint(.appPurple)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal)
-                .padding(.top, 4)
-                        // Ввод суммы
-                        TextField("Введите сумму", text: $amount)
-                            .keyboardType(.decimalPad)
-                            .padding()
-                            .background(Color.white) // Серый фон с прозрачностью
-                            .cornerRadius(10) // Закругленные углы
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
-                            )
-                            .focused($isAmountFieldFocused)
-                            .foregroundColor(.black) // Цвет вводимого текста
-                            .padding(.horizontal)
-                        //    .focused($isAmountFieldFocused)
-//                HStack {
-//                        // Выбор категории
-//                        Text("Категории")
-//                            .font(.headline)
-//                   Spacer()
-//                    Button {
-//                        isShowingAlert = true
-//                    } label: {
-//                        Image(systemName: "plus.circle")
-//                            .font(.title)
-//                            .foregroundStyle(.black)
-//                    }
-//                }
+                //  .padding(.top, 4)
+                // Ввод суммы
+                TextField("Введите сумму", text: $amount)
+                    .keyboardType(.decimalPad)
+                    .padding()
+                    .background(Color.white) // Серый фон с прозрачностью
+                    .cornerRadius(10) // Закругленные углы
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
+                    )
+                    .focused($isAmountFieldFocused)
+                    .foregroundColor(.black) // Цвет вводимого текста
+                    .padding(.horizontal)
+                //    .focused($isAmountFieldFocused)
+                //                HStack {
+                //                        // Выбор категории
+                //                        Text("Категории")
+                //                            .font(.headline)
+                //                   Spacer()
+                //                    Button {
+                //                        isShowingAlert = true
+                //                    } label: {
+                //                        Image(systemName: "plus.circle")
+                //                            .font(.title)
+                //                            .foregroundStyle(.black)
+                //                    }
+                //                }
                 ScrollView {
-                    FlowLayout(spacing: 10) {
-                        ForEach(filteredCategories, id: \.name) { category in
-                            Button {
-                                selectedCategory = category.name
-                            } label: {
-                                CategoryBadge(category: category, isSelected: selectedCategory == category.name)
-                            }
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    removeCategory(category)
-                                } label: {
-                                    Label("Удалить категорию", systemImage: "trash")
+                    FlowLayout(spacing: 8) {
+                        ForEach(Array(visibleCategories.enumerated()), id: \.offset) { idx, catOpt in
+                            if let cat = catOpt {
+                                // обычная категория
+                                Button { selectedCategory = cat.name } label: {
+                                    CategoryBadge(category: cat, isSelected: selectedCategory == cat.name)
+                                }
+                            } else {
+                                // «Ещё»
+                                Button { showAllCategories = true } label: {
+                                    VStack {
+                                        Image(systemName: "ellipsis.circle")
+                                            .font(.title2)
+                                        Text("Ещё")
+                                            .font(.caption)
+                                    }
+                                    .frame(width: 84, height: 68)
+                                    .background(Color.gray.opacity(0.1))
+                                    .cornerRadius(16)
                                 }
                             }
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    // .padding(.vertical, 10)
                 }
-                // Кнопка сохранения транзакции
-                        Button("Сохранить") {
-                            saveTransaction()
+                // MARK: – Дата и Повтор
+                HStack(spacing: 12) {
+                    // Кнопка для выбора даты
+                    Button {
+                        // TODO: здесь показываем DatePicker или ваш DatePickerSheet
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.title3)
+                                Text("Дата")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Text(selectedDate, style: .date)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
                         }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Color.appPurple)
-                        .foregroundStyle(.white)
-                        .cornerRadius(16)
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white)
+                        )
+                    }
+                    // Кнопка для выбора повторения
+                    Button {
+                        // TODO: здесь показываем ваш UI для настройки повторений
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "repeat")
+                                    .font(.title3)
+                                Text("Повтор")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Text(repeatRule)
+                                .font(.subheadline)
+                                .foregroundColor(.primary)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white)
+                        )
+                    }
+                }
+                .padding(.horizontal)
+
+                // Кнопка сохранения транзакции
+                Button("Сохранить") {
+                    saveTransaction()
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .background(Color.appPurple)
+                .foregroundStyle(.white)
+                .cornerRadius(16)
+                .padding(.horizontal)
+                .padding(.bottom, 8)
             }
             .background(Color("BackgroundLightGray")) // фон
             .scrollContentBackground(.hidden) // Убираем фон NavigationStack
@@ -214,6 +299,12 @@ struct AddTransactionView: View {
                         .font(.title3)
                         .foregroundStyle(.appPurple)
                 }
+            }
+            .sheet(isPresented: $showAllCategories) {
+                AllCategoriesView(
+                           allCats: filteredCategories,        // <- сюда filteredCategories
+                           selected: $selectedCategory
+                )
             }
             // Алерт для добавления новой категории
             .alert("Новая категория", isPresented: $isShowingAlert) {
@@ -335,5 +426,66 @@ struct CategoryBadge: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(isSelected ? Color.appPurple : .clear, lineWidth: 2) // Обводка только для выбранной категории
         )
+    }
+}
+
+// Новый вью для показа всех категорий
+struct AllCategoriesView: View {
+    let allCats: [Category]
+    @Binding var selected: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(allCats, id: \.id) { cat in
+                    HStack {
+                        Text(cat.name)
+                        Spacer()
+                        if cat.name == selected {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.appPurple)
+                        }
+                    }
+                    // чтобы весь ряд был «кликабельным»
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        selected = cat.name
+                        dismiss()
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { dismiss() }
+                    label: {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Назад")
+                        }.foregroundStyle(.appPurple)
+                    }
+                }
+                ToolbarItem(placement: .principal) {
+                    VStack {
+                        Text("Категории")
+                        Text("Pасхода")
+                    }.font(.headline)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        // здесь можно запускать создание новой категории
+                    } label: {
+                        HStack {
+                            VStack {
+                                Text("Новая")
+                                Text("Категория")
+                            }
+                            Image(systemName: "plus.square")
+                        }.foregroundStyle(.appPurple)
+                    }
+                }
+            }
+        }
     }
 }

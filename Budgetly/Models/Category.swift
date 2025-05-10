@@ -32,15 +32,40 @@ class Category: Identifiable {
     }
 }
 
+import SwiftUI
+import SwiftData
+
 extension Category {
     static let uncategorizedName = "Без категории"
-    static func ensureUncategorized(for account: Account, in context: ModelContext) {
-    guard !account.hasSeededCategories else { return }
-    // создаём нужные две категории
-    context.insert(Category(name: uncategorizedName, type: .expenses, account: account))
-    context.insert(Category(name: uncategorizedName, type: .income,   account: account))
-    account.hasSeededCategories = true
-    try? context.save()
-  }
-}
 
+    static let defaultExpenseNames = [
+        "Еда", "Транспорт", "Дом", "Одежда",
+        "Книги", "Лекарства", "Такси", "Уборка",
+        "Развлечения", "Путешествия"
+    ]
+    private static let defaultIncome = [
+      "Зарплата", "Подарки", "Проценты", "Продажи",
+      "Премия", "Дивиденды", "Аренда", "Другое"
+    ]
+    static func seedDefaults(for account: Account, in context: ModelContext) {
+        guard !account.hasSeededCategories else { return }
+
+        // 1) Без категории
+        let uncExp = Category(name: uncategorizedName, type: .expenses, account: account)
+        let uncInc = Category(name: uncategorizedName, type: .income,   account: account)
+        context.insert(uncExp)
+        context.insert(uncInc)
+
+        // 2) Расходы
+        for name in defaultExpenseNames {
+            context.insert(Category(name: name, type: .expenses, account: account))
+        }
+        // 3) Доходы
+        for name in defaultIncome {
+            context.insert(Category(name: name, type: .income, account: account))
+        }
+
+        account.hasSeededCategories = true
+        try? context.save()
+    }
+}
