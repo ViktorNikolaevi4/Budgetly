@@ -46,7 +46,7 @@ extension Category {
         "Здоровье", "Питомцы", "Связь", "Развлечения",
         "Образование", "Дети"
     ]
-    private static let defaultIncome = [
+     static let defaultIncomeNames = [
       "Зарплата", "Подарки", "Проценты", "Продажи",
       "Премия", "Дивиденды", "Аренда", "Другое"
     ]
@@ -64,7 +64,7 @@ extension Category {
             context.insert(Category(name: name, type: .expenses, account: account))
         }
         // 3) Доходы
-        for name in defaultIncome {
+        for name in defaultIncomeNames {
             context.insert(Category(name: name, type: .income, account: account))
         }
 

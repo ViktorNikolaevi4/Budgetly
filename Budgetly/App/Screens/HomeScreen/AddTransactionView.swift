@@ -313,17 +313,13 @@ struct AddTransactionView: View {
                 }
             }
             .sheet(isPresented: $showAllCategories) {
+                // внутри замыкания sheet можно использовать if let
                 if let acct = account {
                     AllCategoriesView(
                         account: acct,
                         allCats: filteredCategories,
                         selected: $selectedCategory
                     )
-                } else {
-                    // сюда можно попадать, только если account == nil,
-                    // но на практике этот экран вы вызываете только когда account не nil
-                    Text("Нет подключённого счёта")
-                        .foregroundColor(.red)
                 }
             }
             .sheet(isPresented: $showNewCategorySheet) {
@@ -428,11 +424,18 @@ struct AddTransactionView: View {
 }
 
 struct CategoryBadge: View {
+    static let defaultNames =
+        Category.defaultExpenseNames
+      + Category.defaultIncomeNames
+      + [Category.uncategorizedName]
+
     let category: Category
     let isSelected: Bool
 
     private static let badgeWidth: CGFloat = 84.3
     private static let badgeHeight: CGFloat = 68
+
+  //  static let defaultNames = Category.defaultExpenseNames + Category.defaultIncomeNames + [Category.uncategorizedName]
 
     var body: some View {
             VStack(spacing: 6) {
@@ -446,9 +449,18 @@ struct CategoryBadge: View {
                         )
                       )
                         .frame(width: 32, height: 32)
-                    Image(systemName: category.iconName ?? iconName(for: category.name))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
+                    // 1) если пользователь выбрал свою иконку — показываем её
+                    if let icon = category.iconName {
+                        Image(systemName: icon)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+
+                    // 2) иначе, если это одна из дефолтных категорий — рисуем её SF-иконку
+                    } else if Self.defaultNames.contains(category.name) {
+                        Image(systemName: iconName(for: category.name))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                    }
                 }
                 // название под иконкой
                 Text(category.name)
@@ -489,37 +501,54 @@ struct CategoryBadge: View {
 
 // Новый вью для показа всех категорий
 struct AllCategoriesView: View {
+    static let defaultNames =
+        Category.defaultExpenseNames
+      + Category.defaultIncomeNames
+      + [Category.uncategorizedName]
+
     let account: Account
     let allCats: [Category]
     @Binding var selected: String
+    @State private var selectedType: CategoryType = .expenses
+    @State private var selectedCategory: String = Category.uncategorizedName
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
     @State private var categoryToDelete: Category?
     @State private var isShowingDeleteAlert = false
 
+    @State private var showNewCategorySheet = false
+
+
+  //  static let defaultNames = Category.defaultExpenseNames + Category.defaultIncomeNames + [Category.uncategorizedName]
+
     var body: some View {
         NavigationStack {
             List {
                 ForEach(allCats, id: \.id) { cat in
-                    HStack(spacing: 12) {
-                        // цветной кружок + иконка
-                        ZStack {
-                            Circle()
-                                .fill(Color.colorForCategoryName(
-                                    cat.name,
-                                    type: cat.type == .income ? .income : .expenses
-                                ))
-                                .frame(width: 24, height: 24)
-                            Image(systemName: iconName(for: cat.name))
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                        }
-                        // название
-                        Text(cat.name)
-                            .font(.body)
+                  HStack {
+                      ZStack {
+                          Circle()
+                            .fill(Color.colorForCategoryName(cat.name, type: cat.type == .income ? .income : .expenses))
+                            .frame(width: 24, height: 24)
 
-                        Spacer()
+                          if let icon = cat.iconName {
+                              // пользовательская
+                              Image(systemName: icon)
+                                  .font(.system(size: 14, weight: .medium))
+                                  .foregroundColor(.white)
+                          } else if CategoryBadge.defaultNames.contains(cat.name) {
+                              // одна из встроенных категорий
+                              Image(systemName: iconName(for: cat.name))
+                                  .font(.system(size: 14, weight: .medium))
+                                  .foregroundColor(.white)
+                          }
+                          // больше никаких else
+                      }
+
+                    Text(cat.name)
+                    Spacer()
                         // галочка выбранной
                         if cat.name == selected {
                             Image(systemName: "checkmark")
@@ -563,7 +592,7 @@ struct AllCategoriesView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        // здесь можно запускать создание новой категории
+                        showNewCategorySheet = true
                     } label: {
                         HStack {
                             VStack {
@@ -575,6 +604,18 @@ struct AllCategoriesView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showNewCategorySheet) {
+                NewCategoryView(
+                    initialType: selectedType,
+                    onSave: { name, icon in
+                        addNewCategory(name: name, icon: icon)
+                        showNewCategorySheet = false
+                    },
+                    onCancel: {
+                        showNewCategorySheet = false
+                    }
+                )
+            }
             .alert("Удалить категорию?", isPresented: $isShowingDeleteAlert, presenting: categoryToDelete) { cat in
                 Button("Удалить", role: .destructive) {
                     deleteCategory(cat)
@@ -585,6 +626,16 @@ struct AllCategoriesView: View {
             }
         }
     }
+    private func addNewCategory(name: String, icon: String?) {
+         guard !name.isEmpty else { return }
+         let cat = Category(name: name, type: selectedType, account: account)
+        // если вы храните в Category ещё поле iconName:
+        cat.iconName = icon
+        modelContext.insert(cat)
+        selectedCategory = name
+        try? modelContext.save()
+    }
+
     private func deleteCategory(_ cat: Category) {
         // 1) удаляем все транзакции этого аккаунта в данной категории
         let txToDelete = account.transactions.filter { $0.category == cat.name }
