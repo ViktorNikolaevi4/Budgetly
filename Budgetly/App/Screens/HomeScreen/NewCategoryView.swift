@@ -7,6 +7,7 @@ struct NewCategoryView: View {
 
     @State private var name: String = ""
     @State private var selectedIcon: String? = nil
+    @FocusState private var isNameFieldFocused: Bool
 
     // Пример набора иконок
     private let icons = [
@@ -32,7 +33,22 @@ struct NewCategoryView: View {
             Form {
                 Section("Название") {
                     TextField("Введите название", text: $name)
+                        .focused($isNameFieldFocused)
+                        .padding(12) // внутренние отступы
                 }
+                .listRowBackground(
+                    // сначала закрашиваем фон
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.white)
+                        .overlay(
+                            // а потом поверх — обводку
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(isNameFieldFocused ? Color.appPurple : Color.clear,
+                                        lineWidth: 4)
+                        )
+                )
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+
                 Section("Иконка (опционально)") {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(icons, id: \.self) { icon in
@@ -66,6 +82,12 @@ struct NewCategoryView: View {
 
                     }.foregroundStyle(.appPurple)
                     .disabled(name.isEmpty)
+                }
+            }
+            .onAppear {
+                // Устанавливаем фокус сразу после появления вью
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isNameFieldFocused = true
                 }
             }
         }
