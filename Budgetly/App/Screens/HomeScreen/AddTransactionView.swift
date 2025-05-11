@@ -318,7 +318,8 @@ struct AddTransactionView: View {
                     AllCategoriesView(
                         account: acct,
                         allCats: filteredCategories,
-                        selected: $selectedCategory
+                        selected: $selectedCategory,
+                        categoryType: selectedType
                     )
                 }
             }
@@ -517,7 +518,8 @@ struct AllCategoriesView: View {
     let account: Account
     let allCats: [Category]
     @Binding var selected: String
-    @State private var selectedType: CategoryType = .expenses
+    let categoryType: CategoryType
+
     @State private var selectedCategory: String = Category.uncategorizedName
 
     @Environment(\.dismiss) private var dismiss
@@ -593,7 +595,7 @@ struct AllCategoriesView: View {
                 ToolbarItem(placement: .principal) {
                     VStack {
                         Text("Категории")
-                        Text("Pасхода")
+                        Text(categoryType.rawValue)
                     }
                     .font(.headline)
                 }
@@ -613,7 +615,7 @@ struct AllCategoriesView: View {
             }
             .sheet(isPresented: $showNewCategorySheet) {
                 NewCategoryView(
-                    initialType: selectedType,
+                    initialType: categoryType,
                     onSave: { name, icon in
                         addNewCategory(name: name, icon: icon)
                         showNewCategorySheet = false
@@ -635,7 +637,7 @@ struct AllCategoriesView: View {
     }
     private func addNewCategory(name: String, icon: String?) {
          guard !name.isEmpty else { return }
-         let cat = Category(name: name, type: selectedType, account: account)
+         let cat = Category(name: name, type: categoryType, account: account)
         // если вы храните в Category ещё поле iconName:
         cat.iconName = icon
         modelContext.insert(cat)
