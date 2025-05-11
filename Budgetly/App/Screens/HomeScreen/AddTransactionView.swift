@@ -442,26 +442,25 @@ struct CategoryBadge: View {
                 // цветной кружок + иконка
                 ZStack {
                     Circle()
-                      .fill(
-                        Color.colorForCategoryName(
-                          category.name,
-                          type: category.type == .income ? .income : .expenses
-                        )
-                      )
-                        .frame(width: 32, height: 32)
-                    // 1) если пользователь выбрал свою иконку — показываем её
-                    if let icon = category.iconName {
-                        Image(systemName: icon)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
+                      .fill(Color.colorForCategoryName(
+                        category.name,
+                        type: category.type == .income ? .income : .expenses
+                      ))
+                      .frame(width: 32, height: 32)
 
-                    // 2) иначе, если это одна из дефолтных категорий — рисуем её SF-иконку
+                    if let custom = category.iconName {
+                      // Пользовательская иконка
+                      Image(systemName: custom)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+
                     } else if Self.defaultNames.contains(category.name) {
-                        Image(systemName: iconName(for: category.name))
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
+                      // Дефолтная SF-иконка
+                      Image(systemName: iconName(for: category.name))
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
                     }
-                }
+                  }
                 // название под иконкой
                 Text(category.name)
                     .font(.caption2)
@@ -493,6 +492,15 @@ struct CategoryBadge: View {
         case "Образование":   return "book.fill"
         case "Дети":          return "figure.walk"
         // … и так далее
+            // — доходы —
+            case "Зарплата":      return "dollarsign.circle"
+            case "Дивиденды":     return "percent"
+            case "Аренда":        return "house.fill"
+            case "Подарки":       return "gift.fill"
+            case "Проценты":      return "percent.circle"
+            case "Продажи":       return "cart.fill"
+            case "Премия":        return "star.circle"
+            case "Другое":        return "tag.fill"
         default:              return "tag.fill"
         }
     }
@@ -544,7 +552,6 @@ struct AllCategoriesView: View {
                                   .font(.system(size: 14, weight: .medium))
                                   .foregroundColor(.white)
                           }
-                          // больше никаких else
                       }
 
                     Text(cat.name)
@@ -670,6 +677,15 @@ struct AllCategoriesView: View {
         case "Образование":   return "book.fill"
         case "Дети":          return "figure.walk"
         // … и так далее
+
+          case "Зарплата":      return "dollarsign.circle"
+          case "Дивиденды":     return "percent"
+          case "Аренда":        return "house.fill"
+          case "Подарки":       return "gift.fill"
+          case "Проценты":      return "percent.circle"
+          case "Продажи":       return "cart.fill"
+          case "Премия":        return "star.circle"
+
         default:              return "tag.fill"
         }
     }
