@@ -16,7 +16,8 @@ struct AddTransactionView: View {
     @FocusState private var isAmountFieldFocused: Bool
     @State private var selectedCategory: String = Category.uncategorizedName
     @State private var newCategory: String = ""
-    @State private var isShowingAlert = false // Флаг для отображения алерта
+    @State private var showNewCategorySheet = false
+  //  @State private var isShowingAlert = false // Флаг для отображения алерта
     @State private var hasEnsuredCategories = false
 
     @State private var selectedDate: Date = Date()
@@ -306,7 +307,7 @@ struct AddTransactionView: View {
                 }
                 // 🚀 новая кнопка «Добавить» для создания категории
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Добавить") { isShowingAlert = true }
+                    Button("Добавить") { showNewCategorySheet = true }
                         .font(.title3)
                         .foregroundStyle(.appPurple)
                 }
@@ -325,16 +326,28 @@ struct AddTransactionView: View {
                         .foregroundColor(.red)
                 }
             }
-            // Алерт для добавления новой категории
-            .alert("Новая категория", isPresented: $isShowingAlert) {
-                TextField("Введите новую категорию", text: $newCategory)
-                Button("Добавить", action: {
-                    addNewCategory()
-                })
-                Button("Отмена", role: .cancel, action: {
-                    newCategory = ""
-                })
+            .sheet(isPresented: $showNewCategorySheet) {
+                NewCategoryView(
+                    initialType: selectedType,
+                    onSave: { name, icon in
+                        addNewCategory(name: name, icon: icon)
+                        showNewCategorySheet = false
+                    },
+                    onCancel: {
+                        showNewCategorySheet = false
+                    }
+                )
             }
+            // Алерт для добавления новой категории
+//            .alert("Новая категория", isPresented: $isShowingAlert) {
+//                TextField("Введите новую категорию", text: $newCategory)
+//                Button("Добавить", action: {
+//                    addNewCategory()
+//                })
+//                Button("Отмена", role: .cancel, action: {
+//                    newCategory = ""
+//                })
+//            }
             .navigationBarTitleDisplayMode(.inline)
         }
         .foregroundStyle(.black)
@@ -347,23 +360,14 @@ struct AddTransactionView: View {
     }
 
     // Функция для добавления новой категории
-    private func addNewCategory() {
-        guard let account = account, !newCategory.isEmpty else {
-            // Можно добавить сообщение об ошибке или лог для отладки
-            print("Ошибка: отсутствует account или пустое имя категории")
-            return
-        }
-        let category = Category(name: newCategory, type: selectedType, account: account)
-        modelContext.insert(category) // Добавляем категорию в SwiftData
-        selectedCategory = newCategory
-        newCategory = ""
-
-        // Сохранение изменений
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка при сохранении категории: \(error)")
-        }
+    private func addNewCategory(name: String, icon: String?) {
+        guard let account = account, !name.isEmpty else { return }
+        let cat = Category(name: name, type: selectedType, account: account)
+        // если вы храните в Category ещё поле iconName:
+        cat.iconName = icon
+        modelContext.insert(cat)
+        selectedCategory = name
+        try? modelContext.save()
     }
     // Функция для удаления категории
     private func removeCategory(_ category: Category) {
@@ -387,7 +391,7 @@ struct AddTransactionView: View {
             print("Ошибка при удалении категории: \(error)")
         }
     }
-    
+
     // Функция для сохранения транзакции
     private func saveTransaction() {
         guard
@@ -431,23 +435,57 @@ struct CategoryBadge: View {
     private static let badgeHeight: CGFloat = 68
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text(category.name)
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
+            VStack(spacing: 6) {
+                // цветной кружок + иконка
+                ZStack {
+                    Circle()
+                      .fill(
+                        Color.colorForCategoryName(
+                          category.name,
+                          type: category.type == .income ? .income : .expenses
+                        )
+                      )
+                        .frame(width: 32, height: 32)
+                    Image(systemName: category.iconName ?? iconName(for: category.name))
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                }
+                // название под иконкой
+                Text(category.name)
+                    .font(.caption2)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(width: Self.badgeWidth,
+                   height: Self.badgeHeight,
+                   alignment: .center)
+            .background(Color.white)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Color.appPurple : .clear, lineWidth: 2)
+            )
         }
-        .frame(width: Self.badgeWidth, height: Self.badgeHeight)
-        .background(Color.white) // Фон всегда белый
-        .foregroundColor(.black) // Текст чёрный
-        .cornerRadius(16)
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(isSelected ? Color.appPurple : .clear, lineWidth: 2) // Обводка только для выбранной категории
-        )
+    func iconName(for categoryName: String) -> String {
+        switch categoryName {
+        case Category.uncategorizedName: return "tag"
+        case "Еда":           return "fork.knife"
+        case "Транспорт":     return "car.fill"
+        case "Дом":           return "house.fill"
+        case "Одежда":        return "tshirt.fill"
+        case "Здоровье":      return "bandage.fill"
+        case "Питомцы":       return "pawprint.fill"
+        case "Связь":         return "wifi"
+        case "Развлечения":   return "gamecontroller.fill"
+        case "Образование":   return "book.fill"
+        case "Дети":          return "figure.walk"
+        // … и так далее
+        default:              return "tag.fill"
+        }
     }
-}
+
+    }
 
 // Новый вью для показа всех категорий
 struct AllCategoriesView: View {
@@ -464,16 +502,31 @@ struct AllCategoriesView: View {
         NavigationStack {
             List {
                 ForEach(allCats, id: \.id) { cat in
-                    HStack {
+                    HStack(spacing: 12) {
+                        // цветной кружок + иконка
+                        ZStack {
+                            Circle()
+                                .fill(Color.colorForCategoryName(
+                                    cat.name,
+                                    type: cat.type == .income ? .income : .expenses
+                                ))
+                                .frame(width: 24, height: 24)
+                            Image(systemName: iconName(for: cat.name))
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+                        // название
                         Text(cat.name)
+                            .font(.body)
+
                         Spacer()
+                        // галочка выбранной
                         if cat.name == selected {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.appPurple)
                         }
                         // кнопка удаления
                         Button {
-                            // сохраняем в temp-переменную и показываем алерт
                             categoryToDelete = cat
                             isShowingDeleteAlert = true
                         } label: {
@@ -481,13 +534,13 @@ struct AllCategoriesView: View {
                                 .foregroundColor(.red)
                         }
                         .buttonStyle(.plain)
-                        .padding(.leading, 8)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
                         selected = cat.name
                         dismiss()
                     }
+
                 }
             }
             .listStyle(.insetGrouped)
@@ -550,6 +603,23 @@ struct AllCategoriesView: View {
             try modelContext.save()
         } catch {
             print("Ошибка при удалении категории и транзакций:", error)
+        }
+    }
+    func iconName(for categoryName: String) -> String {
+        switch categoryName {
+        case Category.uncategorizedName: return "tag"
+        case "Еда":           return "fork.knife"
+        case "Транспорт":     return "car.fill"
+        case "Дом":           return "house.fill"
+        case "Одежда":        return "tshirt.fill"
+        case "Здоровье":      return "bandage.fill"
+        case "Питомцы":       return "pawprint.fill"
+        case "Связь":         return "wifi"
+        case "Развлечения":   return "gamecontroller.fill"
+        case "Образование":   return "book.fill"
+        case "Дети":          return "figure.walk"
+        // … и так далее
+        default:              return "tag.fill"
         }
     }
 }

@@ -15,6 +15,9 @@ class Category: Identifiable {
     private var typeRawValue: String
     var account: Account // Связь с конкретным счетом
 
+    // Новое свойство
+    var iconName: String?
+
     var type: CategoryType {
         get { CategoryType(rawValue: typeRawValue) ?? .expenses } // По умолчанию .expenses, если значение отсутствует
         set { typeRawValue = newValue.rawValue }
