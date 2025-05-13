@@ -11,6 +11,8 @@ struct AddTransactionView: View {
 
     @State private var showAllCategories = false
 
+    @State private var showDateTimeSheet = false
+
     @State private var selectedType: CategoryType = .expenses
     @State private var amount: String = ""
     @FocusState private var isAmountFieldFocused: Bool
@@ -229,7 +231,7 @@ struct AddTransactionView: View {
                 HStack(spacing: 8) {
                     // Кнопка для выбора даты
                     Button {
-                        // TODO: здесь показываем DatePicker или ваш DatePickerSheet
+                        showDateTimeSheet = true
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 4) {
@@ -275,8 +277,18 @@ struct AddTransactionView: View {
                         )
                     }
                 }
+                .sheet(isPresented: $showDateTimeSheet) {
+                    DateTimePickerSheet(
+                        date: $selectedDate,
+                        repeatRule: $repeatRule
+                    )
+                    // здесь указываем высоту в 2/3 экрана, и индикатор «потяните»
+                    .presentationDetents([.fraction(0.75)])
+                    .presentationDragIndicator(.visible)
+                }
                 .padding(.horizontal)
                 .padding(.vertical, 10)
+
 
                 // Кнопка сохранения транзакции
                 Button("Сохранить") {
