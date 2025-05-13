@@ -13,6 +13,10 @@ struct AddTransactionView: View {
     @State private var showRepeatSheet = false
     @State private var showDateTimeSheet = false
 
+    @State private var repeatComment: String = ""
+    @State private var endOption: EndOption = .never
+    @State private var endDate: Date = Date()
+
     @State private var selectedType: CategoryType = .expenses
     @State private var amount: String = ""
     @FocusState private var isAmountFieldFocused: Bool
@@ -279,7 +283,10 @@ struct AddTransactionView: View {
                 }
                 .sheet(isPresented: $showRepeatSheet) {
                     RepeatPickerSheet(
-                        selectedRule: $repeatRule
+                        selectedRule: $repeatRule,
+                        endOption: $endOption,
+                        endDate: $endDate,
+                        comment: $repeatComment
                     )
                  //   .presentationDetents([.fraction(0.66)])
                     .presentationDragIndicator(.visible)
