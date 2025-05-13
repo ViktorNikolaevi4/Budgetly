@@ -10,7 +10,7 @@ struct AddTransactionView: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var showAllCategories = false
-
+    @State private var showRepeatSheet = false
     @State private var showDateTimeSheet = false
 
     @State private var selectedType: CategoryType = .expenses
@@ -254,7 +254,7 @@ struct AddTransactionView: View {
                     }
                     // Кнопка для выбора повторения
                     Button {
-                        // TODO: здесь показываем ваш UI для настройки повторений
+                        showRepeatSheet = true
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 4) {
@@ -276,6 +276,13 @@ struct AddTransactionView: View {
                                 .fill(Color.white)
                         )
                     }
+                }
+                .sheet(isPresented: $showRepeatSheet) {
+                    RepeatPickerSheet(
+                        selectedRule: $repeatRule
+                    )
+                 //   .presentationDetents([.fraction(0.66)])
+                    .presentationDragIndicator(.visible)
                 }
                 .sheet(isPresented: $showDateTimeSheet) {
                     DateTimePickerSheet(
