@@ -83,55 +83,74 @@ struct CustomButtonStyle: ButtonStyle {
 }
 
 extension Color {
-        private static let incomeColorsKey = "AssignedColorsForIncome"
-        private static let expensesColorsKey = "AssignedColorsForExpenses"
+    private static let incomeColorsKey = "AssignedColorsForIncome"
+    private static let expensesColorsKey = "AssignedColorsForExpenses"
 
     /// Массив предопределённых цветов
     private static let predefinedColors: [Color] = [.appPurple,
-                                                    .redApple,
-                                                    .orangeApple,
-                                                    .yellow,
-                                                    .blueApple,
-                                                    .yellowApple,
-                                                    .pinkApple1,
-                                                    .lightPurprApple,
-                                                    .bolotoApple,
-                                                    .purpurApple]
+                                                   .redApple,
+                                                   .orangeApple,
+                                                   .yellow,
+                                                   .blueApple,
+                                                   .yellowApple,
+                                                   .pinkApple1,
+                                                   .lightPurprApple,
+                                                   .bolotoApple,
+                                                   .purpurApple]
 
-    /// Возвращает цвет для (название категории, тип транзакции).
-        static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
-            if name == Category.uncategorizedName {
-                return .gray.opacity(0.6)
-            }
-            // Выбираем ключ и словарь в зависимости от типа транзакции
-            let key = type == .income ? incomeColorsKey : expensesColorsKey
-            var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
-
-            // Если цвет уже назначен, возвращаем его
-            if let colorComponents = assignedColors[name],
-               colorComponents.count == 3 {
-                return Color(red: colorComponents[0], green: colorComponents[1], blue: colorComponents[2])
-            }
-
-            // Назначаем новый цвет
-            let newColor: Color
-            let totalCategories = assignedColors.count
-            if totalCategories < predefinedColors.count {
-                // Используем предопределённый цвет
-                newColor = predefinedColors[totalCategories]
-            } else {
-                // Генерируем цвет на основе хэша
-                newColor = colorFromHash(name)
-            }
-
-            // Сохраняем цвет в UserDefaults
-            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
-            UIColor(newColor).getRed(&red, green: &green, blue: &blue, alpha: nil)
-            assignedColors[name] = [Double(red), Double(green), Double(blue)]
-            UserDefaults.standard.set(assignedColors, forKey: key)
-
-            return newColor
+    /// Возвращает или назначает цвет для (название категории, тип транзакции).
+    static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
+        if name == Category.uncategorizedName {
+            return .gray.opacity(0.6)
         }
+
+        let key = type == .income ? incomeColorsKey : expensesColorsKey
+        var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+
+        // Если цвет уже назначен, возвращаем его
+        if let colorComponents = assignedColors[name],
+           colorComponents.count == 3,
+           validateColorComponents(colorComponents) {
+            return Color(red: colorComponents[0], green: colorComponents[1], blue: colorComponents[2])
+        }
+
+        // Назначаем новый цвет
+        let newColor: Color
+        let totalCategories = assignedColors.count
+        if totalCategories < predefinedColors.count {
+            newColor = predefinedColors[totalCategories]
+        } else {
+            newColor = colorFromHash(name)
+        }
+
+        // Сохраняем цвет в UserDefaults
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
+        UIColor(newColor).getRed(&red, green: &green, blue: &blue, alpha: nil)
+        assignedColors[name] = [Double(red), Double(green), Double(blue)]
+        UserDefaults.standard.set(assignedColors, forKey: key)
+
+        return newColor
+    }
+
+    /// Устанавливает вручную выбранный цвет для категории
+    static func setColor(_ color: Color, forCategory name: String, type: TransactionType) {
+        let key = type == .income ? incomeColorsKey : expensesColorsKey
+        var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
+        UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: nil)
+        assignedColors[name] = [Double(red), Double(green), Double(blue)]
+        UserDefaults.standard.set(assignedColors, forKey: key)
+    }
+
+    /// Удаляет цвет категории из UserDefaults
+    static func removeColor(forCategory name: String, type: TransactionType) {
+        let key = type == .income ? incomeColorsKey : expensesColorsKey
+        var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+        assignedColors.removeValue(forKey: name)
+        UserDefaults.standard.set(assignedColors, forKey: key)
+    }
+
     /// Вспомогательный метод для генерации "стабильного" цвета по хэшу строки
     private static func colorFromHash(_ name: String) -> Color {
         let hash = name.hashValue
@@ -139,5 +158,11 @@ extension Color {
         let saturation = 0.5
         let brightness = 0.8
         return Color(hue: hue, saturation: saturation, brightness: brightness)
+    }
+
+    /// Проверяет валидность компонентов цвета
+    private static func validateColorComponents(_ components: [Double]) -> Bool {
+        guard components.count == 3 else { return false }
+        return components.allSatisfy { $0 >= 0 && $0 <= 1 }
     }
 }

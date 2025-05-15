@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct AddTransactionView: View {
-    var account: Account? // Связанный счёт
+    var account: Account?
     var onTransactionAdded: ((TransactionType) -> Void)?
 
     @Environment(\.modelContext) private var modelContext
@@ -23,7 +23,6 @@ struct AddTransactionView: View {
     @State private var selectedCategory: String = Category.uncategorizedName
     @State private var newCategory: String = ""
     @State private var showNewCategorySheet = false
-  //  @State private var isShowingAlert = false // Флаг для отображения алерта
     @State private var hasEnsuredCategories = false
 
     @State private var selectedDate: Date = Date()
@@ -42,66 +41,37 @@ struct AddTransactionView: View {
     }()
 
     private var filteredCategories: [Category] {
-      guard let acct = account else { return [] }
-
-      // 1) приводим ваш CategoryType к TransactionType
-      let txType: TransactionType = selectedType == .income
-        ? .income
-        : .expenses
-
-      // 2) берём все категории этого счёта и выбранного типа
-      let cats = allCategories
-        .filter { $0.account.id == acct.id && $0.type == selectedType }
-
-      // 3) сортируем по числу транзакций, по сумме, потом по имени
-      return cats.sorted { lhs, rhs in
-          // 3.1 «Без категории» всегда первой
-           if lhs.name == Category.uncategorizedName { return true }
-           if rhs.name == Category.uncategorizedName { return false }
-
-        // транзакции lhs
-        let lhsTx = acct.transactions.filter {
-          $0.type == txType && $0.category == lhs.name
+        guard let acct = account else { return [] }
+        let txType: TransactionType = selectedType == .income ? .income : .expenses
+        let cats = allCategories
+            .filter { $0.account.id == acct.id && $0.type == selectedType }
+        return cats.sorted { lhs, rhs in
+            if lhs.name == Category.uncategorizedName { return true }
+            if rhs.name == Category.uncategorizedName { return false }
+            let lhsTx = acct.transactions.filter { $0.type == txType && $0.category == lhs.name }
+            let rhsTx = acct.transactions.filter { $0.type == txType && $0.category == rhs.name }
+            if lhsTx.count != rhsTx.count {
+                return lhsTx.count > rhsTx.count
+            }
+            let lhsSum = lhsTx.reduce(0) { $0 + $1.amount }
+            let rhsSum = rhsTx.reduce(0) { $0 + $1.amount }
+            if lhsSum != rhsSum {
+                return lhsSum > rhsSum
+            }
+            return lhs.name.localizedCompare(rhs.name) == .orderedAscending
         }
-        let rhsTx = acct.transactions.filter {
-          $0.type == txType && $0.category == rhs.name
-        }
-
-        // 1) сравниваем по количеству
-        if lhsTx.count != rhsTx.count {
-          return lhsTx.count > rhsTx.count
-        }
-        // 2) по сумме
-        let lhsSum = lhsTx.reduce(0) { $0 + $1.amount }
-        let rhsSum = rhsTx.reduce(0) { $0 + $1.amount }
-        if lhsSum != rhsSum {
-          return lhsSum > rhsSum
-        }
-        // 3) и в конце — по алфавиту
-        return lhs.name.localizedCompare(rhs.name) == .orderedAscending
-      }
     }
 
     private var visibleCategories: [Category?] {
-        // все категории данного типа, уже отсортированные
         let cats = filteredCategories
-
-        // если их не больше 7 — просто показываем все
         guard cats.count > 7 else {
             return cats.map { Optional($0) }
         }
-
-        // берём первые 7
         var top7 = Array(cats.prefix(7))
-
-        // если выбранная категория есть в общем списке,
-        // но НЕ входит в эти top7 — подменяем ей первую ячейку
         if let sel = cats.first(where: { $0.name == selectedCategory }),
            !top7.contains(where: { $0.id == sel.id }) {
             top7[0] = sel
         }
-
-        // и добавляем кнопку “Ещё”
         return top7.map { Optional($0) } + [nil]
     }
 
@@ -166,7 +136,6 @@ struct AddTransactionView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(spacing: 16) {
-                    // Выбор «расходы / доходы»
                     Picker("Тип операции", selection: $selectedType) {
                         Text("Расходы").tag(CategoryType.expenses)
                         Text("Доходы").tag(CategoryType.income)
@@ -175,45 +144,30 @@ struct AddTransactionView: View {
                     .tint(.appPurple)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal)
-                      .padding(.top, 8)
-                    // Ввод суммы
+                    .padding(.top, 8)
+
                     TextField("Введите сумму", text: $amount)
                         .keyboardType(.decimalPad)
                         .padding()
-                        .background(Color.white) // Серый фон с прозрачностью
-                        .cornerRadius(10) // Закругленные углы
+                        .background(Color.white)
+                        .cornerRadius(10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
                         )
                         .focused($isAmountFieldFocused)
-                        .foregroundColor(.black) // Цвет вводимого текста
+                        .foregroundColor(.black)
                         .padding(.horizontal)
                 }.padding(.top, 0)
-                //    .focused($isAmountFieldFocused)
-                //                HStack {
-                //                        // Выбор категории
-                //                        Text("Категории")
-                //                            .font(.headline)
-                //                   Spacer()
-                //                    Button {
-                //                        isShowingAlert = true
-                //                    } label: {
-                //                        Image(systemName: "plus.circle")
-                //                            .font(.title)
-                //                            .foregroundStyle(.black)
-                //                    }
-                //                }
-              ScrollView {
+
+                ScrollView {
                     FlowLayout(spacing: 8) {
                         ForEach(Array(visibleCategories.enumerated()), id: \.offset) { idx, catOpt in
                             if let cat = catOpt {
-                                // обычная категория
                                 Button { selectedCategory = cat.name } label: {
                                     CategoryBadge(category: cat, isSelected: selectedCategory == cat.name)
                                 }
                             } else {
-                                // «Ещё»
                                 Button { showAllCategories = true } label: {
                                     VStack {
                                         Image(systemName: "ellipsis.circle")
@@ -231,9 +185,8 @@ struct AddTransactionView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
-                // MARK: – Дата и Повтор
+
                 HStack(spacing: 8) {
-                    // Кнопка для выбора даты
                     Button {
                         showDateTimeSheet = true
                     } label: {
@@ -256,7 +209,7 @@ struct AddTransactionView: View {
                                 .fill(Color.white)
                         )
                     }
-                    // Кнопка для выбора повторения
+
                     Button {
                         showRepeatSheet = true
                     } label: {
@@ -266,7 +219,6 @@ struct AddTransactionView: View {
                                     .font(.subheadline)
                                 Text("Повтор")
                                     .font(.subheadline)
-
                             }.foregroundStyle(.appPurple)
                             Text(repeatRule)
                                 .font(.subheadline)
@@ -288,7 +240,6 @@ struct AddTransactionView: View {
                         endDate: $endDate,
                         comment: $repeatComment
                     )
-                 //   .presentationDetents([.fraction(0.66)])
                     .presentationDragIndicator(.visible)
                 }
                 .sheet(isPresented: $showDateTimeSheet) {
@@ -296,15 +247,12 @@ struct AddTransactionView: View {
                         date: $selectedDate,
                         repeatRule: $repeatRule
                     )
-                    // здесь указываем высоту в 2/3 экрана, и индикатор «потяните»
                     .presentationDetents([.fraction(0.75)])
                     .presentationDragIndicator(.visible)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 10)
 
-
-                // Кнопка сохранения транзакции
                 Button("Добавить") {
                     saveTransaction()
                 }
@@ -316,8 +264,8 @@ struct AddTransactionView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-            .background(Color("BackgroundLightGray")) // фон
-            .scrollContentBackground(.hidden) // Убираем фон NavigationStack
+            .background(Color("BackgroundLightGray"))
+            .scrollContentBackground(.hidden)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Новая операция")
@@ -325,13 +273,11 @@ struct AddTransactionView: View {
                         .fontWeight(.medium)
                         .foregroundStyle(.black)
                 }
-                // кнопка «Отменить»
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Отменить") { dismiss() }
                         .font(.title3)
                         .foregroundStyle(.appPurple)
                 }
-                // 🚀 новая кнопка «Добавить» для создания категории
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Добавить") { showNewCategorySheet = true }
                         .font(.title3)
@@ -339,7 +285,6 @@ struct AddTransactionView: View {
                 }
             }
             .sheet(isPresented: $showAllCategories) {
-                // внутри замыкания sheet можно использовать if let
                 if let acct = account {
                     AllCategoriesView(
                         account: acct,
@@ -352,8 +297,8 @@ struct AddTransactionView: View {
             .sheet(isPresented: $showNewCategorySheet) {
                 NewCategoryView(
                     initialType: selectedType,
-                    onSave: { name, icon in
-                        addNewCategory(name: name, icon: icon)
+                    onSave: { name, icon, color in // Теперь принимаем цвет
+                        addNewCategory(name: name, icon: icon, color: color)
                         showNewCategorySheet = false
                     },
                     onCancel: {
@@ -361,53 +306,44 @@ struct AddTransactionView: View {
                     }
                 )
             }
-            // Алерт для добавления новой категории
-//            .alert("Новая категория", isPresented: $isShowingAlert) {
-//                TextField("Введите новую категорию", text: $newCategory)
-//                Button("Добавить", action: {
-//                    addNewCategory()
-//                })
-//                Button("Отмена", role: .cancel, action: {
-//                    newCategory = ""
-//                })
-//            }
             .navigationBarTitleDisplayMode(.inline)
         }
         .foregroundStyle(.black)
         .onAppear {
             DispatchQueue.main.async {
                 isAmountFieldFocused = true
-
             }
         }
     }
 
-    // Функция для добавления новой категории
-    private func addNewCategory(name: String, icon: String?) {
+    private func addNewCategory(name: String, icon: String?, color: Color?) {
         guard let account = account, !name.isEmpty else { return }
         let cat = Category(name: name, type: selectedType, account: account)
-        // если вы храните в Category ещё поле iconName:
         cat.iconName = icon
         modelContext.insert(cat)
+
+        // Если выбран цвет, сохраняем его в UserDefaults
+        if let color = color {
+            let type: TransactionType = selectedType == .income ? .income : .expenses
+            let key = type == .income ? "AssignedColorsForIncome" : "AssignedColorsForExpenses"
+            var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
+            UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: nil)
+            assignedColors[name] = [Double(red), Double(green), Double(blue)]
+            UserDefaults.standard.set(assignedColors, forKey: key)
+        }
+
         selectedCategory = name
         try? modelContext.save()
     }
-    // Функция для удаления категории
+
     private func removeCategory(_ category: Category) {
         guard let account = account else { return }
-
-        // 1. Находим все транзакции, у которых `transaction.category` совпадает с именем удаляемой категории
         let transactionsToRemove = account.transactions.filter { $0.category == category.name }
-
-        // 2. Удаляем все эти транзакции из modelContext
         for transaction in transactionsToRemove {
             modelContext.delete(transaction)
         }
-
-        // 3. Теперь удаляем саму категорию
         modelContext.delete(category)
-
-        // 4. Сохраняем изменения
         do {
             try modelContext.save()
         } catch {
@@ -415,7 +351,6 @@ struct AddTransactionView: View {
         }
     }
 
-    // Функция для сохранения транзакции
     private func saveTransaction() {
         guard
             let account = account,
@@ -425,7 +360,6 @@ struct AddTransactionView: View {
             return
         }
 
-        // 1. Создаём и сохраняем саму транзакцию
         let txDate = Date()
         let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
         let newTx = Transaction(
@@ -438,9 +372,7 @@ struct AddTransactionView: View {
         modelContext.insert(newTx)
         account.transactions.append(newTx)
 
-        // 2. Если выбрано правило повторения — создаём RegularPayment
         if repeatRule != EndOption.never.rawValue {
-            // приводим строку из UI к enum
             let freq = ReminderFrequency(rawValue: repeatRule) ?? .once
             let template = RegularPayment(
                 name: selectedCategory,
@@ -454,7 +386,6 @@ struct AddTransactionView: View {
             modelContext.insert(template)
         }
 
-        // 3. Сохраняем всё одним батчем
         do {
             try modelContext.save()
             onTransactionAdded?(transactionType)
@@ -463,7 +394,6 @@ struct AddTransactionView: View {
             print("Ошибка при сохранении транзакции и шаблона: \(error)")
         }
     }
-
 }
 
 struct CategoryBadge: View {
@@ -573,48 +503,33 @@ struct AllCategoriesView: View {
     @State private var isShowingDeleteAlert = false
     @State private var showNewCategorySheet = false
 
-
-  //  static let defaultNames = Category.defaultExpenseNames + Category.defaultIncomeNames + [Category.uncategorizedName]
-
     var body: some View {
         NavigationStack {
             List {
                 ForEach(allCats, id: \.id) { cat in
-                  HStack {
-                      ZStack {
-                          Circle()
-                            .fill(Color.colorForCategoryName(cat.name, type: cat.type == .income ? .income : .expenses))
-                            .frame(width: 24, height: 24)
+                    HStack {
+                        ZStack {
+                            Circle()
+                                .fill(Color.colorForCategoryName(cat.name, type: cat.type == .income ? .income : .expenses))
+                                .frame(width: 24, height: 24)
 
-                          if let icon = cat.iconName {
-                              // пользовательская
-                              Image(systemName: icon)
-                                  .font(.system(size: 14, weight: .medium))
-                                  .foregroundColor(.white)
-                          } else if CategoryBadge.defaultNames.contains(cat.name) {
-                              // одна из встроенных категорий
-                              Image(systemName: iconName(for: cat.name))
-                                  .font(.system(size: 14, weight: .medium))
-                                  .foregroundColor(.white)
-                          }
-                      }
+                            if let icon = cat.iconName {
+                                Image(systemName: icon)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                            } else if CategoryBadge.defaultNames.contains(cat.name) {
+                                Image(systemName: iconName(for: cat.name))
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                        }
 
-                    Text(cat.name)
-                    Spacer()
-                        // галочка выбранной
+                        Text(cat.name)
+                        Spacer()
                         if cat.name == selected {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.appPurple)
                         }
-                        // кнопка удаления
-//                        Button {
-//                            categoryToDelete = cat
-//                            isShowingDeleteAlert = true
-//                        } label: {
-//                            Image(systemName: "trash")
-//                                .foregroundColor(.red)
-//                        }
-//                        .buttonStyle(.plain)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -623,7 +538,6 @@ struct AllCategoriesView: View {
                     }
                 }
                 .onDelete { indexSet in
-                    // Помечаем, какой объект хотим удалить
                     pendingDeleteIndex = indexSet
                     if let first = indexSet.first {
                         categoryToDelete = allCats[first]
@@ -666,8 +580,8 @@ struct AllCategoriesView: View {
             .sheet(isPresented: $showNewCategorySheet) {
                 NewCategoryView(
                     initialType: categoryType,
-                    onSave: { name, icon in
-                        addNewCategory(name: name, icon: icon)
+                    onSave: { name, icon, color in // Теперь принимаем цвет
+                        addNewCategory(name: name, icon: icon, color: color)
                         showNewCategorySheet = false
                     },
                     onCancel: {
@@ -677,80 +591,81 @@ struct AllCategoriesView: View {
             }
             .alert("Удалить категорию?", isPresented: $isShowingDeleteAlert) {
                 Button("Удалить", role: .destructive) {
-                    // Собственно удаляем из context
                     if let indexSet = pendingDeleteIndex {
                         for idx in indexSet {
                             let cat = allCats[idx]
-                            // Сначала все транзакции этой категории
                             let toDelete = account.transactions.filter { $0.category == cat.name }
                             toDelete.forEach { modelContext.delete($0) }
-                            // Потом сама категория
                             modelContext.delete(cat)
                         }
                         try? modelContext.save()
                     }
                 }
                 Button("Отмена", role: .cancel) { }
-            } message: { 
+            } message: {
                 Text("При удалении категории все её транзакции тоже будут удалены.")
             }
         }
     }
-    private func addNewCategory(name: String, icon: String?) {
-         guard !name.isEmpty else { return }
-         let cat = Category(name: name, type: categoryType, account: account)
-        // если вы храните в Category ещё поле iconName:
+
+    private func addNewCategory(name: String, icon: String?, color: Color?) {
+        guard !name.isEmpty else { return }
+        let cat = Category(name: name, type: categoryType, account: account)
         cat.iconName = icon
         modelContext.insert(cat)
+
+        // Если выбран цвет, сохраняем его в UserDefaults
+        if let color = color {
+            let type: TransactionType = categoryType == .income ? .income : .expenses
+            let key = type == .income ? "AssignedColorsForIncome" : "AssignedColorsForExpenses"
+            var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
+            UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: nil)
+            assignedColors[name] = [Double(red), Double(green), Double(blue)]
+            UserDefaults.standard.set(assignedColors, forKey: key)
+        }
+
         selectedCategory = name
         try? modelContext.save()
     }
 
     private func deleteCategory(_ cat: Category) {
-        // 1) удаляем все транзакции этого аккаунта в данной категории
         let txToDelete = account.transactions.filter { $0.category == cat.name }
         txToDelete.forEach { modelContext.delete($0) }
-
-        // 2) удаляем саму категорию
         modelContext.delete(cat)
-
-        // 3) если удалённая категория была выбрана — сбросим выбор на «Без категории»
         if selected == cat.name {
             selected = Category.uncategorizedName
         }
-
-        // 4) сохраняем изменения
         do {
             try modelContext.save()
         } catch {
             print("Ошибка при удалении категории и транзакций:", error)
         }
     }
+
     func iconName(for categoryName: String) -> String {
         switch categoryName {
         case Category.uncategorizedName: return "circle.slash"
-        case "Еда":           return "fork.knife"
-        case "Транспорт":     return "car.fill"
-        case "Дом":           return "house.fill"
-        case "Одежда":        return "tshirt.fill"
-        case "Здоровье":      return "bandage.fill"
-        case "Питомцы":       return "pawprint.fill"
-        case "Связь":         return "wifi"
-        case "Развлечения":   return "gamecontroller.fill"
-        case "Образование":   return "book.fill"
-        case "Дети":          return "figure.walk"
-
-        case "Зарплата":      return "wallet.bifold.fill"
-        case "Дивиденды":     return "chart.line.uptrend.xyaxis"
-        case "Купоны":        return "banknote"
-        case "Продажи":       return "dollarsign.circle.fill"
-        case "Премия":      return "star.circle.fill"
-        case "Вклады":       return "dollarsign.bank.building.fill"
-        case "Аренда":        return "house.fill"
-        case "Подарки":        return "gift.fill"
-        case "Подработка":        return "hammer.fill"
-
-        default:              return "circle.slash.fill"
+        case "Еда": return "fork.knife"
+        case "Транспорт": return "car.fill"
+        case "Дом": return "house.fill"
+        case "Одежда": return "tshirt.fill"
+        case "Здоровье": return "bandage.fill"
+        case "Питомцы": return "pawprint.fill"
+        case "Связь": return "wifi"
+        case "Развлечения": return "gamecontroller.fill"
+        case "Образование": return "book.fill"
+        case "Дети": return "figure.walk"
+        case "Зарплата": return "wallet.bifold.fill"
+        case "Дивиденды": return "chart.line.uptrend.xyaxis"
+        case "Купоны": return "banknote"
+        case "Продажи": return "dollarsign.circle.fill"
+        case "Премия": return "star.circle.fill"
+        case "Вклады": return "dollarsign.bank.building.fill"
+        case "Аренда": return "house.fill"
+        case "Подарки": return "gift.fill"
+        case "Подработка": return "hammer.fill"
+        default: return "circle.slash.fill"
         }
     }
 }

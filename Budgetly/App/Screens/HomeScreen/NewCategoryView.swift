@@ -2,12 +2,14 @@ import SwiftUI
 
 struct NewCategoryView: View {
     let initialType: CategoryType
-    let onSave: (_ name: String, _ icon: String?) -> Void
+    let onSave: (_ name: String, _ icon: String?, _ color: Color?) -> Void
     let onCancel: () -> Void
 
     @State private var name: String = ""
     @State private var selectedIcon: String? = nil
-    @State private var showIconPicker = false 
+    @State private var selectedColor: Color? = nil
+    @State private var showIconPicker = false
+    @State private var showColorPicker = false
     @FocusState private var isNameFieldFocused: Bool
 
     // Пример набора иконок
@@ -26,84 +28,121 @@ struct NewCategoryView: View {
         "figure.stand.dress.line.vertical.figure"
     ]
 
+    // Массив предопределённых цветов (копируем из Color)
+        private static let predefinedColors: [Color] = [
+            .appPurple, .redApple, .orangeApple, .yellow, .blueApple,
+            .yellowApple, .pinkApple1, .lightPurprApple, .bolotoApple, .purpurApple
+        ]
+
     // для layout иконок
-    private let columns = Array(repeating: GridItem(.flexible()), count: 5)
+    private let columns = Array(repeating: GridItem(.flexible()), count: 7)
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Название") {
-                    TextField("Введите название", text: $name)
-                        .focused($isNameFieldFocused)
-                        .padding(12) // внутренние отступы
-                }
-                .listRowBackground(
-                    // сначала закрашиваем фон
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white)
-                        .overlay(
-                            // а потом поверх — обводку
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(isNameFieldFocused ? Color.appPurple : Color.clear,
-                                        lineWidth: 4)
-                        )
-                )
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                Section {
-                    Toggle("Иконки", isOn: $showIconPicker)
-                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
-                        .padding(.vertical, 8)
-                }
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+            NavigationStack {
+                Form {
+                    Section("Название") {
+                        TextField("Введите название", text: $name)
+                            .focused($isNameFieldFocused)
+                            .padding(12)
+                    }
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(isNameFieldFocused ? Color.appPurple : Color.clear, lineWidth: 4)
+                            )
+                    )
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
-                if showIconPicker {
+                    // Новая секция для выбора цвета
                     Section {
-                        LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(icons, id: \.self) { icon in
-                                Button {
-                                    selectedIcon = (selectedIcon == icon ? nil : icon)
-                                } label: {
-                                    Image(systemName: icon)
-                                        .font(.title2)
-                                        .frame(width: 44, height: 44)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(
-                                                    selectedIcon == icon
-                                                    ? Color.appPurple
-                                                    : Color.gray.opacity(0.3),
-                                                    lineWidth: 2
-                                                        )
-                                                )
-                                        }
-                                        .buttonStyle(.plain)
+                        Toggle("Цвет", isOn: $showColorPicker)
+                            .toggleStyle(SwitchToggleStyle(tint: .appPurple))
+                            .padding(.vertical, 8)
+                    }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+
+                    if showColorPicker {
+                        Section {
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                ForEach(Self.predefinedColors, id: \.self) { color in
+                                    Button {
+                                        selectedColor = (selectedColor == color ? nil : color)
+                                    } label: {
+                                        Circle()
+                                            .fill(color)
+                                            .frame(width: 38, height: 38)
+                                            .overlay(
+                                                Circle()
+                                                    .stroke(
+                                                        selectedColor == color
+                                                        ? Color.appPurple
+                                                        : Color.gray.opacity(0.3),
+                                                        lineWidth: 2
+                                                    )
+                                            )
                                     }
+                                    .buttonStyle(.plain)
                                 }
-                                        .padding(.vertical, 8)
                             }
+                            .padding(.vertical, 8)
                         }
                     }
-            .navigationTitle("Новая категория")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена", action: onCancel)
-                        .foregroundStyle(.appPurple)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") {
-                        onSave(name, showIconPicker ? selectedIcon : nil)
+                    Section {
+                        Toggle("Иконки", isOn: $showIconPicker)
+                            .toggleStyle(SwitchToggleStyle(tint: .appPurple))
+                            .padding(.vertical, 8)
+                    }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
-                    }.foregroundStyle(.appPurple)
-                    .disabled(name.isEmpty)
+                    if showIconPicker {
+                        Section {
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                ForEach(icons, id: \.self) { icon in
+                                    Button {
+                                        selectedIcon = (selectedIcon == icon ? nil : icon)
+                                    } label: {
+                                        Image(systemName: icon)
+                                            .font(.title2)
+                                            .frame(width: 38, height: 38)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(
+                                                        selectedIcon == icon
+                                                        ? Color.appPurple
+                                                        : Color.gray.opacity(0.3),
+                                                        lineWidth: 2
+                                                    )
+                                            )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.vertical, 8)
+                        }
+                    }
                 }
-            }
-            .onAppear {
-                // Устанавливаем фокус сразу после появления вью
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    isNameFieldFocused = true
+                .navigationTitle("Новая категория")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Отмена", action: onCancel)
+                            .foregroundStyle(.appPurple)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Готово") {
+                            onSave(name, showIconPicker ? selectedIcon : nil, showColorPicker ? selectedColor : nil)
+                        }
+                        .foregroundStyle(.appPurple)
+                        .disabled(name.isEmpty)
+                    }
+                }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isNameFieldFocused = true
+                    }
                 }
             }
         }
-    }
 }

@@ -50,6 +50,7 @@ extension Category {
       "Зарплата", "Дивиденды", "Купоны", "Продажи",
       "Премия", "Вклады", "Аренда", "Подарки", "Подработка"
     ]
+    
     static func seedDefaults(for account: Account, in context: ModelContext) {
         guard !account.hasSeededCategories else { return }
 
