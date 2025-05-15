@@ -2,6 +2,56 @@ import SwiftUI
 import Charts
 import Observation
 import SwiftData
+import Foundation
+
+/// Частота повторения транзакции
+enum ReminderFrequenci: String, CaseIterable, Identifiable {
+    case never          = "Никогда"
+    case daily          = "Каждый день"
+    case weekly         = "Каждую неделю"
+    case biweekly       = "Каждые 2 недели"
+    case monthly        = "Каждый месяц"
+    case bimonthly      = "Каждые 2 месяца"
+    case trimonthly     = "Каждые 3 месяца"
+    case semiannually   = "Каждые 6 месяцев"
+    case yearly         = "Каждый год"
+
+    var id: String { rawValue }
+
+    /// Удобный калькулятор сдвига даты для создания следующей транзакции
+    func nextDate(after date: Date, calendar: Calendar = .current) -> Date {
+            switch self {
+            case .never:
+                // больше никаких повторений
+                return date
+
+            case .daily:
+                return calendar.date(byAdding: .day, value: 1, to: date) ?? date
+
+            case .weekly:
+                return calendar.date(byAdding: .weekOfYear, value: 1, to: date) ?? date
+
+            case .biweekly:
+                return calendar.date(byAdding: .weekOfYear, value: 2, to: date) ?? date
+
+            case .monthly:
+                return calendar.date(byAdding: .month, value: 1, to: date) ?? date
+
+            case .bimonthly:
+                return calendar.date(byAdding: .month, value: 2, to: date) ?? date
+
+            case .trimonthly:
+                return calendar.date(byAdding: .month, value: 3, to: date) ?? date
+
+            case .semiannually:
+                return calendar.date(byAdding: .month, value: 6, to: date) ?? date
+
+            case .yearly:
+                return calendar.date(byAdding: .year, value: 1, to: date) ?? date
+            }
+        }
+    }
+
 
 enum TimePeriod: String, CaseIterable, Identifiable {
     case today = "Сегодня"
@@ -84,6 +134,7 @@ struct FlowLayout: Layout {
 
 struct HomeScreen: View {
     @Query private var accounts: [Account]
+    @Query private var regularPayments: [RegularPayment]
 
     @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
@@ -209,6 +260,8 @@ struct HomeScreen: View {
             .background(.backgroundLightGray)
         }
         .onAppear {
+            generateMissedRecurringTransactions()
+
                   if selectedAccount == nil { selectedAccount = accounts.first }
                   if let acc = selectedAccount {
                       Category.seedDefaults(for: acc, in: modelContext)
@@ -435,6 +488,48 @@ struct HomeScreen: View {
             .presentationDetents([.medium])
         }
     }
+    private func generateMissedRecurringTransactions() {
+         // 1. Текущая дата и календарь
+         let now = Date()
+         let calendar = Calendar.current
+
+         // 2. Убедимся, что у нас есть выбранный счёт
+         guard let account = selectedAccount else { return }
+
+         // 3. Перебираем все шаблоны регулярных платежей
+         for template in regularPayments where template.isActive {
+             // 3.1. Начинаем с самой первой даты шаблона
+             var nextDate = template.startDate
+
+             // 3.2. Пока nextDate не позже «сейчас», и (endDate == nil или nextDate ≤ endDate!)
+             while nextDate <= now
+                 && (template.endDate == nil || nextDate <= template.endDate!)
+             {
+                 // 4. Создаём транзакцию-повтор
+                 let tx = Transaction(
+                     category: template.name,
+                     amount: template.amount,
+                     type: .expenses,       // или .income, если вам нужно хранить тип в шаблоне
+                     account: account       // привязываем к выбранному счёту
+                 )
+                 tx.date = nextDate
+
+                 modelContext.insert(tx)
+
+                 // 5. Переходим к следующей дате в соответствии с frequency
+                 nextDate = template.frequency.nextDate(after: nextDate, calendar: calendar)
+             }
+         }
+
+         // 6. Сохраняем все вставленные транзакции
+         do {
+             try modelContext.save()
+         } catch {
+             print("Ошибка при сохранении сгенерированных транзакций: \(error)")
+         }
+     }
+
+
     // Удаление транзакции
     private func deleteAllTransactionsInPeriod(for categoryName: String) {
         // Собираем все "сырые" транзакции, которые видны (т.е. прошли фильтр)
@@ -571,4 +666,12 @@ extension DateFormatter {
         dateFormat = includeYear ? "d MMM yyyy" : "d MMM"
         return string(from: date)
     }
+}
+extension ReminderFrequency {
+  func nextDate(after date: Date, calendar: Calendar = .current) -> Date {
+    // либо дублируете логику из ReminderFrequenci,
+    // либо маппите на ваш enum-парсер
+    guard let r = ReminderFrequenci(rawValue: self.rawValue) else { return date }
+    return r.nextDate(after: date, calendar: calendar)
+  }
 }

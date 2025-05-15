@@ -424,30 +424,46 @@ struct AddTransactionView: View {
         else {
             return
         }
-        // Дата транзакции (по умолчанию текущая)
-        let newTransactionDate = Date()
-        // Определяем тип (расход/доход)
+
+        // 1. Создаём и сохраняем саму транзакцию
+        let txDate = Date()
         let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
-        // Создаём новую транзакцию, не пытаясь искать существующую и не суммируя
-        let newTransaction = Transaction(
+        let newTx = Transaction(
             category: selectedCategory,
             amount: amountValue,
             type: transactionType,
             account: account
         )
-        newTransaction.date = newTransactionDate
-        // Добавляем в контекст и в массив транзакций счёта
-        modelContext.insert(newTransaction)
-        account.transactions.append(newTransaction)
-        // Сохраняем
+        newTx.date = txDate
+        modelContext.insert(newTx)
+        account.transactions.append(newTx)
+
+        // 2. Если выбрано правило повторения — создаём RegularPayment
+        if repeatRule != EndOption.never.rawValue {
+            // приводим строку из UI к enum
+            let freq = ReminderFrequency(rawValue: repeatRule) ?? .once
+            let template = RegularPayment(
+                name: selectedCategory,
+                frequency: freq,
+                startDate: txDate,
+                endDate: (endOption == .onDate ? endDate : nil),
+                amount: amountValue,
+                comment: repeatComment,
+                isActive: true
+            )
+            modelContext.insert(template)
+        }
+
+        // 3. Сохраняем всё одним батчем
         do {
             try modelContext.save()
             onTransactionAdded?(transactionType)
-            dismiss() // Закрываем текущий экран
+            dismiss()
         } catch {
-            print("Ошибка при сохранении: \(error)")
+            print("Ошибка при сохранении транзакции и шаблона: \(error)")
         }
     }
+
 }
 
 struct CategoryBadge: View {

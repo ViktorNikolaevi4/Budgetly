@@ -143,32 +143,47 @@ struct CreateReminderView: View {
         guard let amountValue = Double(amount) else { return }
 
         if let payment = existingPayment {
-            // Обновление существующего платежа
-            payment.name = paymentName
-            payment.frequency = reminderFrequency // Используем ReminderFrequency напрямую
-            payment.startDate = startDate
-            payment.endDate = includeEndDate ? endDate : nil
-            payment.amount = amountValue
-            payment.comment = comment
+            // ——— обновляем старый
+            payment.name       = paymentName
+            payment.frequency  = reminderFrequency
+            payment.startDate  = startDate
+            payment.endDate    = includeEndDate ? endDate : nil
+            payment.amount     = amountValue
+            payment.comment    = comment
 
-            // Отменяем старое уведомление и создаем новое
             payment.cancelNotification()
             payment.sheduleNotification()
+
+            // Сохраняем изменения
+            do {
+                try modelContext.save()
+            } catch {
+                print("Ошибка при обновлении шаблона:", error)
+            }
+
         } else {
-            // Создание нового платежа
+            // ——— создаём новый
             let newReminder = RegularPayment(
                 name: paymentName,
-                frequency: reminderFrequency, // Используем ReminderFrequency напрямую
+                frequency: reminderFrequency,
                 startDate: startDate,
                 endDate: includeEndDate ? endDate : nil,
                 amount: amountValue,
                 comment: comment
             )
             modelContext.insert(newReminder)
-
-            // Планируем уведомление
             newReminder.sheduleNotification()
+
+            // Сохраняем новый
+            do {
+                try modelContext.save()
+            } catch {
+                print("Ошибка при создании шаблона:", error)
+            }
         }
+
+        // Закрываем экран
+        dismiss()
     }
 }
 
