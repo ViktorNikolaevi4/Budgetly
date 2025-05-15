@@ -523,7 +523,7 @@ struct CategoryBadge: View {
         }
     func iconName(for categoryName: String) -> String {
         switch categoryName {
-        case Category.uncategorizedName: return "tag"
+        case Category.uncategorizedName: return "circle.slash"
         case "Еда":           return "fork.knife"
         case "Транспорт":     return "car.fill"
         case "Дом":           return "house.fill"
@@ -544,7 +544,7 @@ struct CategoryBadge: View {
             case "Продажи":       return "cart.fill"
             case "Премия":        return "star.circle"
             case "Другое":        return "tag.fill"
-        default:              return "tag.fill"
+        default:              return "circle.slash"
         }
     }
 
@@ -709,7 +709,7 @@ struct AllCategoriesView: View {
     }
     func iconName(for categoryName: String) -> String {
         switch categoryName {
-        case Category.uncategorizedName: return "tag"
+        case Category.uncategorizedName: return "circle.slash"
         case "Еда":           return "fork.knife"
         case "Транспорт":     return "car.fill"
         case "Дом":           return "house.fill"
@@ -720,7 +720,6 @@ struct AllCategoriesView: View {
         case "Развлечения":   return "gamecontroller.fill"
         case "Образование":   return "book.fill"
         case "Дети":          return "figure.walk"
-        // … и так далее
 
           case "Зарплата":      return "dollarsign.circle"
           case "Дивиденды":     return "percent"
@@ -730,7 +729,7 @@ struct AllCategoriesView: View {
           case "Продажи":       return "cart.fill"
           case "Премия":        return "star.circle"
 
-        default:              return "tag.fill"
+        default:              return "circle.slash.fill"
         }
     }
 }

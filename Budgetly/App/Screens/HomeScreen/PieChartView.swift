@@ -100,6 +100,9 @@ extension Color {
 
     /// Возвращает цвет для (название категории, тип транзакции).
         static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
+            if name == Category.uncategorizedName {
+                return .gray.opacity(0.6)
+            }
             // Выбираем ключ и словарь в зависимости от типа транзакции
             let key = type == .income ? incomeColorsKey : expensesColorsKey
             var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
