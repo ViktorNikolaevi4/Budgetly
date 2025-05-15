@@ -47,8 +47,8 @@ extension Category {
         "Образование", "Дети"
     ]
      static let defaultIncomeNames = [
-      "Зарплата", "Подарки", "Проценты", "Продажи",
-      "Премия", "Дивиденды", "Аренда", "Другое"
+      "Зарплата", "Дивиденды", "Купоны", "Продажи",
+      "Премия", "Вклады", "Аренда", "Подарки", "Подработка"
     ]
     static func seedDefaults(for account: Account, in context: ModelContext) {
         guard !account.hasSeededCategories else { return }

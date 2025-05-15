@@ -534,16 +534,17 @@ struct CategoryBadge: View {
         case "Развлечения":   return "gamecontroller.fill"
         case "Образование":   return "book.fill"
         case "Дети":          return "figure.walk"
-        // … и так далее
-            // — доходы —
-            case "Зарплата":      return "dollarsign.circle"
-            case "Дивиденды":     return "percent"
-            case "Аренда":        return "house.fill"
-            case "Подарки":       return "gift.fill"
-            case "Проценты":      return "percent.circle"
-            case "Продажи":       return "cart.fill"
-            case "Премия":        return "star.circle"
-            case "Другое":        return "tag.fill"
+
+        case "Зарплата":      return "wallet.bifold.fill"
+        case "Дивиденды":     return "chart.line.uptrend.xyaxis"
+        case "Купоны":        return "banknote"
+        case "Продажи":       return "dollarsign.circle.fill"
+        case "Премия":      return "star.circle.fill"
+        case "Вклады":       return "dollarsign.bank.building.fill"
+        case "Аренда":        return "house.fill"
+        case "Подарки":        return "gift.fill"
+        case "Подработка":        return "hammer.fill"
+
         default:              return "circle.slash"
         }
     }
@@ -739,13 +740,15 @@ struct AllCategoriesView: View {
         case "Образование":   return "book.fill"
         case "Дети":          return "figure.walk"
 
-          case "Зарплата":      return "dollarsign.circle"
-          case "Дивиденды":     return "percent"
-          case "Аренда":        return "house.fill"
-          case "Подарки":       return "gift.fill"
-          case "Проценты":      return "percent.circle"
-          case "Продажи":       return "cart.fill"
-          case "Премия":        return "star.circle"
+        case "Зарплата":      return "wallet.bifold.fill"
+        case "Дивиденды":     return "chart.line.uptrend.xyaxis"
+        case "Купоны":        return "banknote"
+        case "Продажи":       return "dollarsign.circle.fill"
+        case "Премия":      return "star.circle.fill"
+        case "Вклады":       return "dollarsign.bank.building.fill"
+        case "Аренда":        return "house.fill"
+        case "Подарки":        return "gift.fill"
+        case "Подработка":        return "hammer.fill"
 
         default:              return "circle.slash.fill"
         }
