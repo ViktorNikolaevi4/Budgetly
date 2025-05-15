@@ -305,7 +305,7 @@ struct AddTransactionView: View {
 
 
                 // Кнопка сохранения транзакции
-                Button("Сохранить") {
+                Button("Добавить") {
                     saveTransaction()
                 }
                 .font(.headline)
@@ -567,9 +567,9 @@ struct AllCategoriesView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
+    @State private var pendingDeleteIndex: IndexSet?
     @State private var categoryToDelete: Category?
     @State private var isShowingDeleteAlert = false
-
     @State private var showNewCategorySheet = false
 
 
@@ -606,24 +606,31 @@ struct AllCategoriesView: View {
                                 .foregroundStyle(.appPurple)
                         }
                         // кнопка удаления
-                        Button {
-                            categoryToDelete = cat
-                            isShowingDeleteAlert = true
-                        } label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                        }
-                        .buttonStyle(.plain)
+//                        Button {
+//                            categoryToDelete = cat
+//                            isShowingDeleteAlert = true
+//                        } label: {
+//                            Image(systemName: "trash")
+//                                .foregroundColor(.red)
+//                        }
+//                        .buttonStyle(.plain)
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
                         selected = cat.name
                         dismiss()
                     }
-
+                }
+                .onDelete { indexSet in
+                    // Помечаем, какой объект хотим удалить
+                    pendingDeleteIndex = indexSet
+                    if let first = indexSet.first {
+                        categoryToDelete = allCats[first]
+                    }
+                    isShowingDeleteAlert = true
                 }
             }
-            .listStyle(.insetGrouped)
+            .listStyle(.plain)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button { dismiss() }
@@ -667,13 +674,24 @@ struct AllCategoriesView: View {
                     }
                 )
             }
-            .alert("Удалить категорию?", isPresented: $isShowingDeleteAlert, presenting: categoryToDelete) { cat in
+            .alert("Удалить категорию?", isPresented: $isShowingDeleteAlert) {
                 Button("Удалить", role: .destructive) {
-                    deleteCategory(cat)
+                    // Собственно удаляем из context
+                    if let indexSet = pendingDeleteIndex {
+                        for idx in indexSet {
+                            let cat = allCats[idx]
+                            // Сначала все транзакции этой категории
+                            let toDelete = account.transactions.filter { $0.category == cat.name }
+                            toDelete.forEach { modelContext.delete($0) }
+                            // Потом сама категория
+                            modelContext.delete(cat)
+                        }
+                        try? modelContext.save()
+                    }
                 }
-                Button("Отменить", role: .cancel) { }
-            } message: { cat in
-                Text("При удалении категории «\(cat.name)» все её транзакции тоже будут удалены.")
+                Button("Отмена", role: .cancel) { }
+            } message: { 
+                Text("При удалении категории все её транзакции тоже будут удалены.")
             }
         }
     }

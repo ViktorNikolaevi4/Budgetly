@@ -7,6 +7,7 @@ struct NewCategoryView: View {
 
     @State private var name: String = ""
     @State private var selectedIcon: String? = nil
+    @State private var showIconPicker = false 
     @FocusState private var isNameFieldFocused: Bool
 
     // Пример набора иконок
@@ -48,27 +49,40 @@ struct NewCategoryView: View {
                         )
                 )
                 .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                Section {
+                    Toggle("Иконки", isOn: $showIconPicker)
+                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
+                        .padding(.vertical, 8)
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
-                Section("Иконка (опционально)") {
-                    LazyVGrid(columns: columns, spacing: 16) {
-                        ForEach(icons, id: \.self) { icon in
-                            Button {
-                                selectedIcon = (selectedIcon == icon ? nil : icon)
-                            } label: {
-                                Image(systemName: icon)
-                                    .font(.title2)
-                                    .frame(width: 44, height: 44)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(selectedIcon == icon ? Color.appPurple : .gray.opacity(0.3), lineWidth: 2)
-                                    )
+                if showIconPicker {
+                    Section {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(icons, id: \.self) { icon in
+                                Button {
+                                    selectedIcon = (selectedIcon == icon ? nil : icon)
+                                } label: {
+                                    Image(systemName: icon)
+                                        .font(.title2)
+                                        .frame(width: 44, height: 44)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    selectedIcon == icon
+                                                    ? Color.appPurple
+                                                    : Color.gray.opacity(0.3),
+                                                    lineWidth: 2
+                                                        )
+                                                )
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                        .padding(.vertical, 8)
                             }
-                            .buttonStyle(.plain)
                         }
                     }
-                    .padding(.vertical, 8)
-                }
-            }
             .navigationTitle("Новая категория")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -77,8 +91,8 @@ struct NewCategoryView: View {
                         .foregroundStyle(.appPurple)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Сохранить") {
-                        onSave(name, selectedIcon)
+                    Button("Готово") {
+                        onSave(name, showIconPicker ? selectedIcon : nil)
 
                     }.foregroundStyle(.appPurple)
                     .disabled(name.isEmpty)
