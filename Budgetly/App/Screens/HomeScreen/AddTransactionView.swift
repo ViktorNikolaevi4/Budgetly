@@ -279,7 +279,7 @@ struct AddTransactionView: View {
                         .foregroundStyle(.appPurple)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Добавить") { showNewCategorySheet = true }
+                    Button("Добавить") { /*showNewCategorySheet = true */}
                         .font(.title3)
                         .foregroundStyle(.appPurple)
                 }
@@ -294,18 +294,18 @@ struct AddTransactionView: View {
                     )
                 }
             }
-            .sheet(isPresented: $showNewCategorySheet) {
-                NewCategoryView(
-                    initialType: selectedType,
-                    onSave: { name, icon, color in // Теперь принимаем цвет
-                        addNewCategory(name: name, icon: icon, color: color)
-                        showNewCategorySheet = false
-                    },
-                    onCancel: {
-                        showNewCategorySheet = false
-                    }
-                )
-            }
+//            .sheet(isPresented: $showNewCategorySheet) {
+//                NewCategoryView(
+//                    initialType: selectedType,
+//                    onSave: { name, icon, color in // Теперь принимаем цвет
+//                        addNewCategory(name: name, icon: icon, color: color)
+//                        showNewCategorySheet = false
+//                    },
+//                    onCancel: {
+//                        showNewCategorySheet = false
+//                    }
+//                )
+//            }
             .navigationBarTitleDisplayMode(.inline)
         }
         .foregroundStyle(.black)
@@ -656,6 +656,7 @@ struct AllCategoriesView: View {
         case "Развлечения": return "gamecontroller.fill"
         case "Образование": return "book.fill"
         case "Дети": return "figure.walk"
+
         case "Зарплата": return "wallet.bifold.fill"
         case "Дивиденды": return "chart.line.uptrend.xyaxis"
         case "Купоны": return "banknote"

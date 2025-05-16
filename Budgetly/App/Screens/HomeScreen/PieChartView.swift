@@ -11,6 +11,7 @@ struct AggregatedData: Identifiable {
 struct PieChartView: View {
 
     var transactions: [Transaction]
+    let transactionType: TransactionType
 
     /// Общая сумма всех транзакций, которые приходят в этот PieChartView
     private var totalAmount: Double {
@@ -29,7 +30,7 @@ struct PieChartView: View {
                 AggregatedData(
                     category: category,
                     totalAmount: txs.reduce(0) { $0 + $1.amount },
-                    type: txs.first?.type ?? .income
+                    type: transactionType
                 )
             }
             .sorted { $0.totalAmount > $1.totalAmount } // вот тут по убыванию
@@ -52,22 +53,20 @@ struct PieChartView: View {
 
             // Текст в центре
             VStack(spacing: 4) {
-                // Например, пишем «Доходы» или «Расходы»
-                let title = currentType == .income ? "Доходы" : "Расходы"
-                Text(title)
-                    .font(.custom("SFPro-Regular", size: 15.0))
-                    .foregroundColor(Color(white: 0.0, opacity: 0.5))
-                    .multilineTextAlignment(.center)
-                    .frame(height: 20.0, alignment: .center)
-                // Сама сумма
-                Text("\(totalAmount.toShortStringWithSuffix()) ₽")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                            let title = transactionType == .income ? "Доходы" : "Расходы"
+                            Text(title)
+                                .font(.custom("SFPro-Regular", size: 15.0))
+                                .foregroundColor(Color(white: 0.0, opacity: 0.5))
+                                .multilineTextAlignment(.center)
+                                .frame(height: 20.0, alignment: .center)
+                            Text("\(totalAmount.toShortStringWithSuffix()) ₽")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
+                        }
+                    }
+                }
             }
-        }
-    }
-}
 
 struct CustomButtonStyle: ButtonStyle {
 
@@ -86,83 +85,95 @@ extension Color {
     private static let incomeColorsKey = "AssignedColorsForIncome"
     private static let expensesColorsKey = "AssignedColorsForExpenses"
 
+    private static let predefinedColors: [Color] = [
+        .appPurple, .redApple, .orangeApple, .yellow, .blueApple,
+        .yellowApple, .pinkApple1, .lightPurprApple, .bolotoApple, .purpurApple,
+        .boloto2, .boloto3, .gamno, .capu4Ino, .serota, .pupu, .yel3, .bezhev, .rozovo,.bordovo,
+        .krasnenko
+    ]
+
     /// Массив предопределённых цветов
-    private static let predefinedColors: [Color] = [.appPurple,
-                                                   .redApple,
-                                                   .orangeApple,
-                                                   .yellow,
-                                                   .blueApple,
-                                                   .yellowApple,
-                                                   .pinkApple1,
-                                                   .lightPurprApple,
-                                                   .bolotoApple,
-                                                   .purpurApple]
+    private static let presetColors: [String: Color] = {
+        var result: [String: Color] = [:]
+        let expenseNames = Category.defaultExpenseNames
+        let incomeNames  = Category.defaultIncomeNames
 
-    /// Возвращает или назначает цвет для (название категории, тип транзакции).
+        for (name, color) in zip(expenseNames, predefinedColors) {
+            result[name] = color
+        }
+        for (name, color) in zip(incomeNames, predefinedColors.dropFirst(expenseNames.count)) {
+            result[name] = color
+        }
+        // uncategorized всегда серый
+        result[Category.uncategorizedName] = Color.gray.opacity(0.6)
+        return result
+    }()
+
+    private static func loadAssignedColors(forKey key: String) -> [String:[Double]] {
+        guard let raw = UserDefaults.standard.object(forKey: key) as? [String:Any] else {
+            return [:]
+        }
+        var out: [String:[Double]] = [:]
+        for (name, blob) in raw {
+            if let arr = blob as? [Double] {
+                out[name] = arr
+            } else if let arr = blob as? [NSNumber] {
+                out[name] = arr.map(\.doubleValue)
+            } else if let arr = blob as? [Any] {
+                let ds = arr.compactMap { ($0 as? NSNumber)?.doubleValue }
+                if ds.count == arr.count {
+                    out[name] = ds
+                }
+            }
+        }
+        return out
+    }
+
     static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
-        if name == Category.uncategorizedName {
-            return .gray.opacity(0.6)
+        // 1) Пользовательский
+        let key = (type == .income) ? incomeColorsKey : expensesColorsKey
+        let assigned = loadAssignedColors(forKey: key)
+        if let comps = assigned[name], comps.count == 3 {
+            return Color(red: comps[0], green: comps[1], blue: comps[2])
         }
 
-        let key = type == .income ? incomeColorsKey : expensesColorsKey
-        var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
-
-        // Если цвет уже назначен, возвращаем его
-        if let colorComponents = assignedColors[name],
-           colorComponents.count == 3,
-           validateColorComponents(colorComponents) {
-            return Color(red: colorComponents[0], green: colorComponents[1], blue: colorComponents[2])
+        // 2) Если есть в preset — отдать его
+        if let preset = presetColors[name] {
+            return preset
         }
 
-        // Назначаем новый цвет
-        let newColor: Color
-        let totalCategories = assignedColors.count
-        if totalCategories < predefinedColors.count {
-            newColor = predefinedColors[totalCategories]
-        } else {
-            newColor = colorFromHash(name)
-        }
-
-        // Сохраняем цвет в UserDefaults
-        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
-        UIColor(newColor).getRed(&red, green: &green, blue: &blue, alpha: nil)
-        assignedColors[name] = [Double(red), Double(green), Double(blue)]
-        UserDefaults.standard.set(assignedColors, forKey: key)
-
-        return newColor
+        // 3) Генерим по хешу
+        return colorFromHash(name)
     }
 
-    /// Устанавливает вручную выбранный цвет для категории
     static func setColor(_ color: Color, forCategory name: String, type: TransactionType) {
-        let key = type == .income ? incomeColorsKey : expensesColorsKey
-        var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+        guard name != Category.uncategorizedName else { return }
+        let key = (type == .income) ? incomeColorsKey : expensesColorsKey
+        var assigned = loadAssignedColors(forKey: key)
 
-        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
-        UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: nil)
-        assignedColors[name] = [Double(red), Double(green), Double(blue)]
-        UserDefaults.standard.set(assignedColors, forKey: key)
+        var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        assigned[name] = [Double(red), Double(green), Double(blue)]
+        UserDefaults.standard.set(assigned, forKey: key)
     }
 
-    /// Удаляет цвет категории из UserDefaults
-    static func removeColor(forCategory name: String, type: TransactionType) {
-        let key = type == .income ? incomeColorsKey : expensesColorsKey
-        var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
-        assignedColors.removeValue(forKey: name)
-        UserDefaults.standard.set(assignedColors, forKey: key)
-    }
+        static func removeColor(forCategory name: String, type: TransactionType) {
+            let key = type == .income ? incomeColorsKey : expensesColorsKey
+            var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
+            assignedColors.removeValue(forKey: name)
+            UserDefaults.standard.set(assignedColors, forKey: key)
+        }
 
-    /// Вспомогательный метод для генерации "стабильного" цвета по хэшу строки
-    private static func colorFromHash(_ name: String) -> Color {
-        let hash = name.hashValue
-        let hue = Double((hash % 360 + 360) % 360) / 360.0
-        let saturation = 0.5
-        let brightness = 0.8
-        return Color(hue: hue, saturation: saturation, brightness: brightness)
-    }
+        private static func colorFromHash(_ name: String) -> Color {
+            let hash = name.hashValue
+            let hue = Double((hash % 360 + 360) % 360) / 360.0
+            let saturation = 0.5
+            let brightness = 0.8
+            return Color(hue: hue, saturation: saturation, brightness: brightness)
+        }
 
-    /// Проверяет валидность компонентов цвета
-    private static func validateColorComponents(_ components: [Double]) -> Bool {
-        guard components.count == 3 else { return false }
-        return components.allSatisfy { $0 >= 0 && $0 <= 1 }
+        private static func validateColorComponents(_ components: [Double]) -> Bool {
+            guard components.count == 3 else { return false }
+            return components.allSatisfy { $0 >= 0 && $0 <= 1 }
+        }
     }
-}

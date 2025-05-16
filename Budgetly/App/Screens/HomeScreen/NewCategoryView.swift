@@ -31,7 +31,9 @@ struct NewCategoryView: View {
     // Массив предопределённых цветов (копируем из Color)
         private static let predefinedColors: [Color] = [
             .appPurple, .redApple, .orangeApple, .yellow, .blueApple,
-            .yellowApple, .pinkApple1, .lightPurprApple, .bolotoApple, .purpurApple
+            .yellowApple, .pinkApple1, .lightPurprApple, .bolotoApple, .purpurApple,
+            .boloto2, .boloto3, .gamno, .capu4Ino, .serota, .pupu, .yel3, .bezhev, .rozovo, .bordovo,
+            .krasnenko
         ]
 
     // для layout иконок
@@ -89,6 +91,7 @@ struct NewCategoryView: View {
                             .padding(.vertical, 8)
                         }
                     }
+                    
                     Section {
                         Toggle("Иконки", isOn: $showIconPicker)
                             .toggleStyle(SwitchToggleStyle(tint: .appPurple))
@@ -132,7 +135,15 @@ struct NewCategoryView: View {
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Готово") {
-                            onSave(name, showIconPicker ? selectedIcon : nil, showColorPicker ? selectedColor : nil)
+                            // 1) Сохраняем цвет из picker'а
+                            if showColorPicker, let color = selectedColor {
+                                let txType: TransactionType = (initialType == .income ? .income : .expenses)
+                                Color.setColor(color, forCategory: name, type: txType)
+                            }
+                            // 2) Передаём управление наверх
+                            onSave(name,
+                                   showIconPicker ? selectedIcon : nil,
+                                   showColorPicker ? selectedColor : nil)
                         }
                         .foregroundStyle(.appPurple)
                         .disabled(name.isEmpty)

@@ -249,7 +249,7 @@ struct HomeScreen: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         timePeriodPicker
-                        PieChartView(transactions: filteredTransactions)
+                        PieChartView(transactions: filteredTransactions, transactionType: selectedTransactionType)
                         categoryTags
                     }
                 }
