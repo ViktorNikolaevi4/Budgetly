@@ -63,17 +63,31 @@ struct AddTransactionView: View {
     }
 
     private var visibleCategories: [Category?] {
-        let cats = filteredCategories
-        guard cats.count > 7 else {
-            return cats.map { Optional($0) }
-        }
-        var top7 = Array(cats.prefix(7))
-        if let sel = cats.first(where: { $0.name == selectedCategory }),
-           !top7.contains(where: { $0.id == sel.id }) {
-            top7[0] = sel
-        }
-        return top7.map { Optional($0) } + [nil]
-    }
+          let cats = filteredCategories
+          // если категорий мало — просто возвращаем их все
+          guard cats.count > 7 else {
+              return cats.map { Optional($0) }
+          }
+
+          // берём изначальные «топ-7»
+          var top7 = Array(cats.prefix(7))
+
+          // если выбранная категория вообще не попала в эти 7
+          if let sel = cats.first(where: { $0.name == selectedCategory }),
+             !top7.contains(where: { $0.id == sel.id }),
+             sel.name != Category.uncategorizedName // и это не «Без категории»
+          {
+              // ищем, где в топ-7 стоит «Без категории»
+              if let idx = top7.firstIndex(where: { $0.name == Category.uncategorizedName }) {
+                  top7[idx] = sel                    // заменяем её на выбранную
+              } else {
+                  top7[0] = sel                      // или просто на нулевую
+              }
+          }
+
+          // дополняем «…» в конец
+          return top7.map { Optional($0) } + [nil]
+      }
 
     struct FlowLayout: Layout {
         var spacing: CGFloat = 10
