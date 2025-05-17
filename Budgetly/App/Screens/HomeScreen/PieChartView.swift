@@ -43,8 +43,10 @@ struct PieChartView: View {
                 SectorMark(
                     angle: .value("Amount", data.totalAmount),
                     innerRadius: .ratio(0.75),  // Можно менять, чтобы центр был больше/меньше
-                    outerRadius: .ratio(1.0)
+                    outerRadius: .ratio(1.0),
+                    angularInset: 1
                 )
+                .cornerRadius(4)
                 .foregroundStyle(
                     Color.colorForCategoryName(data.category, type: data.type)
                 )            }
