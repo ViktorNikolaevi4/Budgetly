@@ -39,6 +39,15 @@ struct NewCategoryView: View {
     // Сетка для кнопок
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
 
+    private var titleText: String {
+        switch initialType {
+        case .expenses:
+            return "Новая категория расхода"
+        case .income:
+            return "Новая категория дохода"
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -156,7 +165,7 @@ struct NewCategoryView: View {
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 }
             }
-            .navigationTitle("Новая категория")
+            .navigationTitle(titleText)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
