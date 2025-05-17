@@ -7,9 +7,9 @@ struct NewCategoryView: View {
 
     @State private var name: String = ""
     @State private var selectedIcon: String? = nil
-    @State private var selectedColor: Color? = nil
+    @State private var selectedColor: Color? = .appPurple // Устанавливаем начальный выбранный цвет
     @State private var showIconPicker = false
-    @State private var showColorPicker = false
+    @State private var showColorPicker = true // Открываем цветовую палитру по умолчанию
     @FocusState private var isNameFieldFocused: Bool
 
     // Пример набора иконок
@@ -20,7 +20,7 @@ struct NewCategoryView: View {
         "pills.fill", "hands.and.sparkles.fill", "gift.fill", "airplane",
         "hammer.fill", "paintbrush.fill", "creditcard.fill", "takeoutbag.and.cup.and.straw.fill",
         "drop.fill", "scissors", "leaf.fill", "bicycle", "scooter", "bus", "tram",
-        "fuelpump.fill", "play.tv.fill", "beats.headphones", "dumbbell.fill","bolt.heart.fill",
+        "fuelpump.fill", "play.tv.fill", "beats.headphones", "dumbbell.fill", "bolt.heart.fill",
         "music.note.list", "film.fill", "figure.strengthtraining.traditional",
         "antenna.radiowaves.left.and.right", "paintpalette.fill", "giftcard.fill", "star.fill",
         "basketball.fill", "puzzlepiece.fill", "tent.fill", "tree.fill", "shoe.fill",
@@ -28,139 +28,162 @@ struct NewCategoryView: View {
         "figure.stand.dress.line.vertical.figure"
     ]
 
-    // Массив предопределённых цветов (копируем из Color)
-        private static let predefinedColors: [Color] = [
-            .appPurple, .redApple, .orangeApple, .yellow, .blueApple,
-            .yellowApple, .pinkApple1, .lightPurprApple, .bolotoApple, .purpurApple,
-            .boloto2, .boloto3, .gamno, .capu4Ino, .serota, .pupu, .yel3, .bezhev, .rozovo, .bordovo,
-            .krasnenko
-        ]
+    // Предопределённые цвета
+    private static let predefinedColors: [Color] = [
+        .appPurple, .redApple, .orangeApple, .yellow, .blueApple,
+        .yellowApple, .pinkApple1, .lightPurprApple, .bolotoApple, .purpurApple,
+        .boloto2, .boloto3, .gamno, .capu4Ino, .serota, .pupu, .yel3, .bezhev, .rozovo, .bordovo,
+        .krasnenko
+    ]
 
-    // для layout иконок
+    // Сетка для кнопок
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
 
     var body: some View {
-            NavigationStack {
-                Form {
-                    Section("Название") {
-                        TextField("Введите название", text: $name)
-                            .focused($isNameFieldFocused)
-                            .padding(12)
-                    }
-                    .listRowBackground(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.white)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(isNameFieldFocused ? Color.appPurple : Color.clear, lineWidth: 4)
+        NavigationStack {
+            Form {
+                Section {
+                    VStack(spacing: 16) {
+                        ZStack {
+                            Circle()
+                                .fill(selectedColor ?? .appPurple)
+                                .frame(width: 64, height: 64)
+                            if let icon = selectedIcon {
+                                Image(systemName: icon)
+                                    .font(.title)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        TextField("Название", text: $name)
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10) // Закругление углов на радиус 10
+                                    .fill(Color.gray.opacity(0.2))
                             )
-                    )
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-
-                    // Новая секция для выбора цвета
-                    Section {
-                        Toggle("Цвет", isOn: $showColorPicker)
-                            .toggleStyle(SwitchToggleStyle(tint: .appPurple))
-                            .padding(.vertical, 8)
+                            .foregroundColor(.primary)
+                            .focused($isNameFieldFocused)
+                            .padding(.horizontal, 24)
                     }
-                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.white)
+                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                        .padding(.horizontal, 16)
+                )
 
-                    if showColorPicker {
-                        Section {
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                ForEach(Self.predefinedColors, id: \.self) { color in
-                                    Button {
-                                        selectedColor = (selectedColor == color ? nil : color)
-                                    } label: {
-                                        Circle()
-                                            .fill(color)
-                                            .frame(width: 38, height: 38)
-                                            .overlay(
-                                                ZStack {
-                                                    if selectedColor == color {
-                                                        // 1) внутренняя белая обводка
-                                                        Circle()
-                                                            .stroke(Color.white, lineWidth: 6)
-                                                        // 2) внешняя серая обводка
-                                                        Circle()
-                                                            .stroke(Color.gray, lineWidth: 3)
-                                                    } else {
-                                                        // обычная серая обводка, когда не выбрано
-                                                        Circle()
-                                                            .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                                                    }
+                // MARK: — Переключатель цвета
+                Section {
+                    Toggle("Цвет", isOn: $showColorPicker)
+                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
+                        .padding(.vertical, 8)
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+
+                // MARK: — Цветовая палитра
+                if showColorPicker {
+                    Section {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(Self.predefinedColors, id: \.self) { color in
+                                Button {
+                                    selectedColor = (selectedColor == color ? nil : color)
+                                } label: {
+                                    Circle()
+                                        .fill(color)
+                                        .frame(width: 38, height: 38)
+                                        .overlay(
+                                            ZStack {
+                                                if selectedColor == color {
+                                                    Circle()
+                                                        .stroke(Color.white, lineWidth: 6)
+                                                    Circle()
+                                                        .stroke(Color.gray, lineWidth: 3)
+                                                } else {
+                                                    Circle()
+                                                        .stroke(Color.gray.opacity(0.3), lineWidth: 2)
                                                 }
-                                            )
-                                    }
-                                    .buttonStyle(.plain)
+                                            }
+                                        )
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .padding(.vertical, 8)
                         }
-                    }
-                    
-                    Section {
-                        Toggle("Иконки", isOn: $showIconPicker)
-                            .toggleStyle(SwitchToggleStyle(tint: .appPurple))
-                            .padding(.vertical, 8)
+                        .padding(.vertical, 8)
                     }
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                }
 
-                    if showIconPicker {
-                        Section {
-                            LazyVGrid(columns: columns, spacing: 16) {
-                                ForEach(icons, id: \.self) { icon in
-                                    Button {
-                                        selectedIcon = (selectedIcon == icon ? nil : icon)
-                                    } label: {
-                                        Image(systemName: icon)
-                                            .font(.title2)
-                                            .frame(width: 38, height: 38)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(
-                                                        selectedIcon == icon
-                                                        ? Color.appPurple
-                                                        : Color.gray.opacity(0.3),
-                                                        lineWidth: 2
-                                                    )
-                                            )
-                                    }
-                                    .buttonStyle(.plain)
+                // MARK: — Переключатель иконок
+                Section {
+                    Toggle("Иконки", isOn: $showIconPicker)
+                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
+                        .padding(.vertical, 8)
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+
+                // MARK: — Галерея иконок
+                if showIconPicker {
+                    Section {
+                        LazyVGrid(columns: columns, spacing: 16) {
+                            ForEach(icons, id: \.self) { icon in
+                                Button {
+                                    selectedIcon = (selectedIcon == icon ? nil : icon)
+                                } label: {
+                                    Image(systemName: icon)
+                                        .font(.title2)
+                                        .frame(width: 38, height: 38)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    selectedIcon == icon
+                                                    ? Color.appPurple
+                                                    : Color.gray.opacity(0.3),
+                                                    lineWidth: 2
+                                                )
+                                        )
                                 }
+                                .buttonStyle(.plain)
                             }
-                            .padding(.vertical, 8)
                         }
+                        .padding(.vertical, 8)
                     }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 }
-                .navigationTitle("Новая категория")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Отмена", action: onCancel)
-                            .foregroundStyle(.appPurple)
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Готово") {
-                            // 1) Сохраняем цвет из picker'а
-                            if showColorPicker, let color = selectedColor {
-                                let txType: TransactionType = (initialType == .income ? .income : .expenses)
-                                Color.setColor(color, forCategory: name, type: txType)
-                            }
-                            // 2) Передаём управление наверх
-                            onSave(name,
-                                   showIconPicker ? selectedIcon : nil,
-                                   showColorPicker ? selectedColor : nil)
-                        }
+            }
+            .navigationTitle("Новая категория")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена", action: onCancel)
                         .foregroundStyle(.appPurple)
-                        .disabled(name.isEmpty)
-                    }
                 }
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        isNameFieldFocused = true
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") {
+                        if showColorPicker, let color = selectedColor {
+                            let txType: TransactionType = (initialType == .income ? .income : .expenses)
+                            Color.setColor(color, forCategory: name, type: txType)
+                        }
+                        onSave(
+                            name,
+                            showIconPicker ? selectedIcon : nil,
+                            showColorPicker ? selectedColor : nil
+                        )
                     }
+                    .foregroundStyle(.appPurple)
+                    .disabled(name.isEmpty)
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isNameFieldFocused = true
                 }
             }
         }
+    }
 }
