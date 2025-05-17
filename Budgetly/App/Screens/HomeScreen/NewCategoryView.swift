@@ -28,8 +28,15 @@ struct NewCategoryView: View {
         "figure.stand.dress.line.vertical.figure"
     ]
     private let incomeIcons = [
-        "dollarsign.circle", "banknote", "creditcard.fill",
-        "chart.line.uptrend.xyaxis", "wallet.pass.fill",
+        "wallet.bifold.fill", "creditcard.fill", "car.front.waves.up.fill", "house.fill", "figure.hiking", "star.circle.fill", "chart.line.uptrend.xyaxis", "wifi", "briefcase.fill", "graduationcap.fill", "hands.clap.fill", "gift.fill",
+        "airplane", "hammer.fill", "paintbrush.fill", "banknote.fill",
+         "wallet.pass.fill", "dollarsign.circle.fill", "person.2.fill", "scissors", "sparkles", "leaf.fill", "person.crop.square.filled.and.at.rectangle.fill", "trophy.fill", "medal.fill", "chart.pie.fill",
+        "play.tv.fill", "chart.bar.xaxis", "bitcoinsign.gauge.chart.lefthalf.righthalf", "dollarsign.bank.building.fill",
+        "music.note.list", "film.fill", "book.fill", "building.columns.fill", "antenna.radiowaves.left.and.right",
+        "paintpalette.fill", "giftcard.fill", "hand.thumbsup.fill", "star.fill", "camera.fill", "text.below.photo.fill",
+        "figure.wave", "bookmark.fill", "rosette", "flag.pattern.checkered", "die.face.6.fill",
+        "scroll.fill", "circle.slash", "rublesign.gauge.chart.lefthalf.righthalf",
+        "s.square.fill", "a.circle.fill", "pencil.circle.fill", "brain.filled.head.profile", "figure", "microphone.fill", "singaporedollarsign.arrow.trianglehead.counterclockwise.rotate.90"
     ]
     private var iconsToShow: [String] {
         initialType == .expenses ? icons : incomeIcons
