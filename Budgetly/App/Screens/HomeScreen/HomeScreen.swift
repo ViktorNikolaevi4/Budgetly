@@ -135,6 +135,7 @@ struct FlowLayout: Layout {
 struct HomeScreen: View {
     @Query private var accounts: [Account]
     @Query private var regularPayments: [RegularPayment]
+    @Query private var allCategories: [Category]
 
     @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
@@ -211,6 +212,40 @@ struct HomeScreen: View {
 
         case .allTime:
             return nil                 // «За всё время» не требует диапазона
+        }
+    }
+    private func categoryObject(named name: String) -> Category? {
+        guard let acc = selectedAccount else { return nil }
+        return allCategories.first {
+            $0.account.id == acc.id
+            && $0.name == name
+        }
+    }
+    private func defaultIconName(for categoryName: String) -> String {
+        switch categoryName {
+        case Category.uncategorizedName: return "circle.slash"
+        case "Еда":           return "fork.knife"
+        case "Транспорт":     return "car.fill"
+        case "Дом":           return "house.fill"
+        case "Одежда":        return "tshirt.fill"
+        case "Здоровье":      return "bandage.fill"
+        case "Питомцы":       return "pawprint.fill"
+        case "Связь":         return "wifi"
+        case "Развлечения":   return "gamecontroller.fill"
+        case "Образование":   return "book.fill"
+        case "Дети":          return "figure.walk"
+
+        case "Зарплата":      return "wallet.bifold.fill"
+        case "Дивиденды":     return "chart.line.uptrend.xyaxis"
+        case "Купоны":        return "banknote"
+        case "Продажи":       return "dollarsign.circle.fill"
+        case "Премия":      return "star.circle.fill"
+        case "Вклады":       return "dollarsign.bank.building.fill"
+        case "Аренда":        return "house.fill"
+        case "Подарки":        return "gift.fill"
+        case "Подработка":        return "hammer.fill"
+
+        default:              return "circle.slash"
         }
     }
 
@@ -365,7 +400,24 @@ struct HomeScreen: View {
             ForEach(aggregatedTransactions) { agg in
                 let bgColor = Color.colorForCategoryName(agg.category, type: selectedTransactionType)
                 let textColor: Color = (bgColor == .yellow) ? .black : .white
-                HStack() {
+                HStack(spacing: 2) {
+                  // сначала пробуем кастомную иконку
+                  if let cat = categoryObject(named: agg.category),
+                     let icon = cat.iconName
+                  {
+                    Image(systemName: icon)
+                      .font(.system(size: 14, weight: .medium))
+                      .foregroundColor(textColor)
+
+                  // если нет кастомной — пытаемся взять дефолтную
+                  } else {
+                    let sym = defaultIconName(for: agg.category)
+                    if !sym.isEmpty {
+                      Image(systemName: sym)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(textColor)
+                    }
+                  }
                     Text(agg.category)
                         .font(.body)
                         .lineLimit(1)
