@@ -76,13 +76,20 @@ struct NewCategoryView: View {
                                             .fill(color)
                                             .frame(width: 38, height: 38)
                                             .overlay(
-                                                Circle()
-                                                    .stroke(
-                                                        selectedColor == color
-                                                        ? Color.appPurple
-                                                        : Color.gray.opacity(0.3),
-                                                        lineWidth: 2
-                                                    )
+                                                ZStack {
+                                                    if selectedColor == color {
+                                                        // 1) внутренняя белая обводка
+                                                        Circle()
+                                                            .stroke(Color.white, lineWidth: 6)
+                                                        // 2) внешняя серая обводка
+                                                        Circle()
+                                                            .stroke(Color.gray, lineWidth: 3)
+                                                    } else {
+                                                        // обычная серая обводка, когда не выбрано
+                                                        Circle()
+                                                            .stroke(Color.gray.opacity(0.3), lineWidth: 2)
+                                                    }
+                                                }
                                             )
                                     }
                                     .buttonStyle(.plain)
