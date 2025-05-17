@@ -11,6 +11,7 @@ enum StatsSegment: String, CaseIterable, Identifiable {
 }
 
 struct StatsView: View {
+    @Query private var accounts: [Account]
     // Массив всех транзакций
     @Query private var transactions: [Transaction]
     // Массив всех активов
@@ -18,6 +19,7 @@ struct StatsView: View {
 
     // Состояние выбора сегмента: Доходы / Расходы / Активы
     @State private var selectedSegment: StatsSegment = .income
+    @State private var selectedAccount: Account?
 
     // Состояние выбора периода
     @State private var selectedTimePeriod: TimePeriod = .allTime
@@ -33,6 +35,12 @@ struct StatsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
+                Picker("Счет", selection: $selectedAccount) {
+                    Text("Все счета").tag(nil as Account?)
+                    ForEach(accounts) { account in
+                        Text(account.name).tag(account as Account?)
+                    }
+                }
                 // Сегментированный контрол для выбора: Доходы / Расходы / Активы
                 segmentControl
 
@@ -45,6 +53,12 @@ struct StatsView: View {
             .padding()
             .navigationTitle("Статистика")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .onAppear {
+            // По умолчанию первый счет
+            if selectedAccount == nil {
+                selectedAccount = accounts.first
+            }
         }
         // Если выбрали "Выбрать период", показываем выбор дат
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
@@ -231,6 +245,7 @@ struct StatsView: View {
         transactions
             .filter { $0.type == .income }
             .filter(isInSelectedPeriod)
+            .filter(isInSelectedAccount)
     }
 
     // MARK: - Фильтр расходов по периоду
@@ -238,6 +253,7 @@ struct StatsView: View {
         transactions
             .filter { $0.type == .expenses }
             .filter(isInSelectedPeriod)
+            .filter(isInSelectedAccount)
     }
 
     // MARK: - Сгруппированные доходы и расходы
@@ -259,7 +275,11 @@ struct StatsView: View {
             return selectedTimePeriod.rawValue
         }
     }
-
+    private func isInSelectedAccount(_ tx: Transaction) -> Bool {
+        // Если selectedAccount == nil — показываем все
+        guard let acct = selectedAccount else { return true }
+        return tx.account.id == acct.id
+    }
 
     // MARK: - Проверка, попадает ли дата транзакции в выбранный период
     private func isInSelectedPeriod(_ transaction: Transaction) -> Bool {
