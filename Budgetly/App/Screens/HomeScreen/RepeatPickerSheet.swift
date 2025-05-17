@@ -95,10 +95,13 @@ struct RepeatPickerSheet: View {
                                 .contentShape(Rectangle())
                             }
                             .padding(.vertical, 8)
+                            .tint(.appPurple)
 
                             if endOption == .onDate {
                                 DatePicker("Окончание", selection: $endDate, displayedComponents: .date)
                                     .datePickerStyle(.compact)
+                                    .tint(.appPurple)
+                                    .environment(\.locale, Locale(identifier: "ru_RU"))
                                     .padding(.vertical, 4)
                             }
                         }
@@ -147,7 +150,7 @@ struct RepeatPickerSheet: View {
         }
         .background(Color("BackgroundLightGray"))
         .presentationDragIndicator(.visible)
+        .environment(\.locale, Locale(identifier: "ru_RU"))
+        .accentColor(.appPurple)
     }
 }
-
-

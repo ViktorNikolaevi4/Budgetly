@@ -47,6 +47,7 @@ struct DateTimePickerSheet: View {
             )
             .datePickerStyle(.graphical)
             .padding(.horizontal)
+            .foregroundStyle(.appPurple)
 
             Divider().padding(.vertical, 8)
 
@@ -61,6 +62,7 @@ struct DateTimePickerSheet: View {
                     displayedComponents: [.hourAndMinute]
                 )
                 .datePickerStyle(.compact)
+                .foregroundStyle(.appPurple)
             }
             .padding(.horizontal)
 
@@ -78,5 +80,7 @@ struct DateTimePickerSheet: View {
             .padding()
         }
         .background(Color("BackgroundLightGray"))
+        .environment(\.locale, Locale(identifier: "ru_RU"))
+        .accentColor(.appPurple)
     }
 }
