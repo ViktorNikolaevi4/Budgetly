@@ -27,6 +27,13 @@ struct NewCategoryView: View {
         "comb.fill", "balloon.2.fill", "popcorn.fill", "graduationcap.fill", "lanyardcard.fill", "figure.run.treadmill",
         "figure.stand.dress.line.vertical.figure"
     ]
+    private let incomeIcons = [
+        "dollarsign.circle", "banknote", "creditcard.fill",
+        "chart.line.uptrend.xyaxis", "wallet.pass.fill",
+    ]
+    private var iconsToShow: [String] {
+        initialType == .expenses ? icons : incomeIcons
+    }
 
     // Предопределённые цвета
     private static let predefinedColors: [Color] = [
@@ -140,7 +147,7 @@ struct NewCategoryView: View {
                 if showIconPicker {
                     Section {
                         LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(icons, id: \.self) { icon in
+                            ForEach(iconsToShow, id: \.self) { icon in
                                 Button {
                                     selectedIcon = (selectedIcon == icon ? nil : icon)
                                 } label: {
