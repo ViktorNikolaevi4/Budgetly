@@ -537,7 +537,7 @@ struct HomeScreen: View {
                 appliedStartDate = start
                 appliedEndDate = end
             }
-            .presentationDetents([.medium])
+            .presentationDetents([.fraction(0.33)])
         }
     }
     private func generateMissedRecurringTransactions() {
@@ -644,23 +644,25 @@ struct CustomPeriodPickerView: View {
                     DatePicker("Дата начала", selection: $startDate, displayedComponents: .date)
                         .datePickerStyle(.compact)
                         .padding()
-                        .background(Color(uiColor: .systemGray6))
-                        .cornerRadius(12)
+                        .frame(height: 44)
+                        .background(Color(white: 1.0))
+                        .cornerRadius(10)
                         .padding(.horizontal, 16)
                         .tint(.appPurple)
 
                     DatePicker("Дата окончания", selection: $endDate, displayedComponents: .date)
                         .datePickerStyle(.compact)
                         .padding()
-                        .background(Color(uiColor: .systemGray6))
-                        .cornerRadius(12)
+                        .frame(height: 44)
+                        .background(Color(white: 1.0))
+                        .cornerRadius(10)
                         .padding(.horizontal, 16)
                         .tint(.appPurple)
                 }
-                // Кнопка "Применить"
+
                 Button(action: {
                     onApply(startDate, endDate)
-                    dismiss() // Закрываем и применяем фильтр
+                    dismiss()
                 }) {
                     Text("Применить")
                         .frame(maxWidth: .infinity)
@@ -672,13 +674,17 @@ struct CustomPeriodPickerView: View {
                         .padding()
                 }
                 .padding(.bottom, 24)
-            }
-            Spacer()
-        }
-        .environment(\.locale, Locale(identifier: "ru_RU"))
-    }
 
+                Spacer() // Добавляем Spacer, чтобы растянуть содержимое
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity) // Растягиваем VStack на весь экран
+            .background(Color("BackgroundLightGray")) // Фон применяется ко всему содержимому
+            .ignoresSafeArea() // Игнорируем безопасную область для всего NavigationStack
+            .environment(\.locale, Locale(identifier: "ru_RU"))
+        }
+    }
 }
+
 
 extension Double {
     var formattedWithSeparator: String {
