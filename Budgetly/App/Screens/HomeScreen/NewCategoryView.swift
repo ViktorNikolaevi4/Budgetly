@@ -9,7 +9,6 @@ struct NewCategoryView: View {
     @State private var selectedIcon: String? = nil
     @State private var selectedColor: Color? = .appPurple // Устанавливаем начальный выбранный цвет
     @State private var showIconPicker = false
-    @State private var showColorPicker = true // Открываем цветовую палитру по умолчанию
     @FocusState private var isNameFieldFocused: Bool
 
     // Пример набора иконок
@@ -101,16 +100,15 @@ struct NewCategoryView: View {
                         .padding(.horizontal, 16)
                 )
 
-                // MARK: — Переключатель цвета
-                Section {
-                    Toggle("Цвет", isOn: $showColorPicker)
-                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
-                        .padding(.vertical, 8)
-                }
-                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+//                // MARK: — Переключатель цвета
+//                Section {
+//                    Toggle("Цвет", isOn: $showColorPicker)
+//                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
+//                        .padding(.vertical, 8)
+//                }
+//                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
                 // MARK: — Цветовая палитра
-                if showColorPicker {
                     Section {
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(Self.predefinedColors, id: \.self) { color in
@@ -140,7 +138,7 @@ struct NewCategoryView: View {
                         .padding(.vertical, 8)
                     }
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                }
+
 
                 // MARK: — Переключатель иконок
                 Section {
@@ -188,14 +186,14 @@ struct NewCategoryView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Готово") {
-                        if showColorPicker, let color = selectedColor {
+                        if  let color = selectedColor {
                             let txType: TransactionType = (initialType == .income ? .income : .expenses)
                             Color.setColor(color, forCategory: name, type: txType)
                         }
                         onSave(
                             name,
                             showIconPicker ? selectedIcon : nil,
-                            showColorPicker ? selectedColor : nil
+                            selectedColor
                         )
                     }
                     .foregroundStyle(.appPurple)

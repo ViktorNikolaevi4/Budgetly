@@ -537,7 +537,7 @@ struct HomeScreen: View {
                 appliedStartDate = start
                 appliedEndDate = end
             }
-            .presentationDetents([.fraction(0.33)])
+            .presentationDetents([.fraction(0.48)])
         }
     }
     private func generateMissedRecurringTransactions() {
@@ -620,7 +620,7 @@ struct CustomPeriodPickerView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 40) {
+            VStack(alignment: .leading, spacing: 20) {
                 HStack {
                     Text("Свой период")
                         .font(.title2)
