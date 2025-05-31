@@ -30,7 +30,9 @@ struct AddTransactionView: View {
 
     private var categoriesForThisAccount: [Category] {
         guard let acct = account else { return [] }
-        return allCategories.filter { $0.account.id == acct.id }
+        return allCategories.filter {
+            $0.account?.id == acct.id
+        }
     }
 
     private let dateTimeFormatter: DateFormatter = {
@@ -42,9 +44,13 @@ struct AddTransactionView: View {
 
     private var filteredCategories: [Category] {
         guard let acct = account else { return [] }
-        let txType: TransactionType = selectedType == .income ? .income : .expenses
-        let cats = allCategories
-            .filter { $0.account.id == acct.id && $0.type == selectedType }
+        let txType: TransactionType = (selectedType == .income) ? .income : .expenses
+        // Сначала фильтруем по совпадению счёта и типа:
+        let cats = allCategories.filter {
+            $0.account?.id == acct.id && $0.type == selectedType
+        }
+
+        // Затем сортируем уже отфильтрованные:
         return cats.sorted { lhs, rhs in
             if lhs.name == Category.uncategorizedName { return true }
             if rhs.name == Category.uncategorizedName { return false }
@@ -61,6 +67,7 @@ struct AddTransactionView: View {
             return lhs.name.localizedCompare(rhs.name) == .orderedAscending
         }
     }
+
 
     private var visibleCategories: [Category?] {
           let cats = filteredCategories

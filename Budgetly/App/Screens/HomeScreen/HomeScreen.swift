@@ -230,12 +230,16 @@ struct HomeScreen: View {
         }
     }
     private func categoryObject(named name: String) -> Category? {
+        // Если счёт не выбран — возвращаем nil
         guard let acc = selectedAccount else { return nil }
-        return allCategories.first {
-            $0.account.id == acc.id
-            && $0.name == name
-        }
+        // Явно вызываем first(where:), а не first + trailing-closure
+        return allCategories.first(where: {
+            // Поскольку account у Category может быть опциональным (Account?),
+            // лучше сравнивать через optional chaining
+            $0.account?.id == acc.id && $0.name == name
+        })
     }
+
     private func defaultIconName(for categoryName: String) -> String {
         switch categoryName {
         case Category.uncategorizedName: return "circle.slash"
@@ -313,18 +317,35 @@ struct HomeScreen: View {
             .background(.backgroundLightGray)
         }
         .onAppear {
-            generateMissedRecurringTransactions()
+             generateMissedRecurringTransactions()
 
-                  if selectedAccount == nil { selectedAccount = accounts.first }
-                  if let acc = selectedAccount {
-                      Category.seedDefaults(for: acc, in: modelContext)
-                  }
-        }
-        .onChange(of: selectedAccount) { acc in
-            if let acc = acc {
-                Category.seedDefaults(for: acc, in: modelContext)
-                  }
-        }
+             // Если пока нет выбранного — ставим первый из списка
+             if selectedAccount == nil {
+                 selectedAccount = accounts.first
+             }
+             // Сразу заливаем дефолтные категории
+             if let acc = selectedAccount {
+                 Category.seedDefaults(for: acc, in: modelContext)
+             }
+         }
+         .onChange(of: selectedAccount) { newAcc in
+             // Как только пользователь сменил аккаунт, заливаем дефолтные категории
+             if let acc = newAcc {
+                 Category.seedDefaults(for: acc, in: modelContext)
+             }
+         }
+         .onChange(of: accounts) { newAccounts in
+             // Если среди новых аккаунтов нет текущего selectedAccount → перенацион на первый
+             if let current = selectedAccount {
+                 // Если текущий selectedAccount исчез из списка accounts
+                 if !newAccounts.contains(where: { $0.id == current.id }) {
+                     selectedAccount = newAccounts.first
+                 }
+             } else {
+                 // Если ещё не было selectedAccount, выбираем первый
+                 selectedAccount = newAccounts.first
+             }
+         }
             .sheet(isPresented: $isAddTransactionViewPresented) {
                 AddTransactionView(account: selectedAccount) { addedType in
                     selectedTransactionType = addedType // ← здесь переключается сегмент

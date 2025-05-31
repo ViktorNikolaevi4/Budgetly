@@ -31,7 +31,6 @@ struct AccountsScreen: View {
                                     .shadow(color: Color(white: 0.0, opacity: 0.16), radius: 16.0, x: 3.0, y: 6.0)
 
                                 HStack {
-                                    // Название счёта слева
                                     Text(account.name)
                                         .fontWeight(.medium)
                                         .font(.body)
@@ -40,7 +39,6 @@ struct AccountsScreen: View {
 
                                     Spacer()
 
-                                    // Баланс счёта справа
                                     Text(account.formattedBalance)
                                         .fontWeight(.medium)
                                         .font(.body)
@@ -51,7 +49,7 @@ struct AccountsScreen: View {
                             .padding(.horizontal)
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    modelContext.delete(account)
+                                    deleteAccount(account)
                                 } label: {
                                     Label("Удалить", systemImage: "trash")
                                 }
@@ -104,6 +102,30 @@ struct AccountsScreen: View {
             .background(Color(.systemGray6).ignoresSafeArea())
         }
     }
+    private func deleteAccount(_ account: Account) {
+        // 1) Удалим все транзакции, связанные с этим аккаунтом
+        let relatedTransactions = account.transactions
+        for tx in relatedTransactions {
+            modelContext.delete(tx)
+        }
+
+        // 2) Удалим все категории, связанные с этим аккаунтом
+        let relatedCategories = account.categories
+        for cat in relatedCategories {
+            modelContext.delete(cat)
+        }
+
+        // 3) Наконец, удалим сам аккаунт
+        modelContext.delete(account)
+
+        // 4) Сохраним изменения
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при каскадном удалении аккаунта: \(error)")
+        }
+    }
+
 }
 
 struct AccountCreationView: View {

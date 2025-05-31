@@ -276,9 +276,9 @@ struct StatsView: View {
         }
     }
     private func isInSelectedAccount(_ tx: Transaction) -> Bool {
-        // Если selectedAccount == nil — показываем все
         guard let acct = selectedAccount else { return true }
-        return tx.account.id == acct.id
+        // сравниваем опциональный UUID с не-опциональным, Swift умеет это сделать:
+        return tx.account?.id == acct.id
     }
 
     // MARK: - Проверка, попадает ли дата транзакции в выбранный период
