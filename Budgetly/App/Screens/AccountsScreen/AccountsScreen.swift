@@ -4,9 +4,7 @@ import SwiftData
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var accounts: [Account]
-
-    @State private var accountName: String = ""
-    @State private var isShowingAlert = false
+    @State private var isShowingAddAccountSheet = false
 
     var body: some View {
         NavigationStack {
@@ -66,7 +64,7 @@ struct AccountsScreen: View {
 
                 // MARK: - Кнопка добавления нового счёта
                 Button(action: {
-                    isShowingAlert = true
+                    isShowingAddAccountSheet = true
                 }) {
                     Text("Добавить новый счет")
                         .font(.headline)
@@ -84,27 +82,65 @@ struct AccountsScreen: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
-                        isShowingAlert = true
+                        isShowingAddAccountSheet = true
                     }) {
                         Image(systemName: "plus")
                             .foregroundColor(.appPurple)
                     }
                 }
             }
-            .alert("Новый счет", isPresented: $isShowingAlert) {
-                TextField("Введите название счета", text: $accountName)
-                Button("Создать", action: addAccount)
-                Button("Отмена", role: .cancel, action: { accountName = "" })
+            .sheet(isPresented: $isShowingAddAccountSheet) {
+                AccountCreationView(modelContext: modelContext)
+            }
+            .background(Color(.systemGray6).ignoresSafeArea())
+        }
+    }
+}
+
+struct AccountCreationView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var accountName: String = ""
+    let modelContext: ModelContext
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 20) {
+                TextField("Название счета", text: $accountName)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.clear, lineWidth: 0)
+                    )
+                    .padding(.horizontal)
+
+                Spacer()
+            }
+            .navigationTitle("Новый счет")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") {
+                        dismiss()
+                    }.foregroundStyle(.appPurple)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") {
+                        addAccount()
+                        dismiss()
+                    }.foregroundStyle(.appPurple)
+                    .disabled(accountName.isEmpty)
+                }
             }
             .background(Color(.systemGray6).ignoresSafeArea())
         }
     }
 
+    // MARK: - Метод для создания нового счёта
     private func addAccount() {
-        guard !accountName.isEmpty else { return }
         let newAccount = Account(name: accountName)
         modelContext.insert(newAccount)
         Category.seedDefaults(for: newAccount, in: modelContext)
-        accountName = ""
     }
 }
