@@ -1,6 +1,15 @@
 import SwiftUI
 import SwiftData
 
+let supportedCurrencies: [String] = [
+    "RUB",
+    "USD",
+    "EUR",
+    "GBP",
+    "JPY",
+    "CNY"
+]
+
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var accounts: [Account]
@@ -99,12 +108,18 @@ struct AccountsScreen: View {
 
 struct AccountCreationView: View {
     @Environment(\.dismiss) private var dismiss
+
+    // MARK: — новые состояния
     @State private var accountName: String = ""
+    @State private var initialBalanceText: String = ""   // строка для ввода
+    @State private var selectedCurrency: String = "RUB"
+
     let modelContext: ModelContext
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
+                // 1) Поле для названия счёта
                 TextField("Название счета", text: $accountName)
                     .padding()
                     .background(Color.white)
@@ -115,21 +130,59 @@ struct AccountCreationView: View {
                     )
                     .padding(.horizontal)
 
+                // 2) Поле для «Начального баланса (опционально)»
+                //    Пользователь может ввести, например, "1000" или "12345.67"
+                TextField("Начальный баланс (опционально)", text: $initialBalanceText)
+                    .keyboardType(.decimalPad)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.clear, lineWidth: 0)
+                    )
+                    .padding(.horizontal)
+
+                // 3) Picker для выбора валюты
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Валюта")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 16)
+
+                    Picker(selection: $selectedCurrency) {
+                        ForEach(supportedCurrencies, id: \.self) { currency in
+                            Text(currency).tag(currency)
+                        }
+                    } label: {
+                        Text("") // Лейбл оставляем пустым
+                    }
+                    .pickerStyle(.menu)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                }
+
                 Spacer()
             }
             .navigationTitle("Новый счет")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // Кнопка «Отмена»
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") {
                         dismiss()
-                    }.foregroundStyle(.appPurple)
+                    }
+                    .foregroundStyle(.appPurple)
                 }
+                // Кнопка «Готово»
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Готово") {
                         addAccount()
                         dismiss()
-                    }.foregroundStyle(.appPurple)
+                    }
+                    // Блокируем, если имя счета пустое
                     .disabled(accountName.isEmpty)
                 }
             }
@@ -137,10 +190,33 @@ struct AccountCreationView: View {
         }
     }
 
-    // MARK: - Метод для создания нового счёта
+    // MARK: — Метод для создания нового счёта
     private func addAccount() {
-        let newAccount = Account(name: accountName)
+        // 1) Парсим initialBalanceText в Double (если не получится — будет nil)
+        let initialBalanceValue: Double? = {
+            // Заменим запятую на точку, чтобы пользователь мог вводить «1 234,56» или «1234.56»
+            let normalized = initialBalanceText.replacingOccurrences(of: ",", with: ".")
+            return Double(normalized)
+        }()
+
+        // 2) Создаём новый объект Account
+        let newAccount = Account(
+            name: accountName,
+            currency: selectedCurrency,
+            initialBalance: initialBalanceValue
+        )
         modelContext.insert(newAccount)
+
+        // 3) Заполняем стандартные категории (если нужно)
         Category.seedDefaults(for: newAccount, in: modelContext)
+
+        // 4) Сохраняем контекст вручную (на всякий случай)
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при сохранении нового счета: \(error.localizedDescription)")
+        }
     }
 }
+
+
