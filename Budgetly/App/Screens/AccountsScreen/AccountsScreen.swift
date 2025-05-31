@@ -109,7 +109,7 @@ struct AccountsScreen: View {
 struct AccountCreationView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // MARK: — новые состояния
+    // MARK: — состояния для формы
     @State private var accountName: String = ""
     @State private var initialBalanceText: String = ""   // строка для ввода
     @State private var selectedCurrency: String = "RUB"
@@ -118,88 +118,86 @@ struct AccountCreationView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                // 1) Поле для названия счёта
-                TextField("Название счета", text: $accountName)
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.clear, lineWidth: 0)
-                    )
-                    .padding(.horizontal)
-
-                // 2) Поле для «Начального баланса (опционально)»
-                //    Пользователь может ввести, например, "1000" или "12345.67"
-                TextField("Начальный баланс (опционально)", text: $initialBalanceText)
-                    .keyboardType(.decimalPad)
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.clear, lineWidth: 0)
-                    )
-                    .padding(.horizontal)
-
-                // 3) Picker для выбора валюты
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Валюта")
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal, 16)
-
-                    Picker(selection: $selectedCurrency) {
-                        ForEach(supportedCurrencies, id: \.self) { currency in
-                            Text(currency).tag(currency)
-                        }
-                    } label: {
-                        Text("") // Лейбл оставляем пустым
-                    }
-                    .pickerStyle(.menu)
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(10)
-                    .padding(.horizontal)
+            // ───────────────────────────────
+            // Используем Form в стиле insetGrouped
+            Form {
+                Section {
+                    // 1) Ввод названия счета
+                    TextField("Название счета", text: $accountName)
                 }
 
-                Spacer()
+                Section {
+                    // 2) Ряд “Валюта” (заголовок + Picker справа)
+                    HStack {
+                        Text("Валюта")
+                        Spacer()
+                        // Показываем текущий код (например “RUB”), по тапу выпадает меню выбора
+                        Picker(selection: $selectedCurrency) {
+                            ForEach(supportedCurrencies, id: \.self) { code in
+                                HStack {
+                                    // Показываем и символ, и код, чтобы было нагляднее
+                                    Text("\(currencySymbols[code] ?? "") \(code)")
+                                }
+                                .tag(code)
+                            }
+                        } label: {
+                            // Пустой label, потому что само содержимое Picker мы рисуем через HStack
+                            Text("")
+                        }
+                        .pickerStyle(.menu)
+                        // Чтобы иконка “стрелочка” появилась справа
+                    }
+
+                    // 3) Ряд “Начальный баланс”
+                    HStack {
+                        Text("Начальный баланс")
+                        Spacer()
+                        // Поле для ввода. При вводе подсвечивается клавиатурой decimalPad
+                        TextField("0", text: $initialBalanceText)
+                            .multilineTextAlignment(.trailing)
+                            .keyboardType(.decimalPad)
+                            .frame(width: 100)
+                        // После ввода показываем символ валюты
+                        Text(currencySymbols[selectedCurrency] ?? "")
+                            .padding(.leading, 2)
+                    }
+                }
             }
+            .listStyle(InsetGroupedListStyle())      // или .automatic, но insetGrouped ближе к Zeplin
+            // ───────────────────────────────
+
             .navigationTitle("Новый счет")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Кнопка «Отмена»
+                // “Отмена”
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") {
                         dismiss()
                     }
-                    .foregroundStyle(.appPurple)
+                    .foregroundColor(.blue)
                 }
-                // Кнопка «Готово»
+                // “Готово”
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Готово") {
                         addAccount()
                         dismiss()
                     }
-                    // Блокируем, если имя счета пустое
                     .disabled(accountName.isEmpty)
                 }
             }
-            .background(Color(.systemGray6).ignoresSafeArea())
         }
     }
 
-    // MARK: — Метод для создания нового счёта
+    // MARK: — метод для создания нового Account
     private func addAccount() {
-        // 1) Парсим initialBalanceText в Double (если не получится — будет nil)
+        // 1) Парсим введённую строку в Double, если возможно
         let initialBalanceValue: Double? = {
-            // Заменим запятую на точку, чтобы пользователь мог вводить «1 234,56» или «1234.56»
+            // Заменяем запятую на точку, на всякий случай
             let normalized = initialBalanceText.replacingOccurrences(of: ",", with: ".")
             return Double(normalized)
         }()
 
-        // 2) Создаём новый объект Account
+        // 2) Создаём новый Account с полями name, currency и initialBalance
         let newAccount = Account(
             name: accountName,
             currency: selectedCurrency,
@@ -207,10 +205,10 @@ struct AccountCreationView: View {
         )
         modelContext.insert(newAccount)
 
-        // 3) Заполняем стандартные категории (если нужно)
+        // 3) Сразу заполняем стандартные категории (если ещё не были заполнены)
         Category.seedDefaults(for: newAccount, in: modelContext)
 
-        // 4) Сохраняем контекст вручную (на всякий случай)
+        // 4) Сохраняем контекст (хотя SwiftData обычно автосохраняет)
         do {
             try modelContext.save()
         } catch {
@@ -218,5 +216,4 @@ struct AccountCreationView: View {
         }
     }
 }
-
 

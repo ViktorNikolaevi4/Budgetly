@@ -299,7 +299,10 @@ struct HomeScreen: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         timePeriodPicker
-                        PieChartView(transactions: filteredTransactions, transactionType: selectedTransactionType)
+                        PieChartView(transactions: filteredTransactions,
+                                     transactionType: selectedTransactionType,
+                                     currencySign: currencySign
+                        )
                         categoryTags
                     }
                 }
@@ -329,6 +332,13 @@ struct HomeScreen: View {
             }
 
     }
+    private var currencySign: String {
+        // 1) Берём код валюты из выбранного счёта, или "RUB" по умолчанию
+        let code = selectedAccount?.currency ?? "RUB"
+        // 2) Ищем в словаре символ; если вдруг нет — fallback на сам код
+        return currencySymbols[code] ?? code
+    }
+
 
     /// Диапазон дат для подписи под заголовком (`nil` – если «За всё время»)
     private var periodCaption: String? {
@@ -458,7 +468,7 @@ struct HomeScreen: View {
                         .font(.body)
                         .lineLimit(1)
 
-                    Text("\(agg.totalAmount.toShortStringWithSuffix()) ₽")
+                    Text("\(agg.totalAmount.toShortStringWithSuffix())\(currencySign)")
                         .font(.headline)
                         .lineLimit(1)
                 }

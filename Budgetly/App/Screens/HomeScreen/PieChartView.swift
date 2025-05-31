@@ -13,6 +13,8 @@ struct PieChartView: View {
     var transactions: [Transaction]
     let transactionType: TransactionType
 
+    let currencySign: String
+
     /// Общая сумма всех транзакций, которые приходят в этот PieChartView
     private var totalAmount: Double {
         aggregatedData.reduce(0) { $0 + $1.totalAmount }
@@ -61,7 +63,7 @@ struct PieChartView: View {
                                 .foregroundColor(Color(white: 0.0, opacity: 0.5))
                                 .multilineTextAlignment(.center)
                                 .frame(height: 20.0, alignment: .center)
-                            Text("\(totalAmount.toShortStringWithSuffix()) ₽")
+                            Text("\(totalAmount.toShortStringWithSuffix())\(currencySign)")
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundColor(.primary)
