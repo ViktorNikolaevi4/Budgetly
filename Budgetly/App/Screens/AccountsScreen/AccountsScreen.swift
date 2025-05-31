@@ -36,22 +36,48 @@ struct AccountsScreen: View {
                                     .cornerRadius(20.0)
                                     .shadow(color: Color(white: 0.0, opacity: 0.16), radius: 16.0, x: 3.0, y: 6.0)
 
-                                HStack {
-                                    Text(account.name)
-                                        .fontWeight(.medium)
-                                        .font(.body)
-                                        .foregroundColor(.primary)
-                                        .padding(.leading)
+                                HStack(spacing: 12) {
+                                      // ─── Круглый бейдж с символом валюты ───
+                                      ZStack {
+                                          // Синяя обводка (цвет можно взять из вашего .appPurple)
+                                          Circle()
+                                              .strokeBorder(Color.appPurple, lineWidth: 7)
+                                              .background(
+                                                  Circle()
+                                                      .foregroundColor(Color.lightPurprApple)
+                                              )
+                                              .frame(width: 44, height: 44)
 
-                                    Spacer()
+                                          // Сам символ валюты (или, если нет, пустая строка)
+                                          Text(currencySymbols[account.currency ?? ""] ?? "")
+                                              .font(.system(size: 20, weight: .bold))
+                                              .foregroundColor(.white)
+                                      }
+                                      .padding(.leading, 8)
 
-                                    Text(account.formattedBalance)
-                                        .fontWeight(.medium)
-                                        .font(.body)
-                                        .foregroundStyle(account.balance < 0 ? .red : .primary)
-                                        .padding(.trailing)
-                                }
-                            }
+                                      // Название счёта и код валюты под ним
+                                      VStack(alignment: .leading, spacing: 4) {
+                                          Text(account.name)
+                                              .fontWeight(.medium)
+                                              .font(.body)
+                                              .foregroundColor(.primary)
+
+                                          // Подчёркнуто сверху: показываем код валюты мелким текстом
+                                          Text(account.currency ?? "")
+                                              .font(.subheadline)
+                                              .foregroundColor(.secondary)
+                                      }
+
+                                      Spacer()
+
+                                      // Баланс справа
+                                      Text(account.formattedBalance)
+                                          .fontWeight(.medium)
+                                          .font(.body)
+                                          .foregroundStyle(account.balance < 0 ? .red : .primary)
+                                          .padding(.trailing, 12)
+                                  }
+                              }
                             .padding(.horizontal)
                             .contextMenu {
                                 Button {
