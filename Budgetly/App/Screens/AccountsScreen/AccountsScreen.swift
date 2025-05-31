@@ -10,15 +10,21 @@ let supportedCurrencies: [String] = [
     "CNY"
 ]
 
+import SwiftUI
+import SwiftData
+
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var accounts: [Account]
+
     @State private var isShowingAddAccountSheet = false
+
+    // 1) вместо двух булевых флагов используем один опциональный Account
+    @State private var accountToEdit: Account? = nil
 
     var body: some View {
         NavigationStack {
             VStack {
-                // MARK: - Список счетов в виде карточек с прокруткой
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(accounts) { account in
@@ -48,6 +54,13 @@ struct AccountsScreen: View {
                             }
                             .padding(.horizontal)
                             .contextMenu {
+                                Button {
+                                    // Запускаем sheet для редактирования
+                                    accountToEdit = account
+                                } label: {
+                                    Label("Редактировать", systemImage: "pencil")
+                                }
+                                Divider()
                                 Button(role: .destructive) {
                                     deleteAccount(account)
                                 } label: {
@@ -57,8 +70,6 @@ struct AccountsScreen: View {
                         }
                     }
                     .padding(.vertical)
-
-                    // MARK: - Текст и иконка с глазом
                     HStack(spacing: 8) {
                         Image(systemName: "eye.fill")
                             .foregroundColor(.gray)
@@ -69,7 +80,6 @@ struct AccountsScreen: View {
                     .padding(.vertical, 8)
                 }
 
-                // MARK: - Кнопка добавления нового счёта
                 Button(action: {
                     isShowingAddAccountSheet = true
                 }) {
@@ -96,37 +106,30 @@ struct AccountsScreen: View {
                     }
                 }
             }
+            // 2) sheet для создания нового счета
             .sheet(isPresented: $isShowingAddAccountSheet) {
                 AccountCreationView(modelContext: modelContext)
+            }
+            // 3) sheet для редактирования: появляется только когда accountToEdit != nil
+            .sheet(item: $accountToEdit) { editing in
+                AccountEditView(account: editing, onDelete: {
+                    accountToEdit = nil
+                })
+                .environment(\.modelContext, modelContext)
             }
             .background(Color(.systemGray6).ignoresSafeArea())
         }
     }
+
     private func deleteAccount(_ account: Account) {
-        // 1) Удалим все транзакции, связанные с этим аккаунтом
-        let relatedTransactions = account.transactions
-        for tx in relatedTransactions {
-            modelContext.delete(tx)
-        }
-
-        // 2) Удалим все категории, связанные с этим аккаунтом
-        let relatedCategories = account.categories
-        for cat in relatedCategories {
-            modelContext.delete(cat)
-        }
-
-        // 3) Наконец, удалим сам аккаунт
+        for tx in account.transactions { modelContext.delete(tx) }
+        for cat in account.categories { modelContext.delete(cat) }
         modelContext.delete(account)
-
-        // 4) Сохраним изменения
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка при каскадном удалении аккаунта: \(error)")
-        }
+        do { try modelContext.save() }
+        catch { print("Ошибка при каскадном удалении аккаунта: \(error)") }
     }
-
 }
+
 
 struct AccountCreationView: View {
     @Environment(\.dismiss) private var dismiss

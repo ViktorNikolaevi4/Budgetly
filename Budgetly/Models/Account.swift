@@ -7,11 +7,10 @@ class Account: Identifiable {
     var name: String
     /// Опциональное поле «Начальный баланс»
     var initialBalance: Double?
-
     /// Опциональное поле «Валюта»
     var currency: String?
-
     var hasSeededCategories: Bool = false
+    var isHidden: Bool = false
 
     @Relationship(deleteRule: .cascade)
     var transactions: [Transaction] = []
