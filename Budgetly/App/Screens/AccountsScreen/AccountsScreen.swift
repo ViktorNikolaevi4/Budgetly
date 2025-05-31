@@ -9,62 +9,95 @@ struct AccountsScreen: View {
     @State private var isShowingAlert = false
 
     var body: some View {
-        VStack {
-            Text("Счета")
-                .font(.headline)
-                .padding(.top)
+        NavigationStack {
+            VStack {
+                // MARK: - Список счетов в виде карточек с прокруткой
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(accounts) { account in
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 20.0)
+                                    .foregroundColor(.clear)
+                                    .frame(width: 361.0, height: 76.0)
+                                    .background(Color(white: 1.0))
+                                    .cornerRadius(20.0)
+                                    .shadow(color: Color(white: 0.0, opacity: 0.16), radius: 16.0, x: 3.0, y: 6.0)
 
-            // MARK: - Список счетов в виде карточек с прокруткой
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(accounts) { account in
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 20.0)
-                                .foregroundColor(.clear)
-                                .frame(width: 361.0, height: 76.0)
-                                .background(Color(white: 1.0))
-                                .cornerRadius(20.0)
-                                .shadow(color: Color(white: 0.0, opacity: 0.16), radius: 16.0, x: 3.0, y: 6.0)
+                                HStack {
+                                    // Название счёта слева
+                                    Text(account.name)
+                                        .fontWeight(.medium)
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+                                        .padding(.leading)
 
-                            Text(account.name)
-                                .font(.body)
-                                .foregroundColor(.primary)
-                                .padding()
-                        }
-                        .padding(.horizontal)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                modelContext.delete(account)
-                            } label: {
-                                Label("Удалить", systemImage: "trash")
+                                    Spacer()
+
+                                    // Баланс счёта справа
+                                    Text(account.formattedBalance)
+                                        .fontWeight(.medium)
+                                        .font(.body)
+                                        .foregroundStyle(account.balance < 0 ? .red : .primary)
+                                        .padding(.trailing)
+                                }
+                            }
+                            .padding(.horizontal)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    modelContext.delete(account)
+                                } label: {
+                                    Label("Удалить", systemImage: "trash")
+                                }
                             }
                         }
                     }
-                }
-                .padding(.vertical)
-            }
+                    .padding(.vertical)
 
-            // MARK: - Кнопка добавления нового счёта
-            Button(action: {
-                isShowingAlert = true
-            }) {
-                Text("Добавить новый счет")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.appPurple)
-                    .foregroundColor(.white)
-                    .cornerRadius(16)
+                    // MARK: - Текст и иконка с глазом
+                    HStack(spacing: 8) {
+                        Image(systemName: "eye.fill")
+                            .foregroundColor(.gray)
+                        Text("Показать скрытые счета")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.vertical, 8)
+                }
+
+                // MARK: - Кнопка добавления нового счёта
+                Button(action: {
+                    isShowingAlert = true
+                }) {
+                    Text("Добавить новый счет")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.appPurple)
+                        .foregroundColor(.white)
+                        .cornerRadius(16)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 20)
             }
-            .padding(.horizontal)
-            .padding(.bottom, 20)
+            .navigationTitle("Счета")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        isShowingAlert = true
+                    }) {
+                        Image(systemName: "plus")
+                            .foregroundColor(.appPurple)
+                    }
+                }
+            }
             .alert("Новый счет", isPresented: $isShowingAlert) {
                 TextField("Введите название счета", text: $accountName)
                 Button("Создать", action: addAccount)
                 Button("Отмена", role: .cancel, action: { accountName = "" })
             }
+            .background(Color(.systemGray6).ignoresSafeArea())
         }
-        .background(Color(.systemGray6).ignoresSafeArea())
     }
 
     private func addAccount() {

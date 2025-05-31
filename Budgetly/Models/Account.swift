@@ -1,4 +1,3 @@
-
 import Foundation
 import SwiftData
 
@@ -17,5 +16,23 @@ class Account: Identifiable {
         self.id = id
         self.name = name
         self.transactions = transactions
+    }
+
+    // Рассчитываем баланс счёта на основе транзакций
+    var balance: Double {
+        let income = transactions
+            .filter { $0.type == .income }
+            .reduce(0) { $0 + $1.amount }
+
+        let expenses = transactions
+            .filter { $0.type == .expenses }
+            .reduce(0) { $0 + $1.amount }
+
+        return income - expenses
+    }
+
+    // Форматированный баланс для отображения
+    var formattedBalance: String {
+        return "\(balance.toShortStringWithSuffix()) ₽"
     }
 }
