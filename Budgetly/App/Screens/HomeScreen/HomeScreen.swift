@@ -4,6 +4,15 @@ import Observation
 import SwiftData
 import Foundation
 
+let currencySymbols: [String: String] = [
+    "RUB": "₽",
+    "USD": "$",
+    "EUR": "€",
+    "GBP": "£",
+    "JPY": "¥",
+    "CNY": "¥"
+]
+
 /// Частота повторения транзакции
 enum ReminderFrequenci: String, CaseIterable, Identifiable {
     case never          = "Никогда"
@@ -150,17 +159,23 @@ struct HomeScreen: View {
     @Environment(\.modelContext) private var modelContext
 
     /// Баланс за выбранный период (учитывает все доходы и расходы)
+    /// Баланс за выбранный период (учитывает начальный баланс + доходы − расходы)
     private var saldo: Double {
+        guard let account = selectedAccount else { return 0 }
+        // 1) Начальный баланс (или 0, если не задан)
+        let base = account.initialBalance ?? 0
+        // 2) Сумма доходов за период
         let income = allPeriodTransactions
             .filter { $0.type == .income }
             .reduce(0) { $0 + $1.amount }
-
+        // 3) Сумма расходов за период
         let expenses = allPeriodTransactions
             .filter { $0.type == .expenses }
             .reduce(0) { $0 + $1.amount }
-
-        return income - expenses
+        // 4) Итого: initialBalance + доходы − расходы
+        return base + income - expenses
     }
+
     /// Все транзакции выбранного счёта за выбранный период (без учёта типа)
     private var allPeriodTransactions: [Transaction] {
         guard let account = selectedAccount else { return [] }
@@ -356,16 +371,37 @@ struct HomeScreen: View {
                 .tint(.white).opacity(0.85) // Изменяет цвет выделенного текста на белый
             }
 
-            VStack (spacing: 8) {
+            VStack(spacing: 8) {
                 Text("Баланс")
                     .foregroundStyle(.white.opacity(0.7))
                     .font(.subheadline)
 
-                Text("\(saldo, specifier: "%.1f") ₽")
-                    .foregroundColor(.white)
+                // 1) Получаем числовое значение баланса
+                let value = saldo
+
+                // 2) Преобразуем его в сокращённую строку (например "10 000", "1.2 млн")
+                let amountText = value.toShortStringWithSuffix()
+
+                // 3) Если отрицательное — добавляем знак минус
+                let sign = (value < 0) ? "-" : ""
+
+                // 4) Берём код валюты, если он есть, иначе "RUB"
+                let currencyCode = selectedAccount?.currency ?? "RUB"
+
+                // 5) Переводим код в символ
+                let currencySign = currencySymbols[currencyCode] ?? currencyCode
+                //    (или: let currencySign = symbol(for: currencyCode) )
+
+                // 6) Выбираем цвет: красный для отрицательного, иначе белый
+                let color: Color = (value < 0) ? .red : .white
+
+                // 7) В самом тексте вставляем знак, сумму и символ валюты
+                Text("\(sign)\(amountText)\(currencySign)")
+                    .foregroundColor(color)
                     .font(.title)
                     .fontWeight(.bold)
             }
+
 
             Button {
                 isAddTransactionViewPresented = true
