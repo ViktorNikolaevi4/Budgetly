@@ -12,19 +12,39 @@ struct AccountsScreen: View {
         VStack {
             Text("Счета")
                 .font(.headline)
+                .padding(.top)
 
-            List {
-                ForEach(accounts) { account in
-                    Text(account.name)
-                }
-                .onDelete { indexSet in
-                    for index in indexSet {
-                        modelContext.delete(accounts[index])
+            // MARK: - Список счетов в виде карточек с прокруткой
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(accounts) { account in
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 20.0)
+                                .foregroundColor(.clear)
+                                .frame(width: 361.0, height: 76.0)
+                                .background(Color(white: 1.0))
+                                .cornerRadius(20.0)
+                                .shadow(color: Color(white: 0.0, opacity: 0.16), radius: 16.0, x: 3.0, y: 6.0)
+
+                            Text(account.name)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                                .padding()
+                        }
+                        .padding(.horizontal)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                modelContext.delete(account)
+                            } label: {
+                                Label("Удалить", systemImage: "trash")
+                            }
+                        }
                     }
                 }
+                .padding(.vertical)
             }
-            .listStyle(.plain)
 
+            // MARK: - Кнопка добавления нового счёта
             Button(action: {
                 isShowingAlert = true
             }) {
@@ -38,13 +58,13 @@ struct AccountsScreen: View {
             }
             .padding(.horizontal)
             .padding(.bottom, 20)
-
             .alert("Новый счет", isPresented: $isShowingAlert) {
                 TextField("Введите название счета", text: $accountName)
                 Button("Создать", action: addAccount)
                 Button("Отмена", role: .cancel, action: { accountName = "" })
             }
         }
+        .background(Color(.systemGray6).ignoresSafeArea())
     }
 
     private func addAccount() {
