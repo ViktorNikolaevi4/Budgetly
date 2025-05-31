@@ -117,103 +117,115 @@ struct AccountCreationView: View {
     let modelContext: ModelContext
 
     var body: some View {
-        NavigationStack {
-            // ───────────────────────────────
-            // Используем Form в стиле insetGrouped
-            Form {
-                Section {
-                    // 1) Ввод названия счета
-                    TextField("Название счета", text: $accountName)
-                }
+            NavigationStack {
+                VStack(spacing: 16) {
+                    // ────────────── Бейдж с символом выбранной валюты ──────────────
+                    // Этот VStack находится сразу под заголовком "Новый счет"
+                    VStack(spacing: 8) {
+                        // 64×64 круглая «плашка» с обводкой
+                        ZStack {
+                            Circle()
+                                .strokeBorder(Color.appPurple, lineWidth: 9)     // Обводка
+                                .background(Circle().foregroundColor(.lightPurprApple)) // Фон внутри круга
+                                .frame(width: 58, height: 58)
 
-                Section {
-                    // 2) Ряд “Валюта” (заголовок + Picker справа)
-                    HStack {
-                        Text("Валюта")
-                        Spacer()
-                        // Показываем текущий код (например “RUB”), по тапу выпадает меню выбора
-                        Picker(selection: $selectedCurrency) {
-                            ForEach(supportedCurrencies, id: \.self) { code in
-                                HStack {
-                                    // Показываем и символ, и код, чтобы было нагляднее
-                                    Text("\(currencySymbols[code] ?? "") \(code)")
-                                }
-                                .tag(code)
-                            }
-                        } label: {
-                            // Пустой label, потому что само содержимое Picker мы рисуем через HStack
-                            Text("")
+                            // Символ валюты (или значок ₽/$/€ и т.д.)
+                            Text(currencySymbols[selectedCurrency] ?? "")
+                                .font(.system(size: 28, weight: .heavy))
+                                .foregroundColor(.white)
                         }
-                        .pickerStyle(.menu)
-                        // Чтобы иконка “стрелочка” появилась справа
                     }
+                    .padding(.top, 8)
 
-                    // 3) Ряд “Начальный баланс”
-                    HStack {
-                        Text("Начальный баланс")
-                        Spacer()
-                        // Поле для ввода. При вводе подсвечивается клавиатурой decimalPad
-                        TextField("0", text: $initialBalanceText)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.decimalPad)
-                            .frame(width: 100)
-                        // После ввода показываем символ валюты
-                        Text(currencySymbols[selectedCurrency] ?? "")
-                            .padding(.leading, 2)
+                    // ────────────── Сам Form (Inset-Grouped) ──────────────
+                    Form {
+                        Section {
+                            // 1) Поле для ввода названия счёта
+                            TextField("Название счета", text: $accountName)
+                        }
+
+                        Section {
+                            // 2) Ряд “Валюта” (заголовок + Picker справа)
+                            HStack {
+                                Text("Валюта")
+                                Spacer()
+                                // Показываем текущий код (например “RUB”), по тапу — меню выбора
+                                Picker(selection: $selectedCurrency) {
+                                    ForEach(supportedCurrencies, id: \.self) { code in
+                                        HStack {
+                                            // Показываем и символ, и код, чтобы было нагляднее
+                                            Text("\(currencySymbols[code] ?? "") \(code)")
+                                        }
+                                        .tag(code)
+                                    }
+                                } label: {
+                                    // Лейбл пустой, ведь мы рисуем ячейку вручную через HStack
+                                    Text("")
+                                }
+                                .pickerStyle(.menu)
+                            }
+
+                            // 3) Ряд “Начальный баланс (опционально)”
+                            HStack {
+                                Text("Начальный баланс")
+                                Spacer()
+                                TextField("0", text: $initialBalanceText)
+                                    .multilineTextAlignment(.trailing)
+                                    .keyboardType(.decimalPad)
+                                    .frame(width: 100)
+                                Text(currencySymbols[selectedCurrency] ?? "")
+                                    .padding(.leading, 4)
+                            }
+                        }
+                    }
+                    .listStyle(InsetGroupedListStyle()) // для iOS 14+ / iOS 15+ стабильный grouped-вид
+                }
+                .navigationTitle("Новый счет")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    // Кнопка «Отмена»
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Отмена") {
+                            dismiss()
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    // Кнопка «Готово»
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Готово") {
+                            addAccount()
+                            dismiss()
+                        }
+                        .disabled(accountName.isEmpty)
                     }
                 }
             }
-            .listStyle(InsetGroupedListStyle())      // или .automatic, но insetGrouped ближе к Zeplin
-            // ───────────────────────────────
+        }
 
-            .navigationTitle("Новый счет")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                // “Отмена”
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") {
-                        dismiss()
-                    }
-                    .foregroundColor(.blue)
-                }
-                // “Готово”
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Готово") {
-                        addAccount()
-                        dismiss()
-                    }
-                    .disabled(accountName.isEmpty)
-                }
+        private func addAccount() {
+            // 1) Парсим строку initialBalanceText → Double?
+            let initialBalanceValue: Double? = {
+                let normalized = initialBalanceText.replacingOccurrences(of: ",", with: ".")
+                return Double(normalized)
+            }()
+
+            // 2) Создаём новый Account с name, currency и initialBalance
+            let newAccount = Account(
+                name: accountName,
+                currency: selectedCurrency,
+                initialBalance: initialBalanceValue
+            )
+            modelContext.insert(newAccount)
+
+            // 3) Заполняем дефолтные категории (если ещё не заполнены)
+            Category.seedDefaults(for: newAccount, in: modelContext)
+
+            // 4) Сохраняем контекст (SwiftData автосохраняет на выходе, но на всякий случай)
+            do {
+                try modelContext.save()
+            } catch {
+                print("Ошибка при сохранении нового счета: \(error.localizedDescription)")
             }
         }
     }
-
-    // MARK: — метод для создания нового Account
-    private func addAccount() {
-        // 1) Парсим введённую строку в Double, если возможно
-        let initialBalanceValue: Double? = {
-            // Заменяем запятую на точку, на всякий случай
-            let normalized = initialBalanceText.replacingOccurrences(of: ",", with: ".")
-            return Double(normalized)
-        }()
-
-        // 2) Создаём новый Account с полями name, currency и initialBalance
-        let newAccount = Account(
-            name: accountName,
-            currency: selectedCurrency,
-            initialBalance: initialBalanceValue
-        )
-        modelContext.insert(newAccount)
-
-        // 3) Сразу заполняем стандартные категории (если ещё не были заполнены)
-        Category.seedDefaults(for: newAccount, in: modelContext)
-
-        // 4) Сохраняем контекст (хотя SwiftData обычно автосохраняет)
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка при сохранении нового счета: \(error.localizedDescription)")
-        }
-    }
-}
 
