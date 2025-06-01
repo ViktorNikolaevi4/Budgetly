@@ -289,6 +289,7 @@ struct AccountCreationView: View {
                                     Text("")
                                 }
                                 .pickerStyle(.menu)
+                                .tint(.gray)
                             }
 
                             // 3) Ряд “Начальный баланс (опционально)”
@@ -322,6 +323,7 @@ struct AccountCreationView: View {
                             addAccount()
                             dismiss()
                         }
+                        .foregroundColor(accountName.isEmpty ? .gray : .appPurple)
                         .disabled(accountName.isEmpty)
                     }
                 }
