@@ -406,30 +406,26 @@ struct HomeScreen: View {
                 Text("Баланс")
                     .foregroundStyle(.white.opacity(0.7))
                     .font(.subheadline)
-
                 // 1) Получаем числовое значение баланса
                 let value = saldo
-
+                
                 // 2) Преобразуем его в сокращённую строку (например "10 000", "1.2 млн")
                 let amountText = value.toShortStringWithSuffix()
-
-                // 3) Если отрицательное — добавляем знак минус
-                let sign = (value < 0) ? "-" : ""
-
-                // 4) Берём код валюты, если он есть, иначе "RUB"
+                
+                // 3) Берём код валюты, если он есть, иначе "RUB"
                 let currencyCode = selectedAccount?.currency ?? "RUB"
-
-                // 5) Переводим код в символ
+                
+                // 4) Переводим код в символ
                 let currencySign = currencySymbols[currencyCode] ?? currencyCode
-                //    (или: let currencySign = symbol(for: currencyCode) )
-
-                // 6) Выбираем цвет: красный для отрицательного, иначе белый
-                let color: Color = (value < 0) ? .red : .white
-
-                // 7) В самом тексте вставляем знак, сумму и символ валюты
-                Text("\(sign)\(amountText)\(currencySign)")
+                
+                // 5) Всегда используем белый цвет, независимо от значения
+                let color: Color = .white
+                
+                // 6) Убираем ручное добавление знака минус, так как toShortStringWithSuffix уже включает знак
+                Text("\(amountText)\(currencySign)")
                     .foregroundColor(color)
                     .font(.title)
+                    .fontWeight(.bold)
                     .fontWeight(.bold)
             }
 
