@@ -14,15 +14,20 @@ struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var accounts: [Account]
 
+    // Флаг для открытия листа «Создать новый счёт»
     @State private var isShowingAddAccountSheet = false
+    // Объект, который редактируется, если != nil
     @State private var accountToEdit: Account? = nil
-
-    // 1) Флаг, отвечающий за показ скрытых счетов
+    // Флаг «режим редактирования всех строк»
+    @State private var isEditing: Bool = false
+    // Флаг, показывать ли скрытые счета
     @State private var showHiddenAccounts = false
 
+    /// Отфильтрованный список исходя из isHidden == false
     private var visibleAccounts: [Account] {
         accounts.filter { !$0.isHidden }
     }
+    /// Отфильтрованный список скрытых (isHidden == true)
     private var hiddenAccounts: [Account] {
         accounts.filter { $0.isHidden }
     }
@@ -32,17 +37,45 @@ struct AccountsScreen: View {
             VStack {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        // 2) Сначала показываем все "видимые" счета
+                        // ─── ВИДИМЫЕ СЧЕТА ─────────────────────────────────────
                         ForEach(visibleAccounts) { account in
-                            accountRow(for: account)
+                            ZStack {
+                                // 1) Сама карточка
+                                accountRow(for: account, isHidden: false)
+                                    // 2) Если режим редактирования включён, сдвигаем карточку влево
+                                    .offset(x: isEditing ? -60 : 0)
+
+                                // 3) Если режим редактирования, справа рисуем кнопку «✏️»
+                                if isEditing {
+                                    Color.clear
+                                        .frame(height: 76) // ровно высота карточки
+                                        .overlay(
+                                            Button(action: {
+                                                // Открываем именно этот счёт в редакторе
+                                                accountToEdit = account
+                                            }) {
+                                                Image(systemName: "pencil")
+                                                    .resizable()
+                                                    .scaledToFit()
+                                                    .frame(width: 20, height: 20)
+                                                    .padding()
+                                                    .background(Color.blue.opacity(0.8))
+                                                    .foregroundColor(.white)
+                                                    .clipShape(Circle())
+                                            }
+                                            .padding(.trailing, 16),
+                                            alignment: .trailing
+                                        )
+                                }
+                            }
+                            .frame(height: 76)
+                            .padding(.horizontal)
                         }
 
-                        // 3) Кнопка "Показать скрытые счета"
+                        // ─── КНОПКА «Показать / Скрыть скрытые счета» ────────────────
                         if !hiddenAccounts.isEmpty {
                             Button(action: {
-                                withAnimation {
-                                    showHiddenAccounts.toggle()
-                                }
+                                withAnimation { showHiddenAccounts.toggle() }
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: showHiddenAccounts ? "eye.slash.fill" : "eye.fill")
@@ -56,17 +89,43 @@ struct AccountsScreen: View {
                             .padding(.horizontal)
                         }
 
-                        // 4) Если пользователь нажал "Показать скрытые счета", отображаем их тут
+                        // ─── Если пользователь хочет видеть скрытые — показываем их ───
                         if showHiddenAccounts {
                             ForEach(hiddenAccounts) { account in
-                                accountRow(for: account, isHidden: true)
+                                ZStack {
+                                    accountRow(for: account, isHidden: true)
+                                        .offset(x: isEditing ? -60 : 0)
+
+                                    if isEditing {
+                                        Color.clear
+                                            .frame(height: 76)
+                                            .overlay(
+                                                Button(action: {
+                                                    accountToEdit = account
+                                                }) {
+                                                    Image(systemName: "pencil")
+                                                        .resizable()
+                                                        .scaledToFit()
+                                                        .frame(width: 20, height: 20)
+                                                        .padding()
+                                                        .background(Color.blue.opacity(0.8))
+                                                        .foregroundColor(.white)
+                                                        .clipShape(Circle())
+                                                }
+                                                .padding(.trailing, 16),
+                                                alignment: .trailing
+                                            )
+                                    }
+                                }
+                                .frame(height: 76)
+                                .padding(.horizontal)
                             }
                         }
                     }
                     .padding(.vertical)
                 }
 
-                // 5) Кнопка "Добавить новый счет"
+                // ─── КНОПКА «Добавить новый счёт» ───────────────────────────────
                 Button(action: {
                     isShowingAddAccountSheet = true
                 }) {
@@ -82,22 +141,32 @@ struct AccountsScreen: View {
                 .padding(.bottom, 20)
             }
             .navigationTitle("Счета")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                // ─── LEADING: Кнопка «Редактировать / Готово» ────────────────────
+                ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        isShowingAddAccountSheet = true
+                        withAnimation { isEditing.toggle() }
                     }) {
+                        Text(isEditing ? "Готово" : "Редактировать")
+                            .foregroundColor(isEditing ? .red : .blue)
+                    }
+                    .disabled(visibleAccounts.isEmpty && hiddenAccounts.isEmpty)
+                }
+                // ─── TRAILING: Кнопка «+» для создания нового счета ──────────────
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        isShowingAddAccountSheet = true
+                    } label: {
                         Image(systemName: "plus")
                             .foregroundColor(.appPurple)
                     }
                 }
             }
-            // Sheet для создания нового счета
+            // ─── Sheet для создания нового счёта ───────────────────────────
             .sheet(isPresented: $isShowingAddAccountSheet) {
                 AccountCreationView(modelContext: modelContext)
             }
-            // Sheet для редактирования (item: binding)
+            // ─── Sheet для редактирования (item:) ──────────────────────────
             .sheet(item: $accountToEdit) { editingAccount in
                 AccountEditView(account: editingAccount) {
                     accountToEdit = nil
@@ -108,21 +177,20 @@ struct AccountsScreen: View {
         }
     }
 
-    // Вынесли логику одной строки в отдельную функцию,
-    // чтобы DRY (чтобы одинаково рисовать и видимые, и скрытые):
+    /// Функция для построения одной «строки» (карточки) аккаунта
     @ViewBuilder
-    private func accountRow(for account: Account, isHidden: Bool = false) -> some View {
+    private func accountRow(for account: Account, isHidden: Bool) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20.0)
                 .foregroundColor(.clear)
-                .frame(width: 361.0, height: 76.0)
+                .frame(height: 76.0)
                 .background(Color(white: 1.0))
                 .cornerRadius(20.0)
                 .shadow(color: Color(white: 0.0, opacity: 0.16),
                         radius: 16.0, x: 3.0, y: 6.0)
 
             HStack(spacing: 12) {
-                // ─── Бейдж с символом валюты ───
+                // ─── Бейдж с символом валюты ────────────────────────────
                 ZStack {
                     Circle()
                         .strokeBorder(Color.appPurple, lineWidth: 7)
@@ -154,45 +222,33 @@ struct AccountsScreen: View {
                 Text(account.formattedBalance)
                     .fontWeight(.medium)
                     .font(.body)
-                    // Если это "скрытый" счет, можно сделать баланс чуть бледнее:
-                    .foregroundStyle(isHidden ? .gray : (account.balance < 0 ? .red : .primary))
+                    .foregroundStyle(
+                        isHidden
+                        ? .gray
+                        : (account.balance < 0 ? .red : .primary)
+                    )
                     .padding(.trailing, 12)
             }
         }
         .padding(.horizontal)
         .contextMenu {
-            // Если это видимый счет, даём возможность редактировать и удалять.
-            // Можно также запретить редактирование скрытых, если нужно:
-            if !isHidden {
-                Button {
-                    accountToEdit = account
-                } label: {
-                    Label("Редактировать", systemImage: "pencil")
-                }
-                Divider()
-                Button(role: .destructive) {
-                    deleteAccount(account)
-                } label: {
-                    Label("Удалить", systemImage: "trash")
-                }
-            } else {
-                // Для скрытых счетов можно либо не показывать меню, либо
-                // давать только «Редактировать»/«Удалить» — зависит от UX.
-                Button {
-                    accountToEdit = account
-                } label: {
-                    Label("Редактировать", systemImage: "pencil")
-                }
-                Divider()
-                Button(role: .destructive) {
-                    deleteAccount(account)
-                } label: {
-                    Label("Удалить", systemImage: "trash")
-                }
+            // Контекстное меню «Редактировать / Удалить»
+            // Для видимых и скрытых — одинаково (можно убрать для скрытых, если UX не требует)
+            Button {
+                accountToEdit = account
+            } label: {
+                Label("Редактировать", systemImage: "pencil")
+            }
+            Divider()
+            Button(role: .destructive) {
+                deleteAccount(account)
+            } label: {
+                Label("Удалить", systemImage: "trash")
             }
         }
     }
 
+    /// Удаление аккаунта вместе с транзакциями и категориями
     private func deleteAccount(_ account: Account) {
         for tx in account.transactions {
             modelContext.delete(tx)
@@ -332,4 +388,3 @@ struct AccountCreationView: View {
             }
         }
     }
-
