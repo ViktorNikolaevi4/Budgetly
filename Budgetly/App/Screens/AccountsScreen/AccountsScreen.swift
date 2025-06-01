@@ -201,7 +201,7 @@ struct AccountsScreen: View {
                         .scaledToFit()
                         .frame(width: 18, height: 18)
                         .padding(8)
-                        .background(Color.blue.opacity(0.8))
+                        .background(Color.lightPurprApple)
                         .foregroundColor(.white)
                         .clipShape(Circle())
                 }
@@ -314,7 +314,7 @@ struct AccountCreationView: View {
                         Button("Отмена") {
                             dismiss()
                         }
-                        .foregroundColor(.blue)
+                        .foregroundColor(.appPurple)
                     }
                     // Кнопка «Готово»
                     ToolbarItem(placement: .confirmationAction) {
