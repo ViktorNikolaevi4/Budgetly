@@ -21,52 +21,71 @@ struct AccountEditView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    // 1) Имя счёта
-                    TextField("Название счета", text: $account.name)
-                }
+            VStack(spacing: 16) {
+                // ─── Бейдж валюты ────────────────────────────────────────────────────────
+                // Рисуем его сразу под навигационным заголовком
+                ZStack {
+                    Circle()
+                        .strokeBorder(Color.appPurple, lineWidth: 9)     // Обводка
+                        .background(
+                            Circle()
+                                .foregroundColor(Color.lightPurprApple) // Полупрозрачный фон
+                        )
+                        .frame(width: 58, height: 58)
 
-                Section {
-                    // 2) Валюта
-                    HStack {
-                        Text("Валюта")
-                        Spacer()
-                        Picker(selection: $account.currency) {
-                            ForEach(supportedCurrencies, id: \.self) { cur in
-                                Text(cur).tag(cur as String?)
-                            }
-                        } label: {
-                            Text(account.currency ?? "—")
-                        }
-                        .pickerStyle(.menu)
+                    // Символ валюты (или пустая строка, если currency == nil)
+                    Text(currencySymbols[account.currency ?? ""] ?? "")
+                        .font(.system(size: 28, weight: .heavy))
+                        .foregroundColor(.white)
+                }
+                .padding(.top, 8)
+                Form {
+                    Section {
+                        // 1) Имя счёта
+                        TextField("Название счета", text: $account.name)
                     }
 
-                    // 3) Начальный баланс (опционально)
-                    HStack {
-                                   Text("Баланс")
-                                   Spacer()
-                                   // Здесь показываем отформатированный баланс (имя метода может отличаться у вас,
-                                   // но в примере мы используем account.formattedBalance)
-                                   Text(account.formattedBalance)
-                                       .foregroundColor(.secondary)
-                               }
-
-                    // 4) Toggle «Скрыть счёт»
-                    Toggle(isOn: $account.isHidden) {
-                        Text("Скрыть счет")
-                    }
-                }
-
-                // В отдельном подразделе ниже кнопка «Удалить»
-                Section {
-                    Button(role: .destructive) {
-                        // Удаляем аккаунт:
-                        deleteSelf()
-                    } label: {
+                    Section {
+                        // 2) Валюта
                         HStack {
-                            Image(systemName: "trash")
-                            Text("Удалить счет")
+                            Text("Валюта")
+                            Spacer()
+                            Picker(selection: $account.currency) {
+                                ForEach(supportedCurrencies, id: \.self) { cur in
+                                    Text(cur).tag(cur as String?)
+                                }
+                            } label: {
+                                Text(account.currency ?? "—")
+                            }
+                            .pickerStyle(.menu)
+                        }
+
+                        // 3) Начальный баланс (опционально)
+                        HStack {
+                            Text("Баланс")
+                            Spacer()
+                            // Здесь показываем отформатированный баланс (имя метода может отличаться у вас,
+                            // но в примере мы используем account.formattedBalance)
+                            Text(account.formattedBalance)
+                                .foregroundColor(.secondary)
+                        }
+
+                        // 4) Toggle «Скрыть счёт»
+                        Toggle(isOn: $account.isHidden) {
+                            Text("Скрыть счет")
+                        }
+                    }
+
+                    // В отдельном подразделе ниже кнопка «Удалить»
+                    Section {
+                        Button(role: .destructive) {
+                            // Удаляем аккаунт:
+                            deleteSelf()
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Удалить счет")
+                            }
                         }
                     }
                 }
