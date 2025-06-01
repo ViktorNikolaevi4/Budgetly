@@ -10,102 +10,63 @@ let supportedCurrencies: [String] = [
     "CNY"
 ]
 
-import SwiftUI
-import SwiftData
-
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var accounts: [Account]
 
     @State private var isShowingAddAccountSheet = false
-
-    // 1) вместо двух булевых флагов используем один опциональный Account
     @State private var accountToEdit: Account? = nil
+
+    // 1) Флаг, отвечающий за показ скрытых счетов
+    @State private var showHiddenAccounts = false
+
+    private var visibleAccounts: [Account] {
+        accounts.filter { !$0.isHidden }
+    }
+    private var hiddenAccounts: [Account] {
+        accounts.filter { $0.isHidden }
+    }
 
     var body: some View {
         NavigationStack {
             VStack {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(accounts) { account in
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 20.0)
-                                    .foregroundColor(.clear)
-                                    .frame(width: 361.0, height: 76.0)
-                                    .background(Color(white: 1.0))
-                                    .cornerRadius(20.0)
-                                    .shadow(color: Color(white: 0.0, opacity: 0.16), radius: 16.0, x: 3.0, y: 6.0)
+                        // 2) Сначала показываем все "видимые" счета
+                        ForEach(visibleAccounts) { account in
+                            accountRow(for: account)
+                        }
 
-                                HStack(spacing: 12) {
-                                      // ─── Круглый бейдж с символом валюты ───
-                                      ZStack {
-                                          // Синяя обводка (цвет можно взять из вашего .appPurple)
-                                          Circle()
-                                              .strokeBorder(Color.appPurple, lineWidth: 7)
-                                              .background(
-                                                  Circle()
-                                                      .foregroundColor(Color.lightPurprApple)
-                                              )
-                                              .frame(width: 44, height: 44)
-
-                                          // Сам символ валюты (или, если нет, пустая строка)
-                                          Text(currencySymbols[account.currency ?? ""] ?? "")
-                                              .font(.system(size: 20, weight: .bold))
-                                              .foregroundColor(.white)
-                                      }
-                                      .padding(.leading, 8)
-
-                                      // Название счёта и код валюты под ним
-                                      VStack(alignment: .leading, spacing: 4) {
-                                          Text(account.name)
-                                              .fontWeight(.medium)
-                                              .font(.body)
-                                              .foregroundColor(.primary)
-
-                                          // Подчёркнуто сверху: показываем код валюты мелким текстом
-                                          Text(account.currency ?? "")
-                                              .font(.subheadline)
-                                              .foregroundColor(.secondary)
-                                      }
-
-                                      Spacer()
-
-                                      // Баланс справа
-                                      Text(account.formattedBalance)
-                                          .fontWeight(.medium)
-                                          .font(.body)
-                                          .foregroundStyle(account.balance < 0 ? .red : .primary)
-                                          .padding(.trailing, 12)
-                                  }
-                              }
+                        // 3) Кнопка "Показать скрытые счета"
+                        if !hiddenAccounts.isEmpty {
+                            Button(action: {
+                                withAnimation {
+                                    showHiddenAccounts.toggle()
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: showHiddenAccounts ? "eye.slash.fill" : "eye.fill")
+                                        .foregroundColor(.gray)
+                                    Text(showHiddenAccounts ? "Скрыть скрытые счета" : "Показать скрытые счета")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.vertical, 8)
+                            }
                             .padding(.horizontal)
-                            .contextMenu {
-                                Button {
-                                    // Запускаем sheet для редактирования
-                                    accountToEdit = account
-                                } label: {
-                                    Label("Редактировать", systemImage: "pencil")
-                                }
-                                Divider()
-                                Button(role: .destructive) {
-                                    deleteAccount(account)
-                                } label: {
-                                    Label("Удалить", systemImage: "trash")
-                                }
+                        }
+
+                        // 4) Если пользователь нажал "Показать скрытые счета", отображаем их тут
+                        if showHiddenAccounts {
+                            ForEach(hiddenAccounts) { account in
+                                accountRow(for: account, isHidden: true)
                             }
                         }
                     }
                     .padding(.vertical)
-                    HStack(spacing: 8) {
-                        Image(systemName: "eye.fill")
-                            .foregroundColor(.gray)
-                        Text("Показать скрытые счета")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                    }
-                    .padding(.vertical, 8)
                 }
 
+                // 5) Кнопка "Добавить новый счет"
                 Button(action: {
                     isShowingAddAccountSheet = true
                 }) {
@@ -132,27 +93,119 @@ struct AccountsScreen: View {
                     }
                 }
             }
-            // 2) sheet для создания нового счета
+            // Sheet для создания нового счета
             .sheet(isPresented: $isShowingAddAccountSheet) {
                 AccountCreationView(modelContext: modelContext)
             }
-            // 3) sheet для редактирования: появляется только когда accountToEdit != nil
-            .sheet(item: $accountToEdit) { editing in
-                AccountEditView(account: editing, onDelete: {
+            // Sheet для редактирования (item: binding)
+            .sheet(item: $accountToEdit) { editingAccount in
+                AccountEditView(account: editingAccount) {
                     accountToEdit = nil
-                })
+                }
                 .environment(\.modelContext, modelContext)
             }
             .background(Color(.systemGray6).ignoresSafeArea())
         }
     }
 
+    // Вынесли логику одной строки в отдельную функцию,
+    // чтобы DRY (чтобы одинаково рисовать и видимые, и скрытые):
+    @ViewBuilder
+    private func accountRow(for account: Account, isHidden: Bool = false) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20.0)
+                .foregroundColor(.clear)
+                .frame(width: 361.0, height: 76.0)
+                .background(Color(white: 1.0))
+                .cornerRadius(20.0)
+                .shadow(color: Color(white: 0.0, opacity: 0.16),
+                        radius: 16.0, x: 3.0, y: 6.0)
+
+            HStack(spacing: 12) {
+                // ─── Бейдж с символом валюты ───
+                ZStack {
+                    Circle()
+                        .strokeBorder(Color.appPurple, lineWidth: 7)
+                        .background(
+                            Circle()
+                                .foregroundColor(Color.lightPurprApple)
+                        )
+                        .frame(width: 44, height: 44)
+
+                    Text(currencySymbols[account.currency ?? ""] ?? "")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .padding(.leading, 8)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(account.name)
+                        .fontWeight(.medium)
+                        .font(.body)
+                        .foregroundColor(isHidden ? .gray : .primary)
+
+                    Text(account.currency ?? "")
+                        .font(.subheadline)
+                        .foregroundColor(isHidden ? .gray : .secondary)
+                }
+
+                Spacer()
+
+                Text(account.formattedBalance)
+                    .fontWeight(.medium)
+                    .font(.body)
+                    // Если это "скрытый" счет, можно сделать баланс чуть бледнее:
+                    .foregroundStyle(isHidden ? .gray : (account.balance < 0 ? .red : .primary))
+                    .padding(.trailing, 12)
+            }
+        }
+        .padding(.horizontal)
+        .contextMenu {
+            // Если это видимый счет, даём возможность редактировать и удалять.
+            // Можно также запретить редактирование скрытых, если нужно:
+            if !isHidden {
+                Button {
+                    accountToEdit = account
+                } label: {
+                    Label("Редактировать", systemImage: "pencil")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    deleteAccount(account)
+                } label: {
+                    Label("Удалить", systemImage: "trash")
+                }
+            } else {
+                // Для скрытых счетов можно либо не показывать меню, либо
+                // давать только «Редактировать»/«Удалить» — зависит от UX.
+                Button {
+                    accountToEdit = account
+                } label: {
+                    Label("Редактировать", systemImage: "pencil")
+                }
+                Divider()
+                Button(role: .destructive) {
+                    deleteAccount(account)
+                } label: {
+                    Label("Удалить", systemImage: "trash")
+                }
+            }
+        }
+    }
+
     private func deleteAccount(_ account: Account) {
-        for tx in account.transactions { modelContext.delete(tx) }
-        for cat in account.categories { modelContext.delete(cat) }
+        for tx in account.transactions {
+            modelContext.delete(tx)
+        }
+        for cat in account.categories {
+            modelContext.delete(cat)
+        }
         modelContext.delete(account)
-        do { try modelContext.save() }
-        catch { print("Ошибка при каскадном удалении аккаунта: \(error)") }
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при каскадном удалении аккаунта: \(error)")
+        }
     }
 }
 
