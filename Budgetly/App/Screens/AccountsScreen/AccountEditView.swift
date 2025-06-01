@@ -58,6 +58,7 @@ struct AccountEditView: View {
                                 Text(account.currency ?? "—")
                             }
                             .pickerStyle(.menu)
+                            .tint(.gray)
                         }
 
                         // 3) Начальный баланс (опционально)
@@ -99,7 +100,7 @@ struct AccountEditView: View {
                         modelContext.rollback()
                         dismiss()
                     }
-                    .foregroundColor(.blue)
+                    .foregroundColor(.appPurple)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Готово") {
@@ -111,6 +112,7 @@ struct AccountEditView: View {
                         }
                         dismiss()
                     }
+                    .foregroundColor(account.name.isEmpty ? .gray : .appPurple)
                     .disabled(account.name.isEmpty)
                 }
             }
