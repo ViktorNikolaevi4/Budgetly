@@ -8,11 +8,11 @@ let supportedCurrencies: [String] = ["RUB","USD","EUR","GBP","JPY","CNY"]
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
 
-    // ─── Query с сортировкой по полю sortOrder ────────────────
     @Query(sort: \Account.sortOrder, order: .forward)
     private var accounts: [Account]
 
     @State private var isShowingAddAccountSheet = false
+    @State private var editMode: EditMode = .inactive // Добавляем состояние для режима редактирования
 
     var body: some View {
         NavigationStack {
@@ -28,31 +28,26 @@ struct AccountsScreen: View {
                             .padding(.vertical, 6)
                     }
                 }
-                // ─── Свайп-to-delete ─────────────────────────────────
                 .onDelete { offsets in
                     offsets.map { accounts[$0] }
                            .forEach(deleteAccount)
                 }
-                // ─── Режим перетаскивания ────────────────────────────
                 .onMove { indices, newOffset in
-                    // 1) клонируем текущий упорядоченный массив
                     var reordered = accounts
                     reordered.move(fromOffsets: indices, toOffset: newOffset)
 
-                    // 2) переписываем sortOrder у каждой модели
                     for (newIndex, acc) in reordered.enumerated() {
                         acc.sortOrder = newIndex
                     }
 
-                    // 3) сохраняем изменения
                     try? modelContext.save()
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color(.systemGray6))
+            .environment(\.editMode, $editMode) // Привязываем editMode к списку
 
-            // ─── Кнопка «Добавить» ───────────────────────────────
             Button {
                 isShowingAddAccountSheet = true
             } label: {
@@ -69,12 +64,14 @@ struct AccountsScreen: View {
 
             .navigationTitle("Счета")
             .toolbar {
-                // ─── «Править» дает минусы и хваталки ─────────
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton()
-                        .foregroundColor(.appPurple)
+                    Button(editMode.isEditing ? "Готово" : "Править") {
+                        withAnimation {
+                            editMode = editMode.isEditing ? .inactive : .active
+                        }
+                    }
+                    .foregroundColor(.appPurple)
                 }
-                // ─── «+» для создания ───────────────────────────
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { isShowingAddAccountSheet = true } label: {
                         Image(systemName: "plus")
@@ -99,7 +96,6 @@ struct AccountsScreen: View {
                 .shadow(color: .black.opacity(0.16), radius: 16, x: 3, y: 6)
 
             HStack(spacing: 12) {
-                // бейдж валюты
                 ZStack {
                     Circle()
                         .strokeBorder(Color.appPurple, lineWidth: 7)
@@ -111,7 +107,6 @@ struct AccountsScreen: View {
                 }
                 .padding(.leading, 8)
 
-                // название и код
                 VStack(alignment: .leading, spacing: 4) {
                     Text(account.name)
                         .font(.body).fontWeight(.medium)
@@ -122,7 +117,6 @@ struct AccountsScreen: View {
 
                 Spacer()
 
-                // баланс
                 Text(account.formattedBalance)
                     .font(.body).fontWeight(.medium)
                     .foregroundStyle(account.balance < 0 ? .red : .primary)
