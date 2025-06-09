@@ -19,50 +19,60 @@ struct AccountsScreen: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        // Показ всех счетов без разделения на скрытые
-                        ForEach(accounts) { account in
-                            accountRow(
-                                for: account,
-                                onEditTap: {
-                                    accountToEdit = account
-                                }
-                            )
-                            .frame(height: 76)
-                            .padding(.horizontal)
-                        }
+            List {
+                ForEach(accounts) { account in
+                    accountRow(for: account) {
+                        // убрали внутреннюю кнопку — редактим через свайп
                     }
-                    .padding(.vertical)
+                    .frame(height: 76)
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    // ── Свайп для редактирования и удаления ───────────────────
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        // Удалить
+                        Button(role: .destructive) {
+                            deleteAccount(account)
+                        } label: {
+                            Label("Удалить", systemImage: "trash")
+                        }
+                        // Редактировать
+                        Button {
+                            accountToEdit = account
+                        } label: {
+                            Label("Изменить", systemImage: "pencil")
+                        }
+                        .tint(.blue)
+                    }
                 }
-
-                // Кнопка «Добавить новый счёт»
-                Button(action: {
-                    isShowingAddAccountSheet = true
-                }) {
-                    Text("Добавить новый счет")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.appPurple)
-                        .foregroundColor(.white)
-                        .cornerRadius(16)
+                .onDelete { offsets in
+                    offsets.map { accounts[$0] }.forEach { deleteAccount($0) }
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemGray6))
+
+            Button(action: { isShowingAddAccountSheet = true }) {
+                Text("Добавить новый счет")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.appPurple)
+                    .foregroundColor(.white)
+                    .cornerRadius(16)
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 20)
             .navigationTitle("Счета")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     EmptyView()
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isShowingAddAccountSheet = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .foregroundColor(.appPurple)
+                    Button { isShowingAddAccountSheet = true } label: {
+                        Image(systemName: "plus").foregroundColor(.appPurple)
                     }
                 }
             }
@@ -75,7 +85,6 @@ struct AccountsScreen: View {
                 }
                 .environment(\.modelContext, modelContext)
             }
-            .background(Color(.systemGray6).ignoresSafeArea())
         }
     }
 
@@ -85,41 +94,31 @@ struct AccountsScreen: View {
         onEditTap: @escaping () -> Void
     ) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 20.0)
+            RoundedRectangle(cornerRadius: 20)
                 .foregroundColor(.clear)
-                .frame(height: 76.0)
-                .background(Color(white: 1.0))
-                .cornerRadius(20.0)
-                .shadow(color: Color(white: 0.0, opacity: 0.16),
-                        radius: 16.0, x: 3.0, y: 6.0)
+                .background(Color.white)
+                .cornerRadius(20)
+                .shadow(color: .black.opacity(0.16), radius: 16, x: 3, y: 6)
+                .frame(height: 76)
 
             HStack(spacing: 12) {
-                // Бейдж с символом валюты без учёта скрытия
+                // Бейдж валюты
                 ZStack {
                     Circle()
-                        .strokeBorder(
-                            Color.appPurple,
-                            lineWidth: 7
-                        )
-                        .background(
-                            Circle()
-                                .foregroundColor(Color.lightPurprApple)
-                        )
+                        .strokeBorder(Color.appPurple, lineWidth: 7)
+                        .background(Circle().foregroundColor(Color.lightPurprApple))
                         .frame(width: 44, height: 44)
-
                     Text(currencySymbols[account.currency ?? ""] ?? "")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
                 }
                 .padding(.leading, 8)
 
-                // Название и код валюты
+                // Название и код
                 VStack(alignment: .leading, spacing: 4) {
                     Text(account.name)
-                        .fontWeight(.medium)
-                        .font(.body)
+                        .font(.body).fontWeight(.medium)
                         .foregroundColor(.primary)
-
                     Text(account.currency ?? "")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -129,32 +128,18 @@ struct AccountsScreen: View {
 
                 // Баланс
                 Text(account.formattedBalance)
-                    .fontWeight(.medium)
-                    .font(.body)
-                    .foregroundStyle(
-                        account.balance < 0 ? .red : .primary
-                    )
+                    .font(.body).fontWeight(.medium)
+                    .foregroundStyle(account.balance < 0 ? .red : .primary)
                     .padding(.trailing, 12)
-
-                // Кнопка «✏️» для редактирования
-                Button(action: { onEditTap() }) {
-                    Image(systemName: "pencil")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 18, height: 18)
-                        .padding(8)
-                        .background(Color.lightPurprApple)
-                        .foregroundColor(.white)
-                        .clipShape(Circle())
-                }
-                .padding(.leading, 8)
-                .padding(.trailing, 12)
             }
         }
         .contextMenu {
-            Button { onEditTap() } label: {
+            Button {
+                onEditTap()
+            } label: {
                 Label("Редактировать", systemImage: "pencil")
             }
+
             Divider()
             Button(role: .destructive) {
                 deleteAccount(account)
@@ -171,6 +156,7 @@ struct AccountsScreen: View {
         try? modelContext.save()
     }
 }
+
 
 // MARK: — AccountCreationView (без изменений)
 struct AccountCreationView: View {
