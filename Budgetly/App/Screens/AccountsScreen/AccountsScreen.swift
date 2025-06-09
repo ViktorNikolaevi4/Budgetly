@@ -1,13 +1,16 @@
 import SwiftUI
 import SwiftData
 
-let supportedCurrencies: [String] = [
-    "RUB", "USD", "EUR", "GBP", "JPY", "CNY"
-]
+// MARK: — константы для валют
+let supportedCurrencies: [String] = ["RUB","USD","EUR","GBP","JPY","CNY"]
+
 
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var accounts: [Account]
+
+    // ─── Query с сортировкой по полю sortOrder ────────────────
+    @Query(sort: \Account.sortOrder, order: .forward)
+    private var accounts: [Account]
 
     @State private var isShowingAddAccountSheet = false
 
@@ -15,31 +18,41 @@ struct AccountsScreen: View {
         NavigationStack {
             List {
                 ForEach(accounts) { account in
-                    // ── Навигационная ссылка вместо sheet/contextMenu ──
                     NavigationLink {
-                        AccountEditView(account: account) {
-                            // при удалении внутри EditView возвращаемся назад
-                            // (SwiftUI сам закроет ссылку)
-                        }
-                        .environment(\.modelContext, modelContext)
+                        AccountEditView(account: account) { }
+                            .environment(\.modelContext, modelContext)
                     } label: {
                         accountRow(for: account)
                             .frame(height: 76)
                             .padding(.horizontal)
                             .padding(.vertical, 6)
                     }
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
                 }
+                // ─── Свайп-to-delete ─────────────────────────────────
                 .onDelete { offsets in
-                    offsets.map { accounts[$0] }.forEach(deleteAccount)
+                    offsets.map { accounts[$0] }
+                           .forEach(deleteAccount)
+                }
+                // ─── Режим перетаскивания ────────────────────────────
+                .onMove { indices, newOffset in
+                    // 1) клонируем текущий упорядоченный массив
+                    var reordered = accounts
+                    reordered.move(fromOffsets: indices, toOffset: newOffset)
+
+                    // 2) переписываем sortOrder у каждой модели
+                    for (newIndex, acc) in reordered.enumerated() {
+                        acc.sortOrder = newIndex
+                    }
+
+                    // 3) сохраняем изменения
+                    try? modelContext.save()
                 }
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color(.systemGray6))
 
-            // ── Кнопка «Добавить» ──
+            // ─── Кнопка «Добавить» ───────────────────────────────
             Button {
                 isShowingAddAccountSheet = true
             } label: {
@@ -56,13 +69,14 @@ struct AccountsScreen: View {
 
             .navigationTitle("Счета")
             .toolbar {
+                // ─── «Править» дает минусы и хваталки ─────────
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EmptyView()
+                    EditButton()
+                        .foregroundColor(.appPurple)
                 }
+                // ─── «+» для создания ───────────────────────────
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isShowingAddAccountSheet = true
-                    } label: {
+                    Button { isShowingAddAccountSheet = true } label: {
                         Image(systemName: "plus")
                             .foregroundColor(.appPurple)
                     }
@@ -74,6 +88,7 @@ struct AccountsScreen: View {
         }
     }
 
+    // MARK: — строка карточки
     @ViewBuilder
     private func accountRow(for account: Account) -> some View {
         ZStack {
@@ -81,18 +96,14 @@ struct AccountsScreen: View {
                 .foregroundColor(.clear)
                 .background(Color.white)
                 .cornerRadius(20)
-                .shadow(color: .black.opacity(0.16),
-                        radius: 16, x: 3, y: 6)
-                .frame(height: 76)
+                .shadow(color: .black.opacity(0.16), radius: 16, x: 3, y: 6)
 
             HStack(spacing: 12) {
-                // Бейдж с символом валюты
+                // бейдж валюты
                 ZStack {
                     Circle()
                         .strokeBorder(Color.appPurple, lineWidth: 7)
-                        .background(
-                            Circle().foregroundColor(Color.lightPurprApple)
-                        )
+                        .background(Circle().foregroundColor(Color.lightPurprApple))
                         .frame(width: 44, height: 44)
                     Text(currencySymbols[account.currency ?? ""] ?? "")
                         .font(.system(size: 20, weight: .bold))
@@ -100,19 +111,18 @@ struct AccountsScreen: View {
                 }
                 .padding(.leading, 8)
 
-                // Название и код
+                // название и код
                 VStack(alignment: .leading, spacing: 4) {
                     Text(account.name)
                         .font(.body).fontWeight(.medium)
                         .foregroundColor(.primary)
                     Text(account.currency ?? "")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.subheadline).foregroundColor(.secondary)
                 }
 
                 Spacer()
 
-                // Баланс
+                // баланс
                 Text(account.formattedBalance)
                     .font(.body).fontWeight(.medium)
                     .foregroundStyle(account.balance < 0 ? .red : .primary)
@@ -121,6 +131,7 @@ struct AccountsScreen: View {
         }
     }
 
+    // MARK: — удаление вместе с относящимися объектами
     private func deleteAccount(_ account: Account) {
         for tx in account.transactions { modelContext.delete(tx) }
         for cat in account.categories  { modelContext.delete(cat) }
@@ -129,21 +140,18 @@ struct AccountsScreen: View {
     }
 }
 
-
-
-// MARK: — AccountCreationView (без изменений)
+// MARK: — экран создания (тот же, что у вас был)
 struct AccountCreationView: View {
     @Environment(\.dismiss) private var dismiss
-
-    @State private var accountName: String = ""
-    @State private var initialBalanceText: String = ""
-    @State private var selectedCurrency: String = "RUB"
-
+    @State private var accountName = ""
+    @State private var initialBalanceText = ""
+    @State private var selectedCurrency = "RUB"
     let modelContext: ModelContext
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
+                // бейдж валюты
                 VStack(spacing: 8) {
                     ZStack {
                         Circle()
@@ -161,36 +169,28 @@ struct AccountCreationView: View {
                     Section {
                         TextField("Название счета", text: $accountName)
                     }
-
                     Section {
                         HStack {
-                            Text("Валюта")
-                            Spacer()
-                            Picker(selection: $selectedCurrency) {
+                            Text("Валюта"); Spacer()
+                            Picker("", selection: $selectedCurrency) {
                                 ForEach(supportedCurrencies, id: \.self) { code in
-                                    HStack {
-                                        Text("\(currencySymbols[code] ?? "") \(code)")
-                                    }
-                                    .tag(code)
+                                    Text("\(currencySymbols[code]!) \(code)")
+                                        .tag(code)
                                 }
-                            } label: { Text("") }
-                            .pickerStyle(.menu)
-                            .tint(.gray)
+                            }
+                            .pickerStyle(.menu).tint(.gray)
                         }
-
                         HStack {
-                            Text("Начальный баланс")
-                            Spacer()
+                            Text("Начальный баланс"); Spacer()
                             TextField("0", text: $initialBalanceText)
                                 .multilineTextAlignment(.trailing)
                                 .keyboardType(.decimalPad)
                                 .frame(width: 100)
-                            Text(currencySymbols[selectedCurrency] ?? "")
+                            Text(currencySymbols[selectedCurrency]!)
                                 .padding(.leading, 4)
                         }
                     }
                 }
-                .listStyle(InsetGroupedListStyle())
             }
             .navigationTitle("Новый счет")
             .navigationBarTitleDisplayMode(.inline)
@@ -204,28 +204,36 @@ struct AccountCreationView: View {
                         addAccount()
                         dismiss()
                     }
-                    .foregroundColor(accountName.isEmpty ? .gray : .appPurple)
                     .disabled(accountName.isEmpty)
+                    .foregroundColor(accountName.isEmpty ? .gray : .appPurple)
                 }
             }
         }
     }
 
     private func addAccount() {
-        let initialBalanceValue: Double? = {
-            let normalized = initialBalanceText.replacingOccurrences(of: ",", with: ".")
-            return Double(normalized)
+        let bal: Double? = {
+            let norm = initialBalanceText.replacingOccurrences(of: ",", with: ".")
+            return Double(norm)
         }()
-
-        let newAccount = Account(
+        // вставляем новый со вторым параметром sortOrder = текущий count
+        let newAcc = Account(
             name: accountName,
             currency: selectedCurrency,
-            initialBalance: initialBalanceValue
+            initialBalance: bal,
+            sortOrder: accountsCount()
         )
-        modelContext.insert(newAccount)
-        Category.seedDefaults(for: newAccount, in: modelContext)
+        modelContext.insert(newAcc)
+        Category.seedDefaults(for: newAcc, in: modelContext)
+        try? modelContext.save()
+    }
 
-        do { try modelContext.save() }
-        catch { print("Ошибка при сохранении нового счета: \(error.localizedDescription)") }
+    // helper
+    private func accountsCount() -> Int {
+        // Query недоступен здесь, но можно сделать fetch:
+        let fetch = FetchDescriptor<Account>(sortBy: [])
+        let all = (try? modelContext.fetch(fetch)) ?? []
+        return all.count
     }
 }
+

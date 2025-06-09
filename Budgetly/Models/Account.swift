@@ -12,6 +12,8 @@ class Account: Identifiable {
     var hasSeededCategories: Bool = false
     var isHidden: Bool = false
 
+    @Attribute var sortOrder: Int = 0
+
     @Relationship(deleteRule: .cascade)
     var transactions: [Transaction] = []
 
@@ -23,6 +25,7 @@ class Account: Identifiable {
         name: String,
         currency: String? = nil,
         initialBalance: Double? = nil,
+        sortOrder: Int = 0,
         transactions: [Transaction] = []
     ) {
         self.id = id
@@ -30,6 +33,7 @@ class Account: Identifiable {
         self.currency = currency
         self.initialBalance = initialBalance
         self.transactions = transactions
+        self.sortOrder = sortOrder
     }
 
     /// Баланс считается как: (initialBalance ?? 0) + все «доходы» - все «расходы»
@@ -168,6 +172,3 @@ extension Category {
         try? context.save()
     }
 }
-
-
-
