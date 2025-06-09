@@ -10,32 +10,20 @@ let supportedCurrencies: [String] = [
     "CNY"
 ]
 
-
-
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var accounts: [Account]
 
     @State private var isShowingAddAccountSheet = false
     @State private var accountToEdit: Account? = nil
-    @State private var showHiddenAccounts = false
-
-    // Теперь visibleAccounts и hiddenAccounts по-прежнему:
-    private var visibleAccounts: [Account] {
-        accounts.filter { !$0.isHidden }
-    }
-    private var hiddenAccounts: [Account] {
-        accounts.filter { $0.isHidden }
-    }
 
     var body: some View {
         NavigationStack {
             VStack {
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        // ─── ВИДИМЫЕ СЧЕТА ─────────────────────────────────────
-                        ForEach(visibleAccounts) { account in
-                            // Передаём только account
+                        // Показ всех счетов без разделения на скрытые
+                        ForEach(accounts) { account in
                             accountRow(
                                 for: account,
                                 onEditTap: {
@@ -45,42 +33,11 @@ struct AccountsScreen: View {
                             .frame(height: 76)
                             .padding(.horizontal)
                         }
-
-                        // ─── КНОПКА «Показать / Скрыть скрытые счета» ────────────────
-                        if !hiddenAccounts.isEmpty {
-                            Button(action: {
-                                withAnimation { showHiddenAccounts.toggle() }
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: showHiddenAccounts ? "eye.slash.fill" : "eye.fill")
-                                        .foregroundColor(.gray)
-                                    Text(showHiddenAccounts ? "Скрыть скрытые счета" : "Показать скрытые счета")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.vertical, 8)
-                            }
-                            .padding(.horizontal)
-                        }
-
-                        // ─── Если показываем скрытые — отображаем их ────────────────
-                        if showHiddenAccounts {
-                            ForEach(hiddenAccounts) { account in
-                                accountRow(
-                                    for: account,
-                                    onEditTap: {
-                                        accountToEdit = account
-                                    }
-                                )
-                                .frame(height: 76)
-                                .padding(.horizontal)
-                            }
-                        }
                     }
                     .padding(.vertical)
                 }
 
-                // ─── КНОПКА «Добавить новый счёт» ───────────────────────────────
+                // Кнопка «Добавить новый счёт»
                 Button(action: {
                     isShowingAddAccountSheet = true
                 }) {
@@ -98,7 +55,7 @@ struct AccountsScreen: View {
             .navigationTitle("Счета")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EmptyView() // убираем «Редактировать»
+                    EmptyView()
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -122,13 +79,11 @@ struct AccountsScreen: View {
         }
     }
 
-    /// Внутри accountRow смотрим на account.isHidden
     @ViewBuilder
     private func accountRow(
         for account: Account,
         onEditTap: @escaping () -> Void
     ) -> some View {
-        // Шаблон карточки
         ZStack {
             RoundedRectangle(cornerRadius: 20.0)
                 .foregroundColor(.clear)
@@ -139,62 +94,49 @@ struct AccountsScreen: View {
                         radius: 16.0, x: 3.0, y: 6.0)
 
             HStack(spacing: 12) {
-                // ─── Бейдж с символом валюты ────────────────────────────
+                // Бейдж с символом валюты без учёта скрытия
                 ZStack {
-                    // Обводка круга: смотрим на account.isHidden
                     Circle()
                         .strokeBorder(
-                            account.isHidden
-                                ? Color.gray.opacity(0.6)
-                                : Color.appPurple,
+                            Color.appPurple,
                             lineWidth: 7
                         )
                         .background(
                             Circle()
-                                .foregroundColor(
-                                    account.isHidden
-                                        ? Color.gray.opacity(0.2)
-                                        : Color.lightPurprApple
-                                )
+                                .foregroundColor(Color.lightPurprApple)
                         )
                         .frame(width: 44, height: 44)
 
                     Text(currencySymbols[account.currency ?? ""] ?? "")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(
-                            account.isHidden
-                                ? Color.gray
-                                : Color.white
-                        )
+                        .foregroundColor(.white)
                 }
                 .padding(.leading, 8)
 
-                // ─── Название и код валюты ──────────────────────────────
+                // Название и код валюты
                 VStack(alignment: .leading, spacing: 4) {
                     Text(account.name)
                         .fontWeight(.medium)
                         .font(.body)
-                        .foregroundColor(account.isHidden ? .gray : .primary)
+                        .foregroundColor(.primary)
 
                     Text(account.currency ?? "")
                         .font(.subheadline)
-                        .foregroundColor(account.isHidden ? .gray : .secondary)
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
-                // ─── Баланс ────────────────────────────────────────────
+                // Баланс
                 Text(account.formattedBalance)
                     .fontWeight(.medium)
                     .font(.body)
                     .foregroundStyle(
-                        account.isHidden
-                            ? .gray
-                            : (account.balance < 0 ? .red : .primary)
+                        account.balance < 0 ? .red : .primary
                     )
                     .padding(.trailing, 12)
 
-                // ─── Кнопка «✏️» всегда видна ────────────────────────────
+                // Кнопка «✏️» для редактирования
                 Button(action: { onEditTap() }) {
                     Image(systemName: "pencil")
                         .resizable()
@@ -230,129 +172,101 @@ struct AccountsScreen: View {
     }
 }
 
-
-
+// MARK: — AccountCreationView (без изменений)
 struct AccountCreationView: View {
     @Environment(\.dismiss) private var dismiss
 
-    // MARK: — состояния для формы
     @State private var accountName: String = ""
-    @State private var initialBalanceText: String = ""   // строка для ввода
+    @State private var initialBalanceText: String = ""
     @State private var selectedCurrency: String = "RUB"
 
     let modelContext: ModelContext
 
     var body: some View {
-            NavigationStack {
-                VStack(spacing: 16) {
-                    // ────────────── Бейдж с символом выбранной валюты ──────────────
-                    // Этот VStack находится сразу под заголовком "Новый счет"
-                    VStack(spacing: 8) {
-                        // 64×64 круглая «плашка» с обводкой
-                        ZStack {
-                            Circle()
-                                .strokeBorder(Color.appPurple, lineWidth: 9)     // Обводка
-                                .background(Circle().foregroundColor(.lightPurprApple)) // Фон внутри круга
-                                .frame(width: 58, height: 58)
-
-                            // Символ валюты (или значок ₽/$/€ и т.д.)
-                            Text(currencySymbols[selectedCurrency] ?? "")
-                                .font(.system(size: 28, weight: .heavy))
-                                .foregroundColor(.white)
-                        }
+        NavigationStack {
+            VStack(spacing: 16) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .strokeBorder(Color.appPurple, lineWidth: 9)
+                            .background(Circle().foregroundColor(.lightPurprApple))
+                            .frame(width: 58, height: 58)
+                        Text(currencySymbols[selectedCurrency] ?? "")
+                            .font(.system(size: 28, weight: .heavy))
+                            .foregroundColor(.white)
                     }
-                    .padding(.top, 8)
+                }
+                .padding(.top, 8)
 
-                    // ────────────── Сам Form (Inset-Grouped) ──────────────
-                    Form {
-                        Section {
-                            // 1) Поле для ввода названия счёта
-                            TextField("Название счета", text: $accountName)
-                        }
+                Form {
+                    Section {
+                        TextField("Название счета", text: $accountName)
+                    }
 
-                        Section {
-                            // 2) Ряд “Валюта” (заголовок + Picker справа)
-                            HStack {
-                                Text("Валюта")
-                                Spacer()
-                                // Показываем текущий код (например “RUB”), по тапу — меню выбора
-                                Picker(selection: $selectedCurrency) {
-                                    ForEach(supportedCurrencies, id: \.self) { code in
-                                        HStack {
-                                            // Показываем и символ, и код, чтобы было нагляднее
-                                            Text("\(currencySymbols[code] ?? "") \(code)")
-                                        }
-                                        .tag(code)
+                    Section {
+                        HStack {
+                            Text("Валюта")
+                            Spacer()
+                            Picker(selection: $selectedCurrency) {
+                                ForEach(supportedCurrencies, id: \.self) { code in
+                                    HStack {
+                                        Text("\(currencySymbols[code] ?? "") \(code)")
                                     }
-                                } label: {
-                                    // Лейбл пустой, ведь мы рисуем ячейку вручную через HStack
-                                    Text("")
+                                    .tag(code)
                                 }
-                                .pickerStyle(.menu)
-                                .tint(.gray)
-                            }
+                            } label: { Text("") }
+                            .pickerStyle(.menu)
+                            .tint(.gray)
+                        }
 
-                            // 3) Ряд “Начальный баланс (опционально)”
-                            HStack {
-                                Text("Начальный баланс")
-                                Spacer()
-                                TextField("0", text: $initialBalanceText)
-                                    .multilineTextAlignment(.trailing)
-                                    .keyboardType(.decimalPad)
-                                    .frame(width: 100)
-                                Text(currencySymbols[selectedCurrency] ?? "")
-                                    .padding(.leading, 4)
-                            }
+                        HStack {
+                            Text("Начальный баланс")
+                            Spacer()
+                            TextField("0", text: $initialBalanceText)
+                                .multilineTextAlignment(.trailing)
+                                .keyboardType(.decimalPad)
+                                .frame(width: 100)
+                            Text(currencySymbols[selectedCurrency] ?? "")
+                                .padding(.leading, 4)
                         }
-                    }
-                    .listStyle(InsetGroupedListStyle()) // для iOS 14+ / iOS 15+ стабильный grouped-вид
-                }
-                .navigationTitle("Новый счет")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    // Кнопка «Отмена»
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Отмена") {
-                            dismiss()
-                        }
-                        .foregroundColor(.appPurple)
-                    }
-                    // Кнопка «Готово»
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Готово") {
-                            addAccount()
-                            dismiss()
-                        }
-                        .foregroundColor(accountName.isEmpty ? .gray : .appPurple)
-                        .disabled(accountName.isEmpty)
                     }
                 }
+                .listStyle(InsetGroupedListStyle())
             }
-        }
-
-        private func addAccount() {
-            // 1) Парсим строку initialBalanceText → Double?
-            let initialBalanceValue: Double? = {
-                let normalized = initialBalanceText.replacingOccurrences(of: ",", with: ".")
-                return Double(normalized)
-            }()
-
-            // 2) Создаём новый Account с name, currency и initialBalance
-            let newAccount = Account(
-                name: accountName,
-                currency: selectedCurrency,
-                initialBalance: initialBalanceValue
-            )
-            modelContext.insert(newAccount)
-
-            // 3) Заполняем дефолтные категории (если ещё не заполнены)
-            Category.seedDefaults(for: newAccount, in: modelContext)
-
-            // 4) Сохраняем контекст (SwiftData автосохраняет на выходе, но на всякий случай)
-            do {
-                try modelContext.save()
-            } catch {
-                print("Ошибка при сохранении нового счета: \(error.localizedDescription)")
+            .navigationTitle("Новый счет")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отмена") { dismiss() }
+                        .foregroundColor(.appPurple)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Готово") {
+                        addAccount()
+                        dismiss()
+                    }
+                    .foregroundColor(accountName.isEmpty ? .gray : .appPurple)
+                    .disabled(accountName.isEmpty)
+                }
             }
         }
     }
+
+    private func addAccount() {
+        let initialBalanceValue: Double? = {
+            let normalized = initialBalanceText.replacingOccurrences(of: ",", with: ".")
+            return Double(normalized)
+        }()
+
+        let newAccount = Account(
+            name: accountName,
+            currency: selectedCurrency,
+            initialBalance: initialBalanceValue
+        )
+        modelContext.insert(newAccount)
+        Category.seedDefaults(for: newAccount, in: modelContext)
+
+        do { try modelContext.save() }
+        catch { print("Ошибка при сохранении нового счета: \(error.localizedDescription)") }
+    }
+}
