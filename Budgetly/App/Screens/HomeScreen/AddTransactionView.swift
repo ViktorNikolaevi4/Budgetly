@@ -300,7 +300,7 @@ struct AddTransactionView: View {
                         .foregroundStyle(.appPurple)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Добавить") { /*showNewCategorySheet = true */}
+                    Button("Добавить") { saveTransaction() }
                         .font(.title3)
                         .foregroundStyle(.appPurple)
                 }
