@@ -9,6 +9,7 @@ struct AccountEditView: View {
     var onDelete: (() -> Void)? = nil
 
     let supportedCurrencies: [String] = ["RUB", "USD", "EUR", "GBP", "JPY", "CNY"]
+    @State private var showDeleteAlert = false
 
     var body: some View {
         NavigationStack {
@@ -50,7 +51,7 @@ struct AccountEditView: View {
 
                     Section {
                         Button(role: .destructive) {
-                            deleteSelf()
+                            showDeleteAlert = true
                         } label: {
                             HStack {
                                 Image(systemName: "trash")
@@ -79,6 +80,16 @@ struct AccountEditView: View {
                     .foregroundColor(account.name.isEmpty ? .gray : .appPurple)
                     .disabled(account.name.isEmpty)
                 }
+            }
+            .alert("Удалить счет?", isPresented: $showDeleteAlert) {
+                Button("Удалить", role: .destructive) {
+                    deleteSelf()
+                }
+                Button("Отмена", role: .cancel) {
+                    // просто скрыть алерт
+                }
+            } message: {
+                Text("Все связанные транзакции и категории будут удалены без возможности восстановления.")
             }
         }
     }
