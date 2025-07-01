@@ -1,13 +1,9 @@
-
 import SwiftUI
 import SwiftData
 import Charts
 
 @Model
 class AssetType {
-    // Поле для уникальной идентификации (необязательно, SwiftData сам создаст id).
-    // Но для наглядности можно использовать UUID.
-    // Или вы можете его не указывать вовсе, тогда SwiftData сделает ID автоматически.
     var id: UUID
     var name: String
 
@@ -16,20 +12,12 @@ class AssetType {
         self.name = name
     }
 }
-struct AssetItem: Identifiable {
-    let id = UUID()
-    let category: String
-    let amount: Double
-    let color: Color
-}
+
 @Model
 class Asset {
     var id: UUID
     var name: String
     var price: Double
-
-    // Ссылка на AssetType (возможно nil, если пользователь не выбрал тип)
-    // Чтобы была "один-к-многим" связь: один тип может быть у многих активов.
     @Relationship
     var assetType: AssetType?
 
@@ -41,89 +29,59 @@ class Asset {
     }
 }
 
+struct AssetGroup: Identifiable {
+    let id: UUID
+    let type: AssetType?
+    let sum: Double
+    let color: Color
+}
+
 struct GoldBagView: View {
     @Query private var assets: [Asset]
     @Query private var assetTypes: [AssetType]
-
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss // Для закрытия экрана
-
+    @Environment(\.dismiss) private var dismiss
     @State private var isAddAssetPresented = false
-    @State private var selectedAsset: Asset? = nil
-
+    @State private var selectedAsset: Asset?
     private let noneTypeID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
-
     @State private var expandedTypes: Set<UUID> = []
 
     private var groupedAssetsByType: [AssetType?: [Asset]] {
         Dictionary(grouping: assets, by: { $0.assetType })
     }
 
-    // Сортировка ключей: сначала типы по имени, а группа без типа (nil) — в конце
-    private var sortedAssetTypeKeys: [AssetType?] {
-        groupedAssetsByType.keys.sorted { first, second in
-            switch (first, second) {
-            case (nil, nil):
-                return false
-            case (nil, _):
-                return false  // поместим группу "Без типа" в конец
-            case (_, nil):
-                return true
-            case let (a?, b?):
-                return a.name < b.name
-            }
-        }
-    }
-
     private var totalPrice: Double {
         assets.reduce(0) { $0 + $1.price }
     }
 
-//    private var assetItems: [AssetItem] {
-//        assets.map { asset in
-//            AssetItem(category: asset.name,
-//                      amount: asset.price,
-//                      color: .blue) // можешь задать цвета по категориям или случайные
-//        }
-//    }
-    private var assetsGroupedByCategory: [AssetItem] {
-        // 1) Собираем [(AssetType?, сумма), …]
-        let raw = groupedAssetsByType.map { (type, assets) -> (type: AssetType?, sum: Double) in
-            let s = assets.reduce(0) { $0 + $1.price }
-            return (type, s)
+     private var assetGroups: [AssetGroup] {
+        let raw = groupedAssetsByType.map { (type, list) -> (type: AssetType?, sum: Double) in
+            (type, list.reduce(0) { $0 + $1.price })
         }
-        // 2) Сортируем по убыванию суммы
         let sorted = raw.sorted { $0.sum > $1.sum }
-
-        // 3) Мапим в AssetItem, раздаём цвета по индексу
-        return sorted.enumerated().map { (idx, elem) in
-            let name  = elem.type?.name ?? "Без типа"
-            let color: Color = elem.type == nil
-                ? .gray
-                : Color.predefinedColors[idx % Color.predefinedColors.count]
-            return AssetItem(category: name,
-                             amount: elem.sum,
-                             color: color)
+        return sorted.enumerated().map { idx, elem in
+            let type = elem.type
+            let sum = elem.sum
+            let color: Color = type == nil ? .gray : Color.predefinedColors[idx % Color.predefinedColors.count]
+            let id = type?.id ?? noneTypeID
+            return AssetGroup(id: id, type: type, sum: sum, color: color)
         }
     }
 
     var body: some View {
         NavigationStack {
-
             VStack(alignment: .leading) {
-
-                Chart(assetsGroupedByCategory) { item in
+                Chart(assetGroups) { item in
                     SectorMark(
-                        angle: .value("Сумма", item.amount),
-                        innerRadius: .ratio(0.75),  // Можно менять, чтобы центр был больше/меньше
+                        angle: .value("Сумма", item.sum),
+                        innerRadius: .ratio(0.75),
                         outerRadius: .ratio(1.0),
-                    //    innerRadius: .ratio(0.6),
                         angularInset: 1.0
                     )
                     .cornerRadius(4)
                     .foregroundStyle(item.color)
                 }
-                .chartLegend(.hidden) // убираем легенду под диаграммой
+                .chartLegend(.hidden)
                 .frame(width: 180, height: 180)
                 .overlay(
                     VStack {
@@ -136,30 +94,21 @@ struct GoldBagView: View {
                 .padding()
             }
 
-
             List {
-                // Проходим по всем ключам (типам)
-                ForEach(sortedAssetTypeKeys, id: \.self) { assetType in
-                    // Используем DisclosureGroup, чтобы обеспечить возможность сворачивания/разворачивания
-                        DisclosureGroup(
-                            isExpanded: Binding(
-                               get: {
-                                    // для nil-группы берём наш noneTypeID
-                                    let id = assetType?.id ?? noneTypeID
-                                    return expandedTypes.contains(id)
-                               },
-                               set: { newValue in
-                                   let id = assetType?.id ?? noneTypeID
-                                    if newValue {
-                                        expandedTypes.insert(id)
-                                   } else {
-                                       expandedTypes.remove(id)
-                                   }
-                               }
-                          )
-                      ) {
-                        ForEach(groupedAssetsByType[assetType] ?? []) { asset in
-                            // Оборачиваем каждую строку в кнопку, если требуется переход к редактированию
+                ForEach(assetGroups) { group in
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { expandedTypes.contains(group.id) },
+                            set: { newValue in
+                                if newValue {
+                                    expandedTypes.insert(group.id)
+                                } else {
+                                    expandedTypes.remove(group.id)
+                                }
+                            }
+                        )
+                    ) {
+                        ForEach(groupedAssetsByType[group.type] ?? []) { asset in
                             Button {
                                 selectedAsset = asset
                             } label: {
@@ -171,7 +120,6 @@ struct GoldBagView: View {
                                 .foregroundColor(.black)
                                 .padding(.vertical, 4)
                             }
-                            // Пример добавления свайп-удаления для конкретного актива
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
                                     delete(asset: asset)
@@ -181,28 +129,31 @@ struct GoldBagView: View {
                             }
                         }
                     } label: {
-                        // Заголовок DisclosureGroup – имя типа и суммарная цена группы
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(assetType?.name ?? "Без типа")
-                                .font(.title3).bold()
-                                .foregroundColor(.black)
-                            let total = (groupedAssetsByType[assetType] ?? []).reduce(0) { $0 + $1.price }
-                            Text("\(total, specifier: "%.2f") ₽")
-                                .font(.subheadline)
-                                .foregroundColor(.gray.opacity(0.8))
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(group.color)
+                                .frame(width: 10, height: 10)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(group.type?.name ?? "Без типа")
+                                    .font(.title3).bold()
+                                    .foregroundColor(.black)
+                                Text("\(group.sum.toShortStringWithSuffix()) ₽")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray.opacity(0.8))
+                            }
                         }
                         .padding(.vertical, 4)
                     }
                     .tint(.black)
                 }
             }
-         //   .navigationTitle("Мои активы")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         Text("Мои активы")
                             .font(.title2)
-                            .bold().foregroundColor(.black)
+                            .bold()
+                            .foregroundColor(.black)
                         Spacer()
                         Text("\(totalPrice, specifier: "%.2f") ₽")
                             .foregroundColor(.black)
@@ -217,11 +168,9 @@ struct GoldBagView: View {
                     }
                 }
             }
-            // Создаём дефолтные типы, если их ещё нет
             .onAppear {
                 createDefaultAssetTypesIfNeeded()
             }
-            // Открытие экрана добавления нового актива
             .sheet(isPresented: $isAddAssetPresented) {
                 AddOrEditAssetView(
                     draftAsset: nil,
@@ -238,7 +187,6 @@ struct GoldBagView: View {
                 )
                 .presentationDetents([.medium])
             }
-            // Редактирование выбранного актива
             .sheet(item: $selectedAsset) { asset in
                 AddOrEditAssetView(
                     draftAsset: asset,
@@ -259,7 +207,6 @@ struct GoldBagView: View {
         }
     }
 
-    // Функция удаления одного актива
     private func delete(asset: Asset) {
         modelContext.delete(asset)
         do {
@@ -288,7 +235,7 @@ struct GoldBagView: View {
     }
 }
 
-// View для добавления/редактирования актива
+// AddOrEditAssetView остаётся без изменений
 struct AddOrEditAssetView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -299,15 +246,9 @@ struct AddOrEditAssetView: View {
 
     @State private var name: String
     @State private var price: Double
-
-    /// Текущее «логическое» состояние выбора типа (none / existing / newType)
     @State private var typeSelection: TypeSelection = .none
-    /// Нужно ли показывать алерт для ввода названия нового типа
     @State private var isShowingNewTypeAlert = false
-    /// Название, которое пользователь введёт в алерте
     @State private var newTypeName = ""
-
- //   @State private var reductionAmount: Double = 0.0 // Для частичной продажи
 
     init(
         draftAsset: Asset?,
@@ -317,15 +258,11 @@ struct AddOrEditAssetView: View {
         self.draftAsset = draftAsset
         self.assetTypes = assetTypes
         self.onSave = onSave
-
         _name = State(initialValue: draftAsset?.name ?? "")
         _price = State(initialValue: draftAsset?.price ?? 0.0)
-
-        // Если редактируем готовый Asset и у него есть тип:
         if let existingType = draftAsset?.assetType {
             _typeSelection = State(initialValue: .existing(existingType))
         } else {
-            // Иначе считаем, что пока выбрано "none"
             _typeSelection = State(initialValue: .none)
         }
     }
@@ -339,19 +276,14 @@ struct AddOrEditAssetView: View {
 
                 Section("Тип") {
                     Picker("Выберите тип", selection: $typeSelection) {
-                        // Пункт "Без типа"
                         Text("Без типа").tag(TypeSelection.none)
-
-                        // Существующие типы
                         ForEach(assetTypes, id: \.id) { type in
                             Text(type.name).tag(TypeSelection.existing(type))
                         }
-
-                        // Пункт "Новый тип…"
                         Text("Создать новый тип…").tag(TypeSelection.newType)
                     }
                     .pickerStyle(.menu)
-                    .tint(.appPurple)
+                    .tint(.purple) // Замените .appPurple на .purple или определите .appPurple
                     .onChange(of: typeSelection) { oldValue, newValue in
                         if case .newType = newValue {
                             isShowingNewTypeAlert = true
@@ -368,55 +300,42 @@ struct AddOrEditAssetView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
-                        // Определяем, какой тип в итоге будет (nil, existing, или только что созданный)
                         let finalType: AssetType? = {
                             switch typeSelection {
-                            case .none:
-                                return nil
-                            case .existing(let t):
-                                return t
-                            case .newType:
-                                // Вдруг пользователь зашёл в алерт, но отменил; тогда здесь оставляем nil
-                                // (или можно хранить в отдельном стейте, если успел сохранить)
-                                return nil
+                            case .none: return nil
+                            case .existing(let t): return t
+                            case .newType: return nil
                             }
                         }()
                         onSave(name, price, finalType)
                         dismiss()
                     } label: {
                         Text("Сохранить")
-                            .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty ? .gray.opacity(0.3) : .appPurple)
+                            .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty ? .gray.opacity(0.3) : .purple) // Замените .appPurple
                     }
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отмена") {
                         dismiss()
-                    }.foregroundStyle(.appPurple)
+                    }
+                    .foregroundStyle(.purple) // Замените .appPurple
                 }
             }
-            // Тот самый alert iOS16+ с TextField
             .alert("Новый тип", isPresented: $isShowingNewTypeAlert, actions: {
                 TextField("Введите название типа", text: $newTypeName)
                 Button("Сохранить") {
                     guard !newTypeName.isEmpty else {
-                        // Если ничего не ввели — просто закрываем
                         typeSelection = .none
                         return
                     }
-                    // Создаём AssetType в контексте
                     let newType = AssetType(name: newTypeName)
                     modelContext.insert(newType)
                     try? modelContext.save()
-
-                    // Сбрасываем поле ввода
                     newTypeName = ""
-                    // Устанавливаем выбранный тип
                     typeSelection = .existing(newType)
                 }
                 Button("Отмена", role: .cancel) {
-                    // Если нажали "Отмена", возвращаемся к предыдущему состоянию
-                    // (по умолчанию пусть будет .none)
                     typeSelection = .none
                 }
             }, message: {
@@ -425,9 +344,9 @@ struct AddOrEditAssetView: View {
         }
     }
 }
-// Перечисление для выбора типа внутри Picker
+
 enum TypeSelection: Hashable {
-    case none                // «Без типа»
-    case existing(AssetType) // Пользователь выбрал существующий тип
-    case newType                 // «Новый тип...»
+    case none
+    case existing(AssetType)
+    case newType
 }
