@@ -90,7 +90,7 @@ extension Color {
     private static let incomeColorsKey = "AssignedColorsForIncome"
     private static let expensesColorsKey = "AssignedColorsForExpenses"
 
-    private static let predefinedColors: [Color] = [
+    static let predefinedColors: [Color] = [
         .appPurple, .redApple, .orangeApple, .yellow, .blueApple,
         .yellowApple, .pinkApple1, .lightPurprApple, .bolotoApple, .purpurApple,
         .boloto2, .boloto3, .gamno, .capu4Ino, .serota, .pupu, .yel3, .bezhev, .rozovo,.bordovo,

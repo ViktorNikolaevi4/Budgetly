@@ -85,12 +85,16 @@ struct GoldBagView: View {
 //        }
 //    }
     private var assetsGroupedByCategory: [AssetItem] {
-        groupedAssetsByType.compactMap { (assetType, assets) -> AssetItem? in
-            guard let categoryName = assetType?.name else { return nil }
-            let totalAmount = assets.reduce(0) { $0 + $1.price }
-            return AssetItem(category: categoryName,
-                             amount: totalAmount,
-                             color: .blue)
+        // отфильтровываем только ненулевые assetType
+        let types = sortedAssetTypeKeys.compactMap { $0 }
+        return types.enumerated().map { (idx, type) in
+            let total = groupedAssetsByType[type]?.reduce(0) { $0 + $1.price } ?? 0
+            let color = Color.predefinedColors[idx % Color.predefinedColors.count]
+            return AssetItem(
+                category: type.name,
+                amount: total,
+                color: color
+            )
         }
     }
     var body: some View {
@@ -107,7 +111,7 @@ struct GoldBagView: View {
                         angularInset: 1.0
                     )
                     .cornerRadius(4)
-                    .foregroundStyle(by: .value("Категория", item.category))
+                    .foregroundStyle(item.color)
                 }
                 .chartLegend(.hidden) // убираем легенду под диаграммой
                 .frame(width: 180, height: 180)
