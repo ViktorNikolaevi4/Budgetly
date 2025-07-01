@@ -51,6 +51,8 @@ struct GoldBagView: View {
     @State private var isAddAssetPresented = false
     @State private var selectedAsset: Asset? = nil
 
+    private let noneTypeID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
     @State private var expandedTypes: Set<UUID> = []
 
     private var groupedAssetsByType: [AssetType?: [Asset]] {
@@ -85,18 +87,26 @@ struct GoldBagView: View {
 //        }
 //    }
     private var assetsGroupedByCategory: [AssetItem] {
-        // отфильтровываем только ненулевые assetType
-        let types = sortedAssetTypeKeys.compactMap { $0 }
-        return types.enumerated().map { (idx, type) in
-            let total = groupedAssetsByType[type]?.reduce(0) { $0 + $1.price } ?? 0
-            let color = Color.predefinedColors[idx % Color.predefinedColors.count]
-            return AssetItem(
-                category: type.name,
-                amount: total,
-                color: color
-            )
+        // 1) Собираем [(AssetType?, сумма), …]
+        let raw = groupedAssetsByType.map { (type, assets) -> (type: AssetType?, sum: Double) in
+            let s = assets.reduce(0) { $0 + $1.price }
+            return (type, s)
+        }
+        // 2) Сортируем по убыванию суммы
+        let sorted = raw.sorted { $0.sum > $1.sum }
+
+        // 3) Мапим в AssetItem, раздаём цвета по индексу
+        return sorted.enumerated().map { (idx, elem) in
+            let name  = elem.type?.name ?? "Без типа"
+            let color: Color = elem.type == nil
+                ? .gray
+                : Color.predefinedColors[idx % Color.predefinedColors.count]
+            return AssetItem(category: name,
+                             amount: elem.sum,
+                             color: color)
         }
     }
+
     var body: some View {
         NavigationStack {
 
@@ -131,29 +141,23 @@ struct GoldBagView: View {
                 // Проходим по всем ключам (типам)
                 ForEach(sortedAssetTypeKeys, id: \.self) { assetType in
                     // Используем DisclosureGroup, чтобы обеспечить возможность сворачивания/разворачивания
-                    DisclosureGroup(
-                        // Привязка состояния развернутости для типовых групп
-                        isExpanded: Binding(
-                            get: {
-                                // Для активов без типа (nil) можно сделать так, чтобы они всегда были развернуты
-                                if assetType == nil {
-                                    return true
-                                } else {
-                                    return expandedTypes.contains(assetType!.id)
-                                }
-                            },
-                            set: { newValue in
-                                if let type = assetType {
+                        DisclosureGroup(
+                            isExpanded: Binding(
+                               get: {
+                                    // для nil-группы берём наш noneTypeID
+                                    let id = assetType?.id ?? noneTypeID
+                                    return expandedTypes.contains(id)
+                               },
+                               set: { newValue in
+                                   let id = assetType?.id ?? noneTypeID
                                     if newValue {
-                                        expandedTypes.insert(type.id)
-                                    } else {
-                                        expandedTypes.remove(type.id)
-                                    }
-                                }
-                            }
-                        )
-                    ) {
-                        // Содержимое DisclosureGroup – список активов для данного типа
+                                        expandedTypes.insert(id)
+                                   } else {
+                                       expandedTypes.remove(id)
+                                   }
+                               }
+                          )
+                      ) {
                         ForEach(groupedAssetsByType[assetType] ?? []) { asset in
                             // Оборачиваем каждую строку в кнопку, если требуется переход к редактированию
                             Button {
