@@ -51,7 +51,8 @@ struct PieChartView: View {
                 .cornerRadius(4)
                 .foregroundStyle(
                     Color.colorForCategoryName(data.category, type: data.type)
-                )            }
+                )
+            }
             .chartLegend(.hidden)
             .frame(width: 165, height: 165) // Размер диаграммы при желании
 

@@ -101,16 +101,19 @@ struct GoldBagView: View {
                 Chart(assetsGroupedByCategory) { item in
                     SectorMark(
                         angle: .value("Сумма", item.amount),
-                        innerRadius: .ratio(0.6),
+                        innerRadius: .ratio(0.75),  // Можно менять, чтобы центр был больше/меньше
+                        outerRadius: .ratio(1.0),
+                    //    innerRadius: .ratio(0.6),
                         angularInset: 1.0
                     )
+                    .cornerRadius(4)
                     .foregroundStyle(by: .value("Категория", item.category))
                 }
                 .chartLegend(.hidden) // убираем легенду под диаграммой
-                .frame(height: 200)
+                .frame(width: 180, height: 180)
                 .overlay(
                     VStack {
-                        Text("\(totalPrice, specifier: "%.2f") ₽")
+                        Text("\(totalPrice.toShortStringWithSuffix()) ₽")
                             .font(.title2)
                             .bold()
                             .foregroundStyle(.black)
