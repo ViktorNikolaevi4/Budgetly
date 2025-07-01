@@ -147,25 +147,26 @@ struct GoldBagView: View {
                     .tint(.black)
                 }
             }
+            .navigationTitle("Мои активы")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 16) {
-                        Text("Мои активы")
-                            .font(.title2)
-                            .bold()
-                            .foregroundColor(.black)
-                        Spacer()
-                        Text("\(totalPrice, specifier: "%.2f") ₽")
-                            .foregroundColor(.black)
-                            .font(.title3).bold()
+             //       HStack(spacing: 16) {
+//                        Text("Мои активы")
+//                            .font(.title2)
+//                            .bold()
+//                            .foregroundColor(.black)
+//                        Spacer()
+//                        Text("\(totalPrice, specifier: "%.2f") ₽")
+//                            .foregroundColor(.black)
+//                            .font(.title3).bold()
                         Button {
                             isAddAssetPresented = true
                         } label: {
                             Image(systemName: "plus.circle")
                                 .font(.title)
-                                .foregroundStyle(.black)
+                                .foregroundStyle(.appPurple)
                         }
-                    }
+                  //  }
                 }
             }
             .onAppear {
