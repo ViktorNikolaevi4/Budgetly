@@ -1,6 +1,7 @@
 
 import SwiftUI
 import SwiftData
+import Charts
 
 @Model
 class AssetType {
@@ -15,7 +16,12 @@ class AssetType {
         self.name = name
     }
 }
-
+struct AssetItem: Identifiable {
+    let id = UUID()
+    let category: String
+    let amount: Double
+    let color: Color
+}
 @Model
 class Asset {
     var id: UUID
@@ -71,8 +77,49 @@ struct GoldBagView: View {
         assets.reduce(0) { $0 + $1.price }
     }
 
+//    private var assetItems: [AssetItem] {
+//        assets.map { asset in
+//            AssetItem(category: asset.name,
+//                      amount: asset.price,
+//                      color: .blue) // можешь задать цвета по категориям или случайные
+//        }
+//    }
+    private var assetsGroupedByCategory: [AssetItem] {
+        groupedAssetsByType.compactMap { (assetType, assets) -> AssetItem? in
+            guard let categoryName = assetType?.name else { return nil }
+            let totalAmount = assets.reduce(0) { $0 + $1.price }
+            return AssetItem(category: categoryName,
+                             amount: totalAmount,
+                             color: .blue)
+        }
+    }
     var body: some View {
         NavigationStack {
+
+            VStack(alignment: .leading) {
+
+                Chart(assetsGroupedByCategory) { item in
+                    SectorMark(
+                        angle: .value("Сумма", item.amount),
+                        innerRadius: .ratio(0.6),
+                        angularInset: 1.0
+                    )
+                    .foregroundStyle(by: .value("Категория", item.category))
+                }
+                .chartLegend(.hidden) // убираем легенду под диаграммой
+                .frame(height: 200)
+                .overlay(
+                    VStack {
+                        Text("\(totalPrice, specifier: "%.2f") ₽")
+                            .font(.title2)
+                            .bold()
+                            .foregroundStyle(.black)
+                    }
+                )
+                .padding()
+            }
+
+
             List {
                 // Проходим по всем ключам (типам)
                 ForEach(sortedAssetTypeKeys, id: \.self) { assetType in
