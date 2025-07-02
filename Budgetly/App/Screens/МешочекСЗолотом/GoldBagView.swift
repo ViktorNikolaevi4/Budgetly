@@ -151,32 +151,36 @@ struct GoldBagView: View {
                             }
                         }
                     } label: {
-                        HStack(spacing: 8) {
+                          HStack(spacing: 8) {
+                            // точка-цвет
                             Circle()
-                                .fill(group.color)
-                                .frame(width: 10, height: 10)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(group.type?.name ?? "Без типа")
-                                    .font(.title3).bold()
-                                    .foregroundColor(.black)
-                                HStack(spacing: 4) {
-                                    Text("\(group.sum.toShortStringWithSuffix()) ₽")
-                                    Text("·")
-                                    Text(String(
-                                        format: "%.1f%%",
-                                        group.sum / totalPrice * 100
-                                    ))
-                                }
-                                .font(.subheadline)
-                                .foregroundColor(.gray.opacity(0.8))
+                              .fill(group.color)
+                              .frame(width: 10, height: 10)
 
+                            // название
+                            Text(group.type?.name ?? "Без типа")
+                              .font(.title3).bold()
+                              .foregroundColor(.primary)
+
+                            Spacer()
+
+                            // сумма · разделитель · процент
+                            HStack(spacing: 6) {
+                              Text("\(group.sum.toShortStringWithSuffix()) ₽")
+                              // маленький кружочек-разделитель
+                              Circle()
+                                .frame(width: 4, height: 4)
+                                .foregroundColor(.gray.opacity(0.6))
+                              Text(String(format: "%.1f%%", group.sum / totalPrice * 100))
                             }
+                            .font(.subheadline)
+                            .foregroundColor(.gray.opacity(0.8))
+                          }
+                          .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .tint(.black)
+                      }
                     }
-                    .tint(.black)
-                }
-            }
             .navigationTitle("Мои активы")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
