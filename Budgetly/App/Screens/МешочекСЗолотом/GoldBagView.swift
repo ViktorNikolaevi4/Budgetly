@@ -54,19 +54,41 @@ struct GoldBagView: View {
         assets.reduce(0) { $0 + $1.price }
     }
 
-     private var assetGroups: [AssetGroup] {
-        let raw = groupedAssetsByType.map { (type, list) -> (type: AssetType?, sum: Double) in
-            (type, list.reduce(0) { $0 + $1.price })
+    private var assetGroups: [AssetGroup] {
+      // 1) Строим сразу AssetGroup
+      let groups = groupedAssetsByType.map { (type, list) -> AssetGroup in
+        let sum = list.reduce(0) { $0 + $1.price }
+        let id  = type?.id ?? noneTypeID
+        // цвет можно проставить любым временным, его мы перезапишем после сортировки
+        return AssetGroup(id: id, type: type, sum: sum, color: .gray)
+      }
+
+      // 2) Сортируем уже AssetGroup
+      let sorted = groups.sorted { a, b in
+        if a.sum != b.sum {
+          return a.sum > b.sum
+        } else {
+          let nameA = a.type?.name ?? "Без типа"
+          let nameB = b.type?.name ?? "Без типа"
+          return nameA < nameB
         }
-        let sorted = raw.sorted { $0.sum > $1.sum }
-        return sorted.enumerated().map { idx, elem in
-            let type = elem.type
-            let sum = elem.sum
-            let color: Color = type == nil ? .gray : Color.predefinedColors[idx % Color.predefinedColors.count]
-            let id = type?.id ?? noneTypeID
-            return AssetGroup(id: id, type: type, sum: sum, color: color)
-        }
+      }
+
+      // 3) И только теперь раздаём цвета по индексу
+      return sorted.enumerated().map { idx, group in
+        let color: Color = group.type == nil
+          ? .gray
+          : Color.predefinedColors[idx % Color.predefinedColors.count]
+        return AssetGroup(
+          id: group.id,
+          type: group.type,
+          sum: group.sum,
+          color: color
+        )
+      }
     }
+
+
 
     var body: some View {
         NavigationStack {
