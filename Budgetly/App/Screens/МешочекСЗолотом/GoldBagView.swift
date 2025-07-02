@@ -159,9 +159,17 @@ struct GoldBagView: View {
                                 Text(group.type?.name ?? "Без типа")
                                     .font(.title3).bold()
                                     .foregroundColor(.black)
-                                Text("\(group.sum.toShortStringWithSuffix()) ₽")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray.opacity(0.8))
+                                HStack(spacing: 4) {
+                                    Text("\(group.sum.toShortStringWithSuffix()) ₽")
+                                    Text("·")
+                                    Text(String(
+                                        format: "%.1f%%",
+                                        group.sum / totalPrice * 100
+                                    ))
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(.gray.opacity(0.8))
+
                             }
                         }
                         .padding(.vertical, 4)
