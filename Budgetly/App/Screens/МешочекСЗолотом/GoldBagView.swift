@@ -297,88 +297,86 @@ struct AddOrEditAssetView: View {
         _price = State(initialValue: draftAsset?.price ?? 0.0)
         if let existingType = draftAsset?.assetType {
             _typeSelection = State(initialValue: .existing(existingType))
-        } else {
-            _typeSelection = State(initialValue: .none)
         }
     }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Название актива") {
-                    TextField("Введите название", text: $name)
+            VStack(spacing: 0) {
+                Form {
+                    Section("Название актива") {
+                        TextField("Введите название", text: $name)
+                    }
+
+                    Section("Тип") {
+                        Picker("Выберите тип", selection: $typeSelection) {
+                            Text("Без типа").tag(TypeSelection.none)
+                            ForEach(assetTypes, id: \.id) { type in
+                                Text(type.name).tag(TypeSelection.existing(type))
+                            }
+                            Text("Новый тип…").tag(TypeSelection.newType)
+                        }
+                        .pickerStyle(.menu)
+                        .onChange(of: typeSelection) { new in
+                            if case .newType = new {
+                                isShowingNewTypeAlert = true
+                            }
+                        }
+                    }
+
+                    Section("Переоценка стоимости (₽)") {
+                        TextField("0", value: $price, format: .number)
+                            .keyboardType(.decimalPad)
+                    }
                 }
 
-                Section("Тип") {
-                    Picker("Выберите тип", selection: $typeSelection) {
-                        Text("Без типа").tag(TypeSelection.none)
-                        ForEach(assetTypes, id: \.id) { type in
-                            Text(type.name).tag(TypeSelection.existing(type))
-                        }
-                        Text("Создать новый тип…").tag(TypeSelection.newType)
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.purple) // Замените .appPurple на .purple или определите .appPurple
-                    .onChange(of: typeSelection) { oldValue, newValue in
-                        if case .newType = newValue {
-                            isShowingNewTypeAlert = true
-                        }
-                    }
+                // Кнопка внизу
+                Button(action: saveAndDismiss) {
+                    Text(draftAsset == nil ? "Добавить" : "Сохранить")
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(name.trimmingCharacters(in: .whitespaces).isEmpty
+                                    ? Color.gray.opacity(0.5)
+                                    : Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .padding()
                 }
-
-                Section("Переоценка стоимости (₽)") {
-                    TextField("Введите цену", value: $price, format: .number)
-                        .keyboardType(.decimalPad)
-                }
+                // Отключаем, пока нет названия
+                .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .navigationTitle(draftAsset == nil ? "Новый актив" : "Редактировать актив")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        let finalType: AssetType? = {
-                            switch typeSelection {
-                            case .none: return nil
-                            case .existing(let t): return t
-                            case .newType: return nil
-                            }
-                        }()
-                        onSave(name, price, finalType)
-                        dismiss()
-                    } label: {
-                        Text("Сохранить")
-                            .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty ? .gray.opacity(0.3) : .purple) // Замените .appPurple
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отмена") {
-                        dismiss()
-                    }
-                    .foregroundStyle(.purple) // Замените .appPurple
-                }
-            }
-            .alert("Новый тип", isPresented: $isShowingNewTypeAlert, actions: {
-                TextField("Введите название типа", text: $newTypeName)
+            .alert("Новый тип", isPresented: $isShowingNewTypeAlert) {
+                TextField("Название типа", text: $newTypeName)
                 Button("Сохранить") {
-                    guard !newTypeName.isEmpty else {
-                        typeSelection = .none
-                        return
-                    }
                     let newType = AssetType(name: newTypeName)
                     modelContext.insert(newType)
                     try? modelContext.save()
-                    newTypeName = ""
                     typeSelection = .existing(newType)
+                    newTypeName = ""
                 }
                 Button("Отмена", role: .cancel) {
                     typeSelection = .none
                 }
-            }, message: {
-                Text("Введите название для нового типа актива")
-            })
+            } message: {
+                Text("Введите название для нового типа")
+            }
         }
     }
+
+    private func saveAndDismiss() {
+        // определяем, какой тип передавать в колбэк
+        let finalType: AssetType? = {
+            switch typeSelection {
+            case .none: return nil
+            case .existing(let t): return t
+            case .newType:    return nil
+            }
+        }()
+        onSave(name, price, finalType)
+        dismiss()
+    }
 }
+
 
 enum TypeSelection: Hashable {
     case none
