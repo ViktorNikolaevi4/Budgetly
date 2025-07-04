@@ -345,6 +345,18 @@ struct AddOrEditAssetView: View {
                 .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .navigationTitle(draftAsset == nil ? "Новый актив" : "Редактировать актив")
+            .toolbar {
+                // крестик справа
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
             .alert("Новый тип", isPresented: $isShowingNewTypeAlert) {
                 TextField("Название типа", text: $newTypeName)
                 Button("Сохранить") {
