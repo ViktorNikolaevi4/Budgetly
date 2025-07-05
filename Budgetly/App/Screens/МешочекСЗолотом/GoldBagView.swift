@@ -304,31 +304,43 @@ struct AddOrEditAssetView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 Form {
-                    Section("Название актива") {
-                        TextField("Введите название", text: $name)
+                       Section {
+                    TextField("Введите название", text: $name)
+                         }
+
+                       Section {
+                    Picker("Выберите тип", selection: $typeSelection) {
+                        Text("Без типа").tag(TypeSelection.none)
+                        ForEach(assetTypes, id: \.id) { type in
+                            Text(type.name).tag(TypeSelection.existing(type))
+                        }
+                        Text("Новый тип…").tag(TypeSelection.newType)
+                    }
+                    .pickerStyle(.menu)
+                    .onChange(of: typeSelection) { new in
+                        if case .newType = new {
+                            isShowingNewTypeAlert = true
+                        }
+                    }
+                      }
+
+                    Section {
+                        HStack {
+                            Text("Стоимость")
+                            Spacer()
+                            TextField("0", value: $price, format: .number)
+                                .keyboardType(.decimalPad)
+                                // чтобы текст внутри поля при пустом значении был справа
+                                .multilineTextAlignment(.trailing)
+                                // необязательно: сузим сам TextField, чтобы Spacer отрабатывал корректно
+                                .frame(maxWidth: 100)
+                        }
                     }
 
-                    Section("Тип") {
-                        Picker("Выберите тип", selection: $typeSelection) {
-                            Text("Без типа").tag(TypeSelection.none)
-                            ForEach(assetTypes, id: \.id) { type in
-                                Text(type.name).tag(TypeSelection.existing(type))
-                            }
-                            Text("Новый тип…").tag(TypeSelection.newType)
-                        }
-                        .pickerStyle(.menu)
-                        .onChange(of: typeSelection) { new in
-                            if case .newType = new {
-                                isShowingNewTypeAlert = true
-                            }
-                        }
-                    }
 
-                    Section("Переоценка стоимости (₽)") {
-                        TextField("0", value: $price, format: .number)
-                            .keyboardType(.decimalPad)
-                    }
-                }
+            }
+              //  .formStyle(.grouped)
+//                    .formRowSpacing(24)
 
                 // Кнопка внизу
                 Button(action: saveAndDismiss) {
