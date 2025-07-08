@@ -315,7 +315,7 @@ struct AddOrEditAssetView: View {
 
                  HStack {
                      Text(draftAsset == nil ? "Новый актив" : "Редактировать актив")
-                         .font(.title2).bold()
+                         .font(.title).bold()
                      Spacer()
                      Button { dismiss() } label: {
                          Image(systemName: "xmark")
