@@ -301,106 +301,135 @@ struct AddOrEditAssetView: View {
     }
 
     var body: some View {
-         ZStack {
-             // 1) Общий серый фон во всю шторку
-             Color(.systemGray6)
-                 .ignoresSafeArea()
+        ZStack {
+            // Серый фон во всю шторку
+            Color(.systemGray6)
+                .ignoresSafeArea()
 
-             VStack(spacing: 16) {
-                 // ваша ручка и заголовок
-                 Capsule()
-                     .frame(width: 36, height: 5)
-                     .foregroundColor(.gray.opacity(0.3))
-                     .padding(.top, 8)
+            VStack(spacing: 16) {
+                // «Ручка»
+                Capsule()
+                    .frame(width: 36, height: 5)
+                    .foregroundColor(.gray.opacity(0.3))
+                    .padding(.top, 8)
 
-                 HStack {
-                     Text(draftAsset == nil ? "Новый актив" : "Редактировать актив")
-                         .font(.title).bold()
-                     Spacer()
-                     Button { dismiss() } label: {
-                         Image(systemName: "xmark")
-                             .font(.system(size: 18, weight: .semibold))
-                             .foregroundColor(.gray)
-                     }
-                 }
-                 .padding(.horizontal)
+                // Заголовок и крестик
+                HStack {
+                    Text(draftAsset == nil ? "Новый актив" : name)
+                        .font(.title).bold()
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.horizontal)
 
-                 // 2) Сам контент
-                 Form {
-                     Section {
-                         TextField("Введите название", text: $name)
-                     }
-                     Section {
-                         Picker("Выберите тип", selection: $typeSelection) {
-                             Text("Без типа").tag(TypeSelection.none)
-                             ForEach(assetTypes, id: \.id) { t in
-                                 Text(t.name).tag(TypeSelection.existing(t))
-                             }
-                             Text("Новый тип…").tag(TypeSelection.newType)
-                         }
-                         .pickerStyle(.menu)
-                         .onChange(of: typeSelection) { new in
-                             if case .newType = new {
-                                 isShowingNewTypeAlert = true
-                             }
-                         }
-                     }
-                     Section {
-                         HStack {
-                             Text("Стоимость")
-                             Spacer()
-                             TextField("0", value: $price, format: .number)
-                                 .keyboardType(.decimalPad)
-                                 .multilineTextAlignment(.trailing)
-                                 .frame(maxWidth: 100)
-                         }
-                     }
-                 }
-                 // 3) Отключаем белый фон Form и закрашиваем его тем же серым
-                 .scrollContentBackground(.hidden)
-                 .background(Color(.systemGray6))
+                // Форма с полями и кнопкой «Удалить»
+                Form {
+                    Section {
+                        TextField("Введите название", text: $name)
+                    }    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
 
-                 // 4) Кнопка снизу
-                 Button(action: saveAndDismiss) {
-                     Text(draftAsset == nil ? "Добавить" : "Сохранить")
-                         .frame(maxWidth: .infinity, minHeight: 50)
-                         .background(name.trimmingCharacters(in: .whitespaces).isEmpty
-                                     ? Color.gray.opacity(0.5)
-                                     : Color.appPurple)
-                         .foregroundColor(.white)
-                         .cornerRadius(16)
-                         .padding()
-                 }
-                 .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-             }
-         }
-         // если вы вызываете .sheet, тут можно добавить:
-          .presentationDetents([.medium])
-          .presentationDragIndicator(.hidden)
-         .alert("Новый тип", isPresented: $isShowingNewTypeAlert) {
-             TextField("Название типа", text: $newTypeName)
-             Button("Сохранить") {
-                 let newType = AssetType(name: newTypeName)
-                 modelContext.insert(newType)
-                 try? modelContext.save()
-                 typeSelection = .existing(newType)
-                 newTypeName = ""
-             }
-             Button("Отмена", role: .cancel) {
-                 typeSelection = .none
-             }
-         } message: {
-             Text("Введите название для нового типа")
-         }
-     }
+                    Section {
+                        Picker("Выберите тип", selection: $typeSelection) {
+                            Text("Без типа").tag(TypeSelection.none)
+                            ForEach(assetTypes, id: \.id) { t in
+                                Text(t.name).tag(TypeSelection.existing(t))
+                            }
+                            Text("Новый тип…").tag(TypeSelection.newType)
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.appPurple)
+                        .onChange(of: typeSelection) { new in
+                            if case .newType = new {
+                                isShowingNewTypeAlert = true
+                            }
+                        }
+                    }    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+
+                    Section {
+                        HStack {
+                            Text("Стоимость")
+                            Spacer()
+                            TextField("0", value: $price, format: .number)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(maxWidth: 100)
+                        }
+                    }    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+
+
+                    // Кнопка «Добавить» / «Сохранить»
+                    Button(action: saveAndDismiss) {
+                        Text(draftAsset == nil ? "Добавить" : "Сохранить")
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .background(
+                                name.trimmingCharacters(in: .whitespaces).isEmpty
+                                    ? Color.gray.opacity(0.5)
+                                    : Color.appPurple
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(16)
+                            .padding(.horizontal)
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+
+                    // Секция с кнопкой «Удалить актив»
+                    if draftAsset != nil {
+                        Section {
+                            Button(role: .destructive) {
+                                deleteAsset()
+                            } label: {
+                                Text("Удалить актив")
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .background(Color(.systemGray6))
+
+            }
+        }
+        // Настройки модального листа
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
+        .alert("Новый тип", isPresented: $isShowingNewTypeAlert) {
+            TextField("Название типа", text: $newTypeName)
+            Button("Сохранить") {
+                let newType = AssetType(name: newTypeName)
+                modelContext.insert(newType)
+                try? modelContext.save()
+                typeSelection = .existing(newType)
+                newTypeName = ""
+            }
+            Button("Отмена", role: .cancel) {
+                typeSelection = .none
+            }
+        } message: {
+            Text("Введите название для нового типа")
+        }
+    }
+
+    private func deleteAsset() {
+        guard let asset = draftAsset else { return }
+        modelContext.delete(asset)
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при удалении: \(error.localizedDescription)")
+        }
+        dismiss()
+    }
 
     private func saveAndDismiss() {
-        // определяем, какой тип передавать в колбэк
         let finalType: AssetType? = {
             switch typeSelection {
-            case .none: return nil
+            case .none:           return nil
             case .existing(let t): return t
-            case .newType:    return nil
+            case .newType:        return nil
             }
         }()
         onSave(name, price, finalType)
@@ -408,9 +437,11 @@ struct AddOrEditAssetView: View {
     }
 }
 
-
 enum TypeSelection: Hashable {
     case none
     case existing(AssetType)
     case newType
 }
+
+// Не забудьте ваши @Model-классы Asset и AssetType и расширение Color.appPurple, если оно есть в проекте.
+
