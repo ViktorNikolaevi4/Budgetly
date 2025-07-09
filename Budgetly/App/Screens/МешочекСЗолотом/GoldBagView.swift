@@ -302,98 +302,108 @@ struct AddOrEditAssetView: View {
 
     var body: some View {
         ZStack {
-            // Серый фон во всю шторку
             Color(.systemGray6)
                 .ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                // «Ручка»
-                Capsule()
-                    .frame(width: 36, height: 5)
-                    .foregroundColor(.gray.opacity(0.3))
-                    .padding(.top, 8)
+            ScrollView {
+                VStack(spacing: 16) {
+                    // ручка
+                    Capsule()
+                        .frame(width: 36, height: 5)
+                        .foregroundColor(.gray.opacity(0.3))
+                        .padding(.top, 8)
 
-                // Заголовок и крестик
-                HStack {
-                    Text(draftAsset == nil ? "Новый актив" : name)
-                        .font(.title).bold()
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.gray)
+                    // заголовок
+                    HStack {
+                        Text(draftAsset == nil ? "Новый актив" : name)
+                            .font(.title).bold()
+                        Spacer()
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.gray)
+                        }
                     }
-                }
-                .padding(.horizontal)
+                    .padding(.horizontal)
 
-                // Форма с полями и кнопкой «Удалить»
-                Form {
-                    Section {
-                        TextField("Введите название", text: $name)
-                    }    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-
-                    Section {
-                        Picker("Выберите тип", selection: $typeSelection) {
-                            Text("Без типа").tag(TypeSelection.none)
-                            ForEach(assetTypes, id: \.id) { t in
-                                Text(t.name).tag(TypeSelection.existing(t))
-                            }
-                            Text("Новый тип…").tag(TypeSelection.newType)
+                    // поля
+                    VStack(spacing: 8) {
+                        // Название
+                        HStack {
+                            TextField("Введите название", text: $name)
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
                         }
-                        .pickerStyle(.menu)
-                        .tint(.appPurple)
-                        .onChange(of: typeSelection) { new in
-                            if case .newType = new {
-                                isShowingNewTypeAlert = true
-                            }
-                        }
-                    }    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .background(Color.white)
+                        .cornerRadius(12)
 
-                    Section {
+                        // Тип
+                        HStack {
+                            Text("Выберите тип")
+                            Spacer()
+                            Picker("", selection: $typeSelection) {
+                                Text("Без типа").tag(TypeSelection.none)
+                                ForEach(assetTypes, id: \.id) { t in
+                                    Text(t.name).tag(TypeSelection.existing(t))
+                                }
+                                Text("Новый тип…").tag(TypeSelection.newType)
+                            }
+                            .pickerStyle(.menu)
+                            .tint(.appPurple)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(Color.white)
+                        .cornerRadius(12)
+
+                        // Стоимость
                         HStack {
                             Text("Стоимость")
                             Spacer()
                             TextField("0", value: $price, format: .number)
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
-                                .frame(maxWidth: 100)
+                                .frame(maxWidth: 120)
                         }
-                    }    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(Color.white)
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
 
+                    // Кнопка Удалить (лишь при редактировании)
+                    if draftAsset != nil {
+                        Button(role: .destructive) {
+                            deleteAsset()
+                        } label: {
+                            Text("Удалить актив")
+                                .frame(maxWidth: .infinity, minHeight: 50)
+                        }
+                        .foregroundColor(.red)
+                        .background(Color(.systemGray4))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    }
 
-                    // Кнопка «Добавить» / «Сохранить»
+                    // Кнопка Сохранить / Добавить
                     Button(action: saveAndDismiss) {
                         Text(draftAsset == nil ? "Добавить" : "Сохранить")
                             .frame(maxWidth: .infinity, minHeight: 50)
-                            .background(
-                                name.trimmingCharacters(in: .whitespaces).isEmpty
-                                    ? Color.gray.opacity(0.5)
-                                    : Color.appPurple
-                            )
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
-                            .padding(.horizontal)
                     }
                     .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-
-                    // Секция с кнопкой «Удалить актив»
-                    if draftAsset != nil {
-                        Section {
-                            Button(role: .destructive) {
-                                deleteAsset()
-                            } label: {
-                                Text("Удалить актив")
-                                    .frame(maxWidth: .infinity)
-                            }
-                        }
-                    }
+                    .foregroundColor(.white)
+                    .background(
+                        name.trimmingCharacters(in: .whitespaces).isEmpty
+                            ? Color.gray.opacity(0.5)
+                            : Color.appPurple
+                    )
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    .padding(.bottom, 16)
                 }
-                .scrollContentBackground(.hidden)
-                .background(Color(.systemGray6))
-
             }
         }
-        // Настройки модального листа
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
         .alert("Новый тип", isPresented: $isShowingNewTypeAlert) {
@@ -416,11 +426,7 @@ struct AddOrEditAssetView: View {
     private func deleteAsset() {
         guard let asset = draftAsset else { return }
         modelContext.delete(asset)
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка при удалении: \(error.localizedDescription)")
-        }
+        try? modelContext.save()
         dismiss()
     }
 
@@ -436,6 +442,7 @@ struct AddOrEditAssetView: View {
         dismiss()
     }
 }
+
 
 enum TypeSelection: Hashable {
     case none
