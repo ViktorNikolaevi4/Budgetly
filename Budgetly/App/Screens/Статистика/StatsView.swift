@@ -35,12 +35,57 @@ struct StatsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                Picker("Счет", selection: $selectedAccount) {
-                    Text("Все счета").tag(nil as Account?)
-                    ForEach(accounts) { account in
-                        Text(account.name).tag(account as Account?)
+                // Внутри вашего VStack в StatsView вместо голого Picker:
+                HStack(spacing: 12) {
+                    // 1) Иконка и лейбл «Счет»
+                    HStack(spacing: 4) {
+                        Image(systemName: "folder")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                        Text("Счет")
+                            .font(.headline)
+                            .foregroundColor(.white)
                     }
-                }
+
+                    Spacer()
+
+                    // 2) Сами выбор из списка счетов
+                    Menu {
+                        // Пункт «Все счета»
+                        Button("Все счета") { selectedAccount = nil }
+                        Divider()
+                        // Остальные счета
+                        ForEach(accounts) { account in
+                            Button(account.name) {
+                                selectedAccount = account
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(selectedAccount?.name ?? "Все счета")
+                                .foregroundColor(.white)
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(.white)
+                        }
+                    }
+
+                } // HStack
+                .frame(width: 361, height: 54)
+                .padding(.horizontal, 12)           // чтобы содержимое не впритык к краям
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(red: 79/255, green: 184/255, blue: 255/255),
+                            Color(red: 32/255, green: 60/255, blue: 255/255)
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(16)
+                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+
                 // Сегментированный контрол для выбора: Доходы / Расходы / Активы
                 segmentControl
 
@@ -52,7 +97,6 @@ struct StatsView: View {
             }
             .padding()
             .navigationTitle("Статистика")
-            .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {
             // По умолчанию первый счет
