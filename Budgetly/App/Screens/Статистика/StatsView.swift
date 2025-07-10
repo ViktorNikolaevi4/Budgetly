@@ -26,6 +26,8 @@ struct StatsView: View {
     @State private var isShowingPeriodPopover = false
     @State private var isShowingDeleteAlert = false
     @State private var pendingDeleteTransaction: Transaction?
+    @State private var expandedCategories: Set<String> = []
+    @State private var expandedItems: Set<String> = []
 
     @Environment(\.dismiss) private var dismiss
 
@@ -222,49 +224,69 @@ struct StatsView: View {
 
     @ViewBuilder
     private var listOfFilteredItems: some View {
-        switch selectedSegment {
-        case .income, .expenses:
-            let allTx = (selectedSegment == .income)
+        if selectedSegment == .assets {
+            // ——— Только активы: типы без иконок и раскрытия ———
+            let groups = groupedAssetsByType
+            let total = totalAssets
+
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(groups, id: \.type) { group in
+                        VStack(alignment: .leading, spacing: 8) {
+                            // — Заголовок: тип и сумма
+                            HStack {
+                                Text(group.type)
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("\(group.total, specifier: "%.2f") ₽")
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                            }
+                            // — Полоска прогресса
+                            ProgressView(value: group.total, total: total)
+                                .tint(.appPurple)
+                                .frame(height: 4)
+                            // — Процент
+                            HStack {
+                                Spacer()
+                                Text(
+                                    String(
+                                        format: "%.1f%%",
+                                        group.total / (total == 0 ? 1 : total) * 100
+                                    )
+                                )
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            }
+                        }
+                        .padding(12)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
+                        .padding(.horizontal, 16)
+                    }
+                }
+                .padding(.vertical, 16)
+            }
+            .background(Color(.systemGray6))
+
+        } else {
+            // ——— Ваш кастомный список для доходов/расходов (с кружками, раскрытием и свайп-действиями) ———
+            let allTx = selectedSegment == .income
                 ? filteredIncomeTransactions
                 : filteredExpenseTransactions
             let totalSegment = allTx.reduce(0) { $0 + $1.amount }
+            let groups = groupedTransactions(allTx)
 
-            List {
-                ForEach(groupedTransactions(allTx), id: \.category) { group in
-                    DisclosureGroup {
-                        ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
-                            let transactionsForDay = allTx.filter {
-                                $0.category == group.category &&
-                                Calendar.current.isDate($0.date, inSameDayAs: day.date)
-                            }
-                            ForEach(transactionsForDay, id: \.id) { transaction in
-                                HStack {
-                                    Text(dayFormatter.string(from: transaction.date))
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    Spacer()
-                                    Text("\(transaction.amount, specifier: "%.2f") ₽")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.vertical, 4)
-                                .padding(.horizontal, 8)
-                                .swipeActions(edge: .trailing) {
-                                    Button(role: .destructive) {
-                                        pendingDeleteTransaction = transaction
-                                        isShowingDeleteAlert = true
-                                    } label: {
-                                        Label("Удалить", systemImage: "trash")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 8) {
-                                let iconName = categoryObject(named: group.category)?
-                                    .iconName
-                                    ?? defaultIconName(for: group.category)
+            ScrollView {
+                LazyVStack(spacing: 16) {
+                    ForEach(groups, id: \.category) { group in
+                        let isExpanded = expandedItems.contains(group.category)
+
+                        VStack(spacing: 12) {
+                            // — Заголовок с кружком, суммой и стрелкой —
+                            HStack(spacing: 12) {
                                 ZStack {
                                     Circle()
                                         .fill(
@@ -273,10 +295,14 @@ struct StatsView: View {
                                                 type: selectedSegment == .income ? .income : .expenses
                                             )
                                         )
-                                        .frame(width: 24, height: 24)
-                                    Image(systemName: iconName)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white)
+                                        .frame(width: 28, height: 28)
+                                    Image(systemName:
+                                        categoryObject(named: group.category)?
+                                            .iconName
+                                        ?? defaultIconName(for: group.category)
+                                    )
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
                                 }
                                 Text(group.category)
                                     .font(.body)
@@ -284,8 +310,12 @@ struct StatsView: View {
                                 Spacer()
                                 Text("\(group.total, specifier: "%.2f") ₽")
                                     .font(.body)
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.primary)
+                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
                             }
+                            // — Progress + % —
                             ProgressView(value: group.total, total: totalSegment)
                                 .tint(
                                     Color.colorForCategoryName(
@@ -305,77 +335,72 @@ struct StatsView: View {
                                 .font(.caption)
                                 .foregroundColor(.gray)
                             }
-                        }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 12)
-                    }
-                    .background(Color(.systemGray6))
-                    .cornerRadius(16)
-                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                }
-            }
-            .listStyle(.plain)
-            .background(Color(.systemGray6))
-            .scrollContentBackground(.hidden)
+                            // … внутри вашего ForEach по группам …
 
-        case .assets:
-                    List {
-                        Section(header:
-                            HStack {
-                                Text("Общая стоимость активов:")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text("\(totalAssets, specifier: "%.2f") ₽")
-                                    .font(.subheadline).bold()
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
-                        ) {
-                            ForEach(groupedAssetsByType, id: \.type) { group in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text(group.type)
-                                            .font(.body)
-                                        Spacer()
-                                        Text("\(group.total, specifier: "%.2f") ₽")
-                                            .font(.body)
-                                    }
-                                    ProgressView(value: group.total, total: totalAssets)
-                                        .tint(.appPurple)
-                                        .frame(height: 4)
-                                    HStack {
-                                        Spacer()
-                                        Text(
-                                            String(
-                                                format: "%.1f%%",
-                                                group.total / (totalAssets == 0 ? 1 : totalAssets) * 100
-                                            )
-                                        )
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
+                            if isExpanded {
+                                VStack(spacing: 0) {
+                                    ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
+                                        let txs = allTx.filter {
+                                            $0.category == group.category &&
+                                            Calendar.current.isDate($0.date, inSameDayAs: day.date)
+                                        }
+                                        ForEach(txs, id: \.id) { tx in
+                                            HStack {
+                                                Text(dayFormatter.string(from: tx.date))
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.gray)
+                                                Spacer()
+                                                Text("\(tx.amount, specifier: "%.2f") ₽")
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.gray)
+                                                // Вот наша кнопка-крестик:
+                                                Button {
+                                                    pendingDeleteTransaction = tx
+                                                    isShowingDeleteAlert = true
+                                                } label: {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .font(.system(size: 18))
+                                                        .foregroundColor(.red)
+                                                }
+                                                .padding(.leading, 8)
+                                            }
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal, 16)
+
+                                            Divider()
+                                                .padding(.leading, 16)
+                                        }
                                     }
                                 }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 12)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(16)
-                                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
-                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
+                                .padding(.top, 4)
+                            }
+
+
+                        }
+                        .padding(12)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
+                        .padding(.horizontal, 16)
+                        .onTapGesture {
+                            withAnimation(.easeInOut) {
+                                if isExpanded {
+                                    expandedItems.remove(group.category)
+                                } else {
+                                    expandedItems.insert(group.category)
+                                }
                             }
                         }
                     }
-                    .listStyle(.plain)
-                    .background(Color(.systemGray6))
-                    .scrollContentBackground(.hidden)
                 }
+                .padding(.vertical, 16)
             }
+            .background(Color(.systemGray6))
+        }
+    }
+
+
+
 
     private func delete(transaction: Transaction) {
         modelContext.delete(transaction)
@@ -419,7 +444,11 @@ struct StatsView: View {
         default: return "circle.slash.fill"
         }
     }
-
+    private func transactions(for category: String, in txs: [Transaction]) -> [Transaction] {
+        txs
+          .filter { $0.category == category }
+          .sorted { $0.date > $1.date }
+    }
     private let dayFormatter: DateFormatter = {
         let df = DateFormatter()
         df.locale = Locale(identifier: "ru_RU")
