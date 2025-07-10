@@ -12,37 +12,29 @@ enum StatsSegment: String, CaseIterable, Identifiable {
 
 struct StatsView: View {
     @Query private var accounts: [Account]
-    // Массив всех транзакций
     @Query private var transactions: [Transaction]
-    // Массив всех активов
     @Query private var assets: [Asset]
     @Query private var allCategories: [Category]
+    @Environment(\.modelContext) private var modelContext
 
-    // Состояние выбора сегмента: Доходы / Расходы / Активы
     @State private var selectedSegment: StatsSegment = .income
     @State private var selectedAccount: Account?
-
-    // Состояние выбора периода
     @State private var selectedTimePeriod: TimePeriod = .allTime
     @State private var customStartDate: Date = Date()
     @State private var customEndDate: Date = Date()
     @State private var isCustomPeriodPickerPresented = false
     @State private var isShowingPeriodPopover = false
-    @State private var isShowingDateSheet = false
-
+    @State private var isShowingDeleteAlert = false
+    @State private var pendingDeleteTransaction: Transaction?
 
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-
-
-            //  }
         NavigationStack {
-            ZStack { Color(.systemGray6).ignoresSafeArea()
+            ZStack {
+                Color(.systemGray6).ignoresSafeArea()
                 VStack(spacing: 16) {
-                    // Внутри вашего VStack в StatsView вместо голого Picker:
                     HStack(spacing: 12) {
-                        // 1) Иконка и лейбл «Счет»
                         HStack(spacing: 4) {
                             Image(systemName: "folder")
                                 .font(.title3)
@@ -51,15 +43,10 @@ struct StatsView: View {
                                 .font(.headline)
                                 .foregroundColor(.white)
                         }
-
                         Spacer()
-
-                        // 2) Сами выбор из списка счетов
                         Menu {
-                            // Пункт «Все счета»
                             Button("Все счета") { selectedAccount = nil }
                             Divider()
-                            // Остальные счета
                             ForEach(accounts) { account in
                                 Button(account.name) {
                                     selectedAccount = account
@@ -74,10 +61,9 @@ struct StatsView: View {
                                     .foregroundColor(.white)
                             }
                         }
-
-                    } // HStack
+                    }
                     .frame(height: 54)
-                    .padding(.horizontal, 16)           // чтобы содержимое не впритык к краям
+                    .padding(.horizontal, 16)
                     .background(
                         LinearGradient(
                             gradient: Gradient(colors: [
@@ -91,51 +77,77 @@ struct StatsView: View {
                     .cornerRadius(16)
                     .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
 
-                    // Сегментированный контрол для выбора: Доходы / Расходы / Активы
                     segmentControl
-
-                    // Пикер периода (День, Неделя и т.д.)
                     periodPicker
-
-                    // Список элементов внизу
                     listOfFilteredItems
-                    //      .listStyle(.plain)
-                    //  .scrollContentBackground(.hidden)
                 }
                 .padding()
                 .navigationTitle("Статистика")
                 .navigationBarTitleDisplayMode(.large)
             }
-        }
-            .onAppear {
-                // По умолчанию первый счет
-                if selectedAccount == nil {
-                    selectedAccount = accounts.first
+            .alert(
+                "Подтвердить удаление",
+                isPresented: $isShowingDeleteAlert
+            ) {
+                Button("Удалить", role: .destructive) {
+                    if let transaction = pendingDeleteTransaction {
+                        delete(transaction: transaction)
+                    }
                 }
-            }
-            // Если выбрали "Выбрать период", показываем выбор дат
-            .sheet(isPresented: $isCustomPeriodPickerPresented) {
-                CustomPeriodPickerView(
-                    startDate: customStartDate,
-                    endDate: customEndDate,
-                    onApply: { start, end in
-                        customStartDate = start
-                        customEndDate = end }
-                )
+                Button("Отмена", role: .cancel) {
+                    pendingDeleteTransaction = nil
+                }
+            } message: {
+                Text("Вы уверены, что хотите удалить эту транзакцию?")
             }
         }
-    // MARK: - Активы, отсортированные по цене ↓
+        .onAppear {
+            if selectedAccount == nil {
+                selectedAccount = accounts.first
+            }
+        }
+        .sheet(isPresented: $isCustomPeriodPickerPresented) {
+            CustomPeriodPickerView(
+                startDate: customStartDate,
+                endDate: customEndDate,
+                onApply: { start, end in
+                    customStartDate = start
+                    customEndDate = end
+                    selectedTimePeriod = .custom
+                }
+            )
+            .presentationDetents([.medium])
+        }
+    }
+
     private var sortedAssets: [Asset] {
         assets.sorted {
             if $0.price != $1.price {
-                return $0.price > $1.price      // сначала большая цена
+                return $0.price > $1.price
             } else {
-                return $0.name < $1.name        // потом алфавит
+                return $0.name < $1.name
             }
         }
     }
 
-    // MARK: - Сегментированный контрол (Доходы / Расходы / Активы)
+    private var totalAssets: Double {
+        assets.reduce(0) { $0 + $1.price }
+    }
+
+    private var groupedAssetsByType: [(type: String, total: Double)] {
+        Dictionary(grouping: assets, by: { $0.assetType?.name ?? "Без типа" })
+            .map { (type, items) in
+                (type: type, total: items.reduce(0) { $0 + $1.price })
+            }
+            .sorted {
+                if $0.total != $1.total {
+                    return $0.total > $1.total
+                } else {
+                    return $0.type < $1.type // Алфавитный порядок при равных суммах
+                }
+            }
+    }
+
     private var segmentControl: some View {
         Picker("", selection: $selectedSegment) {
             ForEach(StatsSegment.allCases) { segment in
@@ -145,16 +157,13 @@ struct StatsView: View {
         .pickerStyle(.segmented)
     }
 
-    // MARK: - Пикер периода (Popover и выбор дат)
     private var periodPicker: some View {
         Group {
             if selectedSegment != .assets {
                 HStack {
                     Text("Период:")
                         .font(.title3).bold()
-
                     Spacer()
-
                     Button {
                         isShowingPeriodPopover.toggle()
                     } label: {
@@ -191,7 +200,6 @@ struct StatsView: View {
                                     }
                                     .padding(.horizontal, 16)
                                 }
-                                // Если это не последний элемент – добавить Divider (подчеркивание)
                                 if index < TimePeriod.allCases.count - 1 {
                                     Divider()
                                         .foregroundColor(Color(.systemGray4))
@@ -205,19 +213,6 @@ struct StatsView: View {
                         .shadow(radius: 5)
                         .presentationCompactAdaptation(.popover)
                     }
-
-                }
-                // Sheet для кастомного периода
-                .sheet(isPresented: $isCustomPeriodPickerPresented) {
-                    CustomPeriodPickerView(
-                        startDate: customStartDate,
-                        endDate: customEndDate
-                    ) { start, end in
-                        customStartDate = start
-                        customEndDate = end
-                        selectedTimePeriod = .custom
-                    }
-                    .presentationDetents([.medium])
                 }
             } else {
                 EmptyView()
@@ -225,144 +220,180 @@ struct StatsView: View {
         }
     }
 
-    // MARK: - Список элементов (транзакций или активов) в зависимости от выбора
     @ViewBuilder
     private var listOfFilteredItems: some View {
         switch selectedSegment {
         case .income, .expenses:
-            // Выбираем нужный массив транзакций
             let allTx = (selectedSegment == .income)
                 ? filteredIncomeTransactions
                 : filteredExpenseTransactions
-            // Считаем общий сегмент для расчета процентов
             let totalSegment = allTx.reduce(0) { $0 + $1.amount }
 
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(groupedTransactions(allTx), id: \.category) { group in
-                        DisclosureGroup {
-                            // детализация по дням
-                            ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
-                                HStack {
-                                    Text(dayFormatter.string(from: day.date))
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                    Spacer()
-                                    Text("\(day.total, specifier: "%.2f") ₽")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.vertical, 2)
+            List {
+                ForEach(groupedTransactions(allTx), id: \.category) { group in
+                    DisclosureGroup {
+                        ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
+                            let transactionsForDay = allTx.filter {
+                                $0.category == group.category &&
+                                Calendar.current.isDate($0.date, inSameDayAs: day.date)
                             }
-                        } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(spacing: 8) {
-                                    // цветной бэк + иконка
-                                    let iconName = categoryObject(named: group.category)?
-                                                       .iconName
-                                                   ?? defaultIconName(for: group.category)
-                                    ZStack {
-                                        Circle()
-                                            .fill(
-                                                Color.colorForCategoryName(
-                                                    group.category,
-                                                    type: selectedSegment == .income ? .income : .expenses
-                                                )
-                                            )
-                                            .frame(width: 24, height: 24)
-                                        Image(systemName: iconName)
-                                            .font(.system(size: 14, weight: .medium))
-                                            .foregroundColor(.white)
-                                    }
-
-                                    Text(group.category)
-                                        .font(.body)
-                                        .foregroundColor(.primary)
-
-                                    Spacer()
-
-                                    Text("\(group.total, specifier: "%.2f") ₽")
-                                        .font(.body)
-                                        .foregroundColor(.black)
-                                }
-
-                                // прогресс-бар
-                                ProgressView(value: group.total, total: totalSegment)
-                                    .tint(
-                                        Color.colorForCategoryName(
-                                            group.category,
-                                            type: selectedSegment == .income ? .income : .expenses
-                                        )
-                                    )
-                                    .frame(height: 4)
-
-                                // процент
+                            ForEach(transactionsForDay, id: \.id) { transaction in
                                 HStack {
+                                    Text(dayFormatter.string(from: transaction.date))
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
                                     Spacer()
-                                    Text(
-                                        String(
-                                            format: "%.1f%%",
-                                            group.total / (totalSegment == 0 ? 1 : totalSegment) * 100
-                                        )
-                                    )
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+                                    Text("\(transaction.amount, specifier: "%.2f") ₽")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 8)
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        pendingDeleteTransaction = transaction
+                                        isShowingDeleteAlert = true
+                                    } label: {
+                                        Label("Удалить", systemImage: "trash")
+                                    }
                                 }
                             }
                         }
-                        .padding()
-                        // фон «карты»
-                        .background(Color.white)
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                let iconName = categoryObject(named: group.category)?
+                                    .iconName
+                                    ?? defaultIconName(for: group.category)
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            Color.colorForCategoryName(
+                                                group.category,
+                                                type: selectedSegment == .income ? .income : .expenses
+                                            )
+                                        )
+                                        .frame(width: 24, height: 24)
+                                    Image(systemName: iconName)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.white)
+                                }
+                                Text(group.category)
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Text("\(group.total, specifier: "%.2f") ₽")
+                                    .font(.body)
+                                    .foregroundColor(.black)
+                            }
+                            ProgressView(value: group.total, total: totalSegment)
+                                .tint(
+                                    Color.colorForCategoryName(
+                                        group.category,
+                                        type: selectedSegment == .income ? .income : .expenses
+                                    )
+                                )
+                                .frame(height: 4)
+                            HStack {
+                                Spacer()
+                                Text(
+                                    String(
+                                        format: "%.1f%%",
+                                        group.total / (totalSegment == 0 ? 1 : totalSegment) * 100
+                                    )
+                                )
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                            }
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 12)
                     }
+                    .background(Color(.systemGray6))
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
+            .listStyle(.plain)
             .background(Color(.systemGray6))
-            .ignoresSafeArea(edges: .bottom)
+            .scrollContentBackground(.hidden)
 
         case .assets:
-            ScrollView {
-                VStack(spacing: 12) {
-                    ForEach(sortedAssets) { asset in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(asset.name)
-                                    .font(.headline)
-                                Text(asset.assetType?.name ?? "Без типа")
+                    List {
+                        Section(header:
+                            HStack {
+                                Text("Общая стоимость активов:")
                                     .font(.subheadline)
                                     .foregroundColor(.gray)
+                                Spacer()
+                                Text("\(totalAssets, specifier: "%.2f") ₽")
+                                    .font(.subheadline).bold()
                             }
-                            Spacer()
-                            Text(String(format: "%.2f ₽", asset.price))
-                                .foregroundColor(.black)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6))
+                        ) {
+                            ForEach(groupedAssetsByType, id: \.type) { group in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text(group.type)
+                                            .font(.body)
+                                        Spacer()
+                                        Text("\(group.total, specifier: "%.2f") ₽")
+                                            .font(.body)
+                                    }
+                                    ProgressView(value: group.total, total: totalAssets)
+                                        .tint(.appPurple)
+                                        .frame(height: 4)
+                                    HStack {
+                                        Spacer()
+                                        Text(
+                                            String(
+                                                format: "%.1f%%",
+                                                group.total / (totalAssets == 0 ? 1 : totalAssets) * 100
+                                            )
+                                        )
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                    }
+                                }
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 12)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(16)
+                                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                            }
                         }
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
                     }
+                    .listStyle(.plain)
+                    .background(Color(.systemGray6))
+                    .scrollContentBackground(.hidden)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
-            .background(Color(.systemGray6))
-            .ignoresSafeArea(edges: .bottom)
+
+    private func delete(transaction: Transaction) {
+        modelContext.delete(transaction)
+        do {
+            try modelContext.save()
+        } catch {
+            print("Ошибка при удалении транзакции: \(error.localizedDescription)")
         }
+        pendingDeleteTransaction = nil
     }
-
-
-
 
     private func categoryObject(named name: String) -> Category? {
         guard let acct = selectedAccount else { return nil }
-        // ищем категорию текущего счёта с нужным именем
         return allCategories.first {
             $0.account?.id == acct.id && $0.name == name
         }
     }
+
     private func defaultIconName(for categoryName: String) -> String {
         switch categoryName {
         case Category.uncategorizedName: return "circle.slash"
@@ -376,7 +407,6 @@ struct StatsView: View {
         case "Развлечения": return "gamecontroller.fill"
         case "Образование": return "book.fill"
         case "Дети": return "figure.walk"
-
         case "Зарплата": return "wallet.bifold.fill"
         case "Дивиденды": return "chart.line.uptrend.xyaxis"
         case "Купоны": return "banknote"
@@ -390,7 +420,6 @@ struct StatsView: View {
         }
     }
 
-    // MARK: -Классический форматтер для дня
     private let dayFormatter: DateFormatter = {
         let df = DateFormatter()
         df.locale = Locale(identifier: "ru_RU")
@@ -398,45 +427,32 @@ struct StatsView: View {
         return df
     }()
 
-    // MARK: -Суммы по дням для конкретной категории
     private func dailyTotals(for category: String, in transactions: [Transaction]) -> [(date: Date, total: Double)] {
-        // 1) Берём только транзакции нужной категории
         let filtered = transactions.filter { $0.category == category }
-
-        // 2) Группируем по дате (убираем время)
         let dict = Dictionary(grouping: filtered) { tx -> Date in
             Calendar.current.startOfDay(for: tx.date)
         }
-
-        // 3) Считаем итого за каждый день и сортируем по убыванию даты
         return dict.map { (day, txs) in
             (date: day, total: txs.reduce(0) { $0 + $1.amount })
         }
         .sorted { $0.date > $1.date }
     }
 
-
-    // MARK: - Группировка транзакций по категориям и суммирование
     private func groupedTransactions(_ transactions: [Transaction]) -> [(category: String, total: Double)] {
-        // Используем Dictionary(grouping:by:) для группировки
         let dict = Dictionary(grouping: transactions, by: { $0.category })
-
-        // Превращаем словарь в массив структур (category, total)
-        // total — это сумма amounts в рамках каждой категории
         return dict.map { (category, txs) in
             let total = txs.reduce(0) { $0 + $1.amount }
             return (category: category, total: total)
         }
         .sorted {
             if $0.total != $1.total {
-                return $0.total > $1.total   // сначала по сумме (по убыванию)
+                return $0.total > $1.total
             } else {
-                return $0.category < $1.category // потом по алфавиту
+                return $0.category < $1.category
             }
         }
     }
 
-    // MARK: - Фильтр доходов по периоду
     private var filteredIncomeTransactions: [Transaction] {
         transactions
             .filter { $0.type == .income }
@@ -444,21 +460,11 @@ struct StatsView: View {
             .filter(isInSelectedAccount)
     }
 
-    // MARK: - Фильтр расходов по периоду
     private var filteredExpenseTransactions: [Transaction] {
         transactions
             .filter { $0.type == .expenses }
             .filter(isInSelectedPeriod)
             .filter(isInSelectedAccount)
-    }
-
-    // MARK: - Сгруппированные доходы и расходы
-    private var groupedIncomeTransactions: [(category: String, total: Double)] {
-        groupedTransactions(filteredIncomeTransactions)
-    }
-
-    private var groupedExpenseTransactions: [(category: String, total: Double)] {
-        groupedTransactions(filteredExpenseTransactions)
     }
 
     private var selectedPeriodTitle: String {
@@ -471,13 +477,12 @@ struct StatsView: View {
             return selectedTimePeriod.rawValue
         }
     }
+
     private func isInSelectedAccount(_ tx: Transaction) -> Bool {
         guard let acct = selectedAccount else { return true }
-        // сравниваем опциональный UUID с не-опциональным, Swift умеет это сделать:
         return tx.account?.id == acct.id
     }
 
-    // MARK: - Проверка, попадает ли дата транзакции в выбранный период
     private func isInSelectedPeriod(_ transaction: Transaction) -> Bool {
         let now = Date()
         let calendar = Calendar.current
