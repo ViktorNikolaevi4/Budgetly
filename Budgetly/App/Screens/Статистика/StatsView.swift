@@ -16,6 +16,7 @@ struct StatsView: View {
     @Query private var transactions: [Transaction]
     // Массив всех активов
     @Query private var assets: [Asset]
+    @Query private var allCategories: [Category]
 
     // Состояние выбора сегмента: Доходы / Расходы / Активы
     @State private var selectedSegment: StatsSegment = .income
@@ -223,26 +224,53 @@ struct StatsView: View {
     @ViewBuilder
     private var listOfFilteredItems: some View {
         switch selectedSegment {
-        case .income:
-            // Сгруппированные доходы
-            List(groupedIncomeTransactions, id: \.category) { group in
-                HStack {
-                    Text(group.category)
-                    Spacer()
-                    Text("\(group.total, specifier: "%.2f") ₽")
-                        .foregroundColor(.black)
-                        .font(.body)
-                }
-            }
-        case .expenses:
-            // Сгруппированные расходы
-            List(groupedExpenseTransactions, id: \.category) { group in
-                HStack {
-                    Text(group.category)
-                    Spacer()
-                    Text("\(group.total, specifier: "%.2f") ₽")
-                        .foregroundColor(.black)
-                        .font(.body)
+        case .income, .expenses:
+            // Выбираем нужный массив транзакций
+            let allTx = (selectedSegment == .income)
+                ? filteredIncomeTransactions
+                : filteredExpenseTransactions
+
+            List {
+                ForEach(groupedTransactions(allTx), id: \.category) { group in
+                    DisclosureGroup {
+                        // Детализация по дням
+                        ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
+                            HStack {
+                                Text(dayFormatter.string(from: day.date))
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Text("\(day.total, specifier: "%.2f") ₽")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            // Иконка категории
+                            if let cat = categoryObject(named: group.category),
+                               let iconName = cat.iconName
+                            {
+                                Image(systemName: iconName)
+                                    .foregroundColor(.appPurple)
+                            } else {
+                                Image(systemName: defaultIconName(for: group.category))
+                                    .foregroundColor(.appPurple)
+                            }
+
+                            Text(group.category)
+                                .font(.body)
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            Text("\(group.total, specifier: "%.2f") ₽")
+                                .font(.body)
+                                .foregroundColor(.black)
+                        }
+                        .padding(.vertical, 6)
+                    }
                 }
             }
             // Показываем список всех активов (без фильтра по датам)
@@ -263,6 +291,65 @@ struct StatsView: View {
             }
         }
     }
+    private func categoryObject(named name: String) -> Category? {
+        guard let acct = selectedAccount else { return nil }
+        // ищем категорию текущего счёта с нужным именем
+        return allCategories.first {
+            $0.account?.id == acct.id && $0.name == name
+        }
+    }
+    private func defaultIconName(for categoryName: String) -> String {
+        switch categoryName {
+        case Category.uncategorizedName: return "circle.slash"
+        case "Еда": return "fork.knife"
+        case "Транспорт": return "car.fill"
+        case "Дом": return "house.fill"
+        case "Одежда": return "tshirt.fill"
+        case "Здоровье": return "bandage.fill"
+        case "Питомцы": return "pawprint.fill"
+        case "Связь": return "wifi"
+        case "Развлечения": return "gamecontroller.fill"
+        case "Образование": return "book.fill"
+        case "Дети": return "figure.walk"
+            
+        case "Зарплата": return "wallet.bifold.fill"
+        case "Дивиденды": return "chart.line.uptrend.xyaxis"
+        case "Купоны": return "banknote"
+        case "Продажи": return "dollarsign.circle.fill"
+        case "Премия": return "star.circle.fill"
+        case "Вклады": return "dollarsign.bank.building.fill"
+        case "Аренда": return "house.fill"
+        case "Подарки": return "gift.fill"
+        case "Подработка": return "hammer.fill"
+        default: return "circle.slash.fill"
+        }
+    }
+
+    // MARK: -Классический форматтер для дня
+    private let dayFormatter: DateFormatter = {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "ru_RU")
+        df.dateFormat = "d MMM yyyy"
+        return df
+    }()
+
+    // MARK: -Суммы по дням для конкретной категории
+    private func dailyTotals(for category: String, in transactions: [Transaction]) -> [(date: Date, total: Double)] {
+        // 1) Берём только транзакции нужной категории
+        let filtered = transactions.filter { $0.category == category }
+
+        // 2) Группируем по дате (убираем время)
+        let dict = Dictionary(grouping: filtered) { tx -> Date in
+            Calendar.current.startOfDay(for: tx.date)
+        }
+
+        // 3) Считаем итого за каждый день и сортируем по убыванию даты
+        return dict.map { (day, txs) in
+            (date: day, total: txs.reduce(0) { $0 + $1.amount })
+        }
+        .sorted { $0.date > $1.date }
+    }
+
 
     // MARK: - Группировка транзакций по категориям и суммирование
     private func groupedTransactions(_ transactions: [Transaction]) -> [(category: String, total: Double)] {
