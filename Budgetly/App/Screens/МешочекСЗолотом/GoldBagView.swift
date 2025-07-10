@@ -333,7 +333,7 @@ struct AddOrEditAssetView: View {
                                 .padding(.horizontal, 16)
                         }
                         .background(Color.white)
-                        .cornerRadius(12)
+                        .cornerRadius(16)
 
                         // Тип
                         HStack {
@@ -352,7 +352,7 @@ struct AddOrEditAssetView: View {
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
                         .background(Color.white)
-                        .cornerRadius(12)
+                        .cornerRadius(16)
 
                         // Стоимость
                         HStack {
@@ -366,7 +366,12 @@ struct AddOrEditAssetView: View {
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
                         .background(Color.white)
-                        .cornerRadius(12)
+                        .cornerRadius(16)
+
+                        Text("Если цена или изменилась — просто обновите её 📈")
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 16)
                     }
                     .padding(.horizontal)
                     Spacer()
