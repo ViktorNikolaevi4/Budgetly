@@ -45,6 +45,8 @@ struct GoldBagView: View {
     @State private var selectedAsset: Asset?
     private let noneTypeID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
     @State private var expandedTypes: Set<UUID> = []
+    @State private var pendingDeleteAsset: Asset?
+    @State private var isShowingDeleteAlert = false
 
     private var groupedAssetsByType: [AssetType?: [Asset]] {
         Dictionary(grouping: assets, by: { $0.assetType })
@@ -142,7 +144,8 @@ struct GoldBagView: View {
                             }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    delete(asset: asset)
+                                    pendingDeleteAsset = asset
+                                    isShowingDeleteAlert = true
                                 } label: {
                                     Label("Удалить", systemImage: "trash")
                                 }
@@ -180,6 +183,23 @@ struct GoldBagView: View {
                       }
                     }
             .navigationTitle("Мои активы")
+            .alert(
+                // 3) Общий алерт «Подтвердить удаление»
+                "Подтвердить удаление",
+                isPresented: $isShowingDeleteAlert
+            ) {
+                Button("Удалить", role: .destructive) {
+                    // 4) Если подтвердили — удаляем
+                    if let asset = pendingDeleteAsset {
+                        delete(asset: asset)
+                    }
+                }
+                Button("Отмена", role: .cancel) {
+                    // просто закрываем алерт
+                }
+            } message: {
+                Text("Вы уверены, что хотите удалить этот актив?")
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
              //       HStack(spacing: 16) {
