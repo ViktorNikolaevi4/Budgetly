@@ -92,200 +92,166 @@ struct GoldBagView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading) {
-                Chart(assetGroups) { item in
-                    SectorMark(
-                        angle: .value("Сумма", item.sum),
-                        innerRadius: .ratio(0.75),
-                        outerRadius: .ratio(1.0),
-                        angularInset: 1.0
-                    )
-                    .cornerRadius(4)
-                    .foregroundStyle(item.color)
-                }
-                .chartLegend(.hidden)
-                .frame(width: 180, height: 180)
-                .overlay(
-                    VStack {
-                        Text("\(totalPrice.toShortStringWithSuffix()) ₽")
-                            .font(.title2)
-                            .bold()
-                            .foregroundStyle(.black)
-                    }
-                )
-                .padding()
-            }
-
-            List {
-                ForEach(assetGroups) { group in
-                    DisclosureGroup(
-                        isExpanded: Binding(
-                            get: { expandedTypes.contains(group.id) },
-                            set: { newValue in
-                                if newValue {
-                                    expandedTypes.insert(group.id)
-                                } else {
-                                    expandedTypes.remove(group.id)
-                                }
-                            }
-                        )
-                    ) {
-                        ForEach(groupedAssetsByType[group.type] ?? []) { asset in
-                            Button {
-                                selectedAsset = asset
-                            } label: {
-                                HStack {
-                                    Text(asset.name)
-                                    Spacer()
-                                    Text("\(asset.price, specifier: "%.2f") ₽")
-                                }
+            Group {
+                if assets.isEmpty {
+                    // Пустой стейт
+                    EmptyStateView()
+                } else {
+                    // Диаграмма + список
+                    VStack() {
+                        // 1) Круговая диаграмма
+                        Chart(assetGroups) { item in
+                            SectorMark(
+                                angle: .value("Сумма", item.sum),
+                                innerRadius: .ratio(0.75),
+                                outerRadius: .ratio(1.0),
+                                angularInset: 1
+                            )
+                            .cornerRadius(4)
+                            .foregroundStyle(item.color)
+                        }
+                        .chartLegend(.hidden)
+                        .frame(width: 180, height: 180)
+                        .overlay(
+                            Text("\(totalPrice.toShortStringWithSuffix()) ₽")
+                                .font(.title2).bold()
                                 .foregroundColor(.black)
-                                .padding(.vertical, 4)
-                            }
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    pendingDeleteAsset = asset
-                                    isShowingDeleteAlert = true
+                        )
+                        .padding()
+
+                        // 2) Список групп и активов
+                        List {
+                            ForEach(assetGroups) { group in
+                                DisclosureGroup(
+                                    isExpanded: Binding(
+                                        get: { expandedTypes.contains(group.id) },
+                                        set: { newValue in
+                                            if newValue {
+                                                expandedTypes.insert(group.id)
+                                            } else {
+                                                expandedTypes.remove(group.id)
+                                            }
+                                        }
+                                    )
+                                ) {
+                                    ForEach(groupedAssetsByType[group.type] ?? []) { asset in
+                                        Button { selectedAsset = asset } label: {
+                                            HStack {
+                                                Text(asset.name)
+                                                Spacer()
+                                                Text("\(asset.price, specifier: "%.2f") ₽")
+                                            }
+                                            .padding(.vertical, 4)
+                                        }
+                                        .tint(.black)
+                                        .swipeActions(edge: .trailing) {
+                                            Button(role: .destructive) {
+                                                pendingDeleteAsset = asset
+                                                isShowingDeleteAlert = true
+                                            } label: {
+                                                Label("Удалить", systemImage: "trash")
+                                            }
+                                        }
+                                    }
                                 } label: {
-                                    Label("Удалить", systemImage: "trash")
+                                    HStack(spacing: 8) {
+                                        Circle()
+                                            .fill(group.color)
+                                            .frame(width: 10, height: 10)
+                                        Text(group.type?.name ?? "Без типа")
+                                            .font(.title3).bold()
+                                        Spacer()
+                                        HStack(spacing: 6) {
+                                            Text("\(group.sum.toShortStringWithSuffix()) ₽")
+                                            Circle()
+                                                .frame(width: 4, height: 4)
+                                                .foregroundColor(.gray.opacity(0.6))
+                                            Text(String(format: "%.1f%%", group.sum / totalPrice * 100))
+                                        }
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray.opacity(0.8))
+                                    }
+                                    .padding(.vertical, 4)
                                 }
                             }
                         }
-                    } label: {
-                          HStack(spacing: 8) {
-                            // точка-цвет
-                            Circle()
-                              .fill(group.color)
-                              .frame(width: 10, height: 10)
-
-                            // название
-                            Text(group.type?.name ?? "Без типа")
-                              .font(.title3).bold()
-                              .foregroundColor(.primary)
-
-                            Spacer()
-
-                            // сумма · разделитель · процент
-                            HStack(spacing: 6) {
-                              Text("\(group.sum.toShortStringWithSuffix()) ₽")
-                              // маленький кружочек-разделитель
-                              Circle()
-                                .frame(width: 4, height: 4)
-                                .foregroundColor(.gray.opacity(0.6))
-                              Text(String(format: "%.1f%%", group.sum / totalPrice * 100))
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(.gray.opacity(0.8))
-                          }
-                          .padding(.vertical, 4)
-                        }
-                        .tint(.black)
-                      }
-                    }
-            .navigationTitle("Мои активы")
-            .alert(
-                // 3) Общий алерт «Подтвердить удаление»
-                "Подтвердить удаление",
-                isPresented: $isShowingDeleteAlert
-            ) {
-                Button("Удалить", role: .destructive) {
-                    // 4) Если подтвердили — удаляем
-                    if let asset = pendingDeleteAsset {
-                        delete(asset: asset)
                     }
                 }
-                Button("Отмена", role: .cancel) {
-                    // просто закрываем алерт
-                }
-            } message: {
-                Text("Вы уверены, что хотите удалить этот актив?")
             }
+            // Навигационная панель (заголовок + кнопка "+")
+            .navigationTitle("Мои активы")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-             //       HStack(spacing: 16) {
-//                        Text("Мои активы")
-//                            .font(.title2)
-//                            .bold()
-//                            .foregroundColor(.black)
-//                        Spacer()
-//                        Text("\(totalPrice, specifier: "%.2f") ₽")
-//                            .foregroundColor(.black)
-//                            .font(.title3).bold()
-                        Button {
-                            isAddAssetPresented = true
-                        } label: {
-                            Image(systemName: "plus.circle")
-                                .font(.title)
-                                .foregroundStyle(.appPurple)
-                        }
-                  //  }
+                    Button {
+                        isAddAssetPresented = true
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .font(.title)
+                            .foregroundStyle(.appPurple)
+                    }
                 }
             }
-            .onAppear {
-                createDefaultAssetTypesIfNeeded()
+        }
+        // Алерт удаления
+        .alert(
+            "Подтвердить удаление",
+            isPresented: $isShowingDeleteAlert
+        ) {
+            Button("Удалить", role: .destructive) {
+                if let asset = pendingDeleteAsset {
+                    delete(asset: asset)
+                }
             }
-            .sheet(isPresented: $isAddAssetPresented) {
-                AddOrEditAssetView(
-                    draftAsset: nil,
-                    assetTypes: assetTypes,
-                    onSave: { newName, newPrice, chosenType in
-                        let newAsset = Asset(name: newName, price: newPrice, assetType: chosenType)
-                        modelContext.insert(newAsset)
-                        do {
-                            try modelContext.save()
-                        } catch {
-                            print("Ошибка сохранения: \(error.localizedDescription)")
-                        }
-                    }
-                )
-                .presentationDetents([.medium])
+            Button("Отмена", role: .cancel) { }
+        } message: {
+            Text("Вы уверены, что хотите удалить этот актив?")
+        }
+        // Листы для создания/редактирования
+        .sheet(isPresented: $isAddAssetPresented) {
+            AddOrEditAssetView(
+                draftAsset: nil,
+                assetTypes: assetTypes
+            ) { name, price, type in
+                let newAsset = Asset(name: name, price: price, assetType: type)
+                modelContext.insert(newAsset)
+                try? modelContext.save()
             }
-            .sheet(item: $selectedAsset) { asset in
-                AddOrEditAssetView(
-                    draftAsset: asset,
-                    assetTypes: assetTypes,
-                    onSave: { newName, newPrice, chosenType in
-                        asset.name = newName
-                        asset.price = newPrice
-                        asset.assetType = chosenType
-                        do {
-                            try modelContext.save()
-                        } catch {
-                            print("Ошибка сохранения: \(error.localizedDescription)")
-                        }
-                    }
-                )
-                .presentationDetents([.medium])
+            .presentationDetents([.medium])
+        }
+        .sheet(item: $selectedAsset) { asset in
+            AddOrEditAssetView(
+                draftAsset: asset,
+                assetTypes: assetTypes
+            ) { name, price, type in
+                asset.name = name
+                asset.price = price
+                asset.assetType = type
+                try? modelContext.save()
             }
+            .presentationDetents([.medium])
+        }
+        // Подгружаем дефолтные типы
+        .onAppear {
+            createDefaultAssetTypesIfNeeded()
         }
     }
 
-    private func delete(asset: Asset) {
-        modelContext.delete(asset)
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка при удалении: \(error.localizedDescription)")
-        }
+
+
+private func delete(asset: Asset) {
+    modelContext.delete(asset)
+    try? modelContext.save()
+}
+
+private func createDefaultAssetTypesIfNeeded() {
+    let defaultNames = ["Акции", "Облигации", "Недвижимость"]
+    let existing = Set(assetTypes.map(\.name))
+    for name in defaultNames where !existing.contains(name) {
+        modelContext.insert(AssetType(name: name))
     }
-
-    private func createDefaultAssetTypesIfNeeded() {
-        let defaultNames = ["Акции", "Облигации", "Недвижимость"]
-        let existingNames = Set(assetTypes.map { $0.name })
-
-        for name in defaultNames {
-            if !existingNames.contains(name) {
-                let newType = AssetType(name: name)
-                modelContext.insert(newType)
-            }
-        }
-
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка при сохранении дефолтных типов: \(error.localizedDescription)")
-        }
-    }
+    try? modelContext.save()
+  }
 }
 
 // AddOrEditAssetView остаётся без изменений
@@ -388,10 +354,12 @@ struct AddOrEditAssetView: View {
                         .background(Color.white)
                         .cornerRadius(16)
 
-                        Text("Если цена или изменилась — просто обновите её 📈")
-                            .font(.footnote)
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 16)
+                        if draftAsset != nil {
+                            Text("Если цена изменилась — просто обновите её 📈")
+                                .font(.footnote)
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 16)
+                        }
                     }
                     .padding(.horizontal)
                     Spacer()
@@ -481,6 +449,35 @@ struct AddOrEditAssetView: View {
     }
 }
 
+struct EmptyStateView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            // Серый кружок вместо диаграммы
+            Circle()
+                .stroke(Color.gray.opacity(0.4), lineWidth: 20)
+                .frame(width: 180, height: 180)
+                .overlay(
+                    Text("0,00 ₽")
+                        .font(.title2).bold()
+                        .foregroundColor(.gray)
+                )
+
+            // Главный текст
+            Text("У вас пока нет финансовых активов")
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            // Подсказка
+            Text("Нажмите «+», чтобы добавить первый финансовый актив 📈 и следить за своим портфелем 💼")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemGray6).ignoresSafeArea())
+    }
+}
 
 enum TypeSelection: Hashable {
     case none
