@@ -71,8 +71,8 @@ struct StatsView: View {
                     }
 
                 } // HStack
-                .frame(width: 361, height: 54)
-                .padding(.horizontal, 12)           // чтобы содержимое не впритык к краям
+                .frame(height: 54)
+                .padding(.horizontal, 16)           // чтобы содержимое не впритык к краям
                 .background(
                     LinearGradient(
                         gradient: Gradient(colors: [
