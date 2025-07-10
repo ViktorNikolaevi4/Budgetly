@@ -218,24 +218,22 @@ struct StatsView: View {
         }
     }
 
-
-
     // MARK: - Список элементов (транзакций или активов) в зависимости от выбора
     @ViewBuilder
     private var listOfFilteredItems: some View {
         switch selectedSegment {
         case .income, .expenses:
-            // выбрали нужный массив транзакций
+            // Выбираем нужный массив транзакций
             let allTx = (selectedSegment == .income)
                 ? filteredIncomeTransactions
                 : filteredExpenseTransactions
-            // общая сумма для вычисления процентов
+            // Считаем общий сегмент для расчета процентов
             let totalSegment = allTx.reduce(0) { $0 + $1.amount }
 
             List {
                 ForEach(groupedTransactions(allTx), id: \.category) { group in
                     DisclosureGroup {
-                        // детализация по дням, без изменений
+                        // Детализация по дням
                         ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
                             HStack {
                                 Text(dayFormatter.string(from: day.date))
@@ -250,39 +248,60 @@ struct StatsView: View {
                         }
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
-                            // первая строка с иконкой, названием и суммой
                             HStack(spacing: 8) {
-                                if let cat = categoryObject(named: group.category),
-                                   let iconName = cat.iconName {
+                                // Цветной круг + белая иконка категории
+                                let iconName = categoryObject(named: group.category)?.iconName
+                                               ?? defaultIconName(for: group.category)
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            Color.colorForCategoryName(
+                                                group.category,
+                                                type: selectedSegment == .income
+                                                      ? .income
+                                                      : .expenses
+                                            )
+                                        )
+                                        .frame(width: 24, height: 24)
                                     Image(systemName: iconName)
-                                        .foregroundColor(.appPurple)
-                                } else {
-                                    Image(systemName: defaultIconName(for: group.category))
-                                        .foregroundColor(.appPurple)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.white)
                                 }
 
+                                // Название и сумма
                                 Text(group.category)
                                     .font(.body)
                                     .foregroundColor(.primary)
-
                                 Spacer()
-
                                 Text("\(group.total, specifier: "%.2f") ₽")
                                     .font(.body)
                                     .foregroundColor(.black)
                             }
 
-                            // сам ProgressView, с прогрессом = группа / общий сегмент
+                            // Полоса прогресса (с возможностью задать высоту)
                             ProgressView(value: group.total, total: totalSegment)
-                                .tint(.appPurple)
+                                .tint(
+                                    Color.colorForCategoryName(
+                                        group.category,
+                                        type: selectedSegment == .income
+                                              ? .income
+                                              : .expenses
+                                    )
+                                )
+                                .frame(height: 4)     // здесь можно уменьшить высоту
                                 .padding(.horizontal, 40)
 
-                            // процент справа
+                            // Процент справа
                             HStack {
                                 Spacer()
-                                Text(String(format: "%.1f%%", group.total / (totalSegment == 0 ? 1 : totalSegment) * 100))
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
+                                Text(
+                                    String(
+                                        format: "%.1f%%",
+                                        group.total / (totalSegment == 0 ? 1 : totalSegment) * 100
+                                    )
+                                )
+                                .font(.caption)
+                                .foregroundColor(.gray)
                             }
                         }
                         .padding(.vertical, 6)
@@ -291,7 +310,6 @@ struct StatsView: View {
             }
 
         case .assets:
-            // без изменений
             List(sortedAssets) { asset in
                 HStack {
                     VStack(alignment: .leading) {
@@ -308,6 +326,8 @@ struct StatsView: View {
             }
         }
     }
+
+
 
     private func categoryObject(named name: String) -> Category? {
         guard let acct = selectedAccount else { return nil }
