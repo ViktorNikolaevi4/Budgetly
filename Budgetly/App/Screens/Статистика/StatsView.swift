@@ -34,89 +34,96 @@ struct StatsView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+
+
+            //  }
         NavigationStack {
-            VStack(spacing: 16) {
-                // Внутри вашего VStack в StatsView вместо голого Picker:
-                HStack(spacing: 12) {
-                    // 1) Иконка и лейбл «Счет»
-                    HStack(spacing: 4) {
-                        Image(systemName: "folder")
-                            .font(.title3)
-                            .foregroundColor(.white)
-                        Text("Счет")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                    }
+            ZStack { Color(.systemGray6).ignoresSafeArea()
+                VStack(spacing: 16) {
+                    // Внутри вашего VStack в StatsView вместо голого Picker:
+                    HStack(spacing: 12) {
+                        // 1) Иконка и лейбл «Счет»
+                        HStack(spacing: 4) {
+                            Image(systemName: "folder")
+                                .font(.title3)
+                                .foregroundColor(.white)
+                            Text("Счет")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
 
-                    Spacer()
+                        Spacer()
 
-                    // 2) Сами выбор из списка счетов
-                    Menu {
-                        // Пункт «Все счета»
-                        Button("Все счета") { selectedAccount = nil }
-                        Divider()
-                        // Остальные счета
-                        ForEach(accounts) { account in
-                            Button(account.name) {
-                                selectedAccount = account
+                        // 2) Сами выбор из списка счетов
+                        Menu {
+                            // Пункт «Все счета»
+                            Button("Все счета") { selectedAccount = nil }
+                            Divider()
+                            // Остальные счета
+                            ForEach(accounts) { account in
+                                Button(account.name) {
+                                    selectedAccount = account
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(selectedAccount?.name ?? "Все счета")
+                                    .foregroundColor(.white)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption)
+                                    .foregroundColor(.white)
                             }
                         }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(selectedAccount?.name ?? "Все счета")
-                                .foregroundColor(.white)
-                            Image(systemName: "chevron.down")
-                                .font(.caption)
-                                .foregroundColor(.white)
-                        }
-                    }
 
-                } // HStack
-                .frame(height: 54)
-                .padding(.horizontal, 16)           // чтобы содержимое не впритык к краям
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(red: 79/255, green: 184/255, blue: 255/255),
-                            Color(red: 32/255, green: 60/255, blue: 255/255)
-                        ]),
-                        startPoint: .leading,
-                        endPoint: .trailing
+                    } // HStack
+                    .frame(height: 54)
+                    .padding(.horizontal, 16)           // чтобы содержимое не впритык к краям
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color(red: 79/255, green: 184/255, blue: 255/255),
+                                Color(red: 32/255, green: 60/255, blue: 255/255)
+                            ]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+
+                    // Сегментированный контрол для выбора: Доходы / Расходы / Активы
+                    segmentControl
+
+                    // Пикер периода (День, Неделя и т.д.)
+                    periodPicker
+
+                    // Список элементов внизу
+                    listOfFilteredItems
+                    //      .listStyle(.plain)
+                    //  .scrollContentBackground(.hidden)
+                }
+                .padding()
+                .navigationTitle("Статистика")
+                .navigationBarTitleDisplayMode(.large)
+            }
+        }
+            .onAppear {
+                // По умолчанию первый счет
+                if selectedAccount == nil {
+                    selectedAccount = accounts.first
+                }
+            }
+            // Если выбрали "Выбрать период", показываем выбор дат
+            .sheet(isPresented: $isCustomPeriodPickerPresented) {
+                CustomPeriodPickerView(
+                    startDate: customStartDate,
+                    endDate: customEndDate,
+                    onApply: { start, end in
+                        customStartDate = start
+                        customEndDate = end }
                 )
-                .cornerRadius(16)
-                .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-
-                // Сегментированный контрол для выбора: Доходы / Расходы / Активы
-                segmentControl
-
-                // Пикер периода (День, Неделя и т.д.)
-                periodPicker
-
-                // Список элементов внизу
-                listOfFilteredItems
-            }
-            .padding()
-            .navigationTitle("Статистика")
-        }
-        .onAppear {
-            // По умолчанию первый счет
-            if selectedAccount == nil {
-                selectedAccount = accounts.first
             }
         }
-        // Если выбрали "Выбрать период", показываем выбор дат
-        .sheet(isPresented: $isCustomPeriodPickerPresented) {
-            CustomPeriodPickerView(
-                startDate: customStartDate,
-                endDate: customEndDate,
-                onApply: { start, end in
-                    customStartDate = start
-                    customEndDate = end }
-            )
-        }
-    }
-
     // MARK: - Активы, отсортированные по цене ↓
     private var sortedAssets: [Asset] {
         assets.sorted {
@@ -230,102 +237,122 @@ struct StatsView: View {
             // Считаем общий сегмент для расчета процентов
             let totalSegment = allTx.reduce(0) { $0 + $1.amount }
 
-            List {
-                ForEach(groupedTransactions(allTx), id: \.category) { group in
-                    DisclosureGroup {
-                        // Детализация по дням
-                        ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
-                            HStack {
-                                Text(dayFormatter.string(from: day.date))
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text("\(day.total, specifier: "%.2f") ₽")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(groupedTransactions(allTx), id: \.category) { group in
+                        DisclosureGroup {
+                            // детализация по дням
+                            ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
+                                HStack {
+                                    Text(dayFormatter.string(from: day.date))
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                    Spacer()
+                                    Text("\(day.total, specifier: "%.2f") ₽")
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.vertical, 2)
                             }
-                            .padding(.vertical, 2)
-                        }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 8) {
-                                // Цветной круг + белая иконка категории
-                                let iconName = categoryObject(named: group.category)?.iconName
-                                               ?? defaultIconName(for: group.category)
-                                ZStack {
-                                    Circle()
-                                        .fill(
-                                            Color.colorForCategoryName(
-                                                group.category,
-                                                type: selectedSegment == .income
-                                                      ? .income
-                                                      : .expenses
+                        } label: {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 8) {
+                                    // цветной бэк + иконка
+                                    let iconName = categoryObject(named: group.category)?
+                                                       .iconName
+                                                   ?? defaultIconName(for: group.category)
+                                    ZStack {
+                                        Circle()
+                                            .fill(
+                                                Color.colorForCategoryName(
+                                                    group.category,
+                                                    type: selectedSegment == .income ? .income : .expenses
+                                                )
                                             )
-                                        )
-                                        .frame(width: 24, height: 24)
-                                    Image(systemName: iconName)
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white)
+                                            .frame(width: 24, height: 24)
+                                        Image(systemName: iconName)
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(.white)
+                                    }
+
+                                    Text(group.category)
+                                        .font(.body)
+                                        .foregroundColor(.primary)
+
+                                    Spacer()
+
+                                    Text("\(group.total, specifier: "%.2f") ₽")
+                                        .font(.body)
+                                        .foregroundColor(.black)
                                 }
 
-                                // Название и сумма
-                                Text(group.category)
-                                    .font(.body)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                Text("\(group.total, specifier: "%.2f") ₽")
-                                    .font(.body)
-                                    .foregroundColor(.black)
-                            }
-
-                            // Полоса прогресса (с возможностью задать высоту)
-                            ProgressView(value: group.total, total: totalSegment)
-                                .tint(
-                                    Color.colorForCategoryName(
-                                        group.category,
-                                        type: selectedSegment == .income
-                                              ? .income
-                                              : .expenses
+                                // прогресс-бар
+                                ProgressView(value: group.total, total: totalSegment)
+                                    .tint(
+                                        Color.colorForCategoryName(
+                                            group.category,
+                                            type: selectedSegment == .income ? .income : .expenses
+                                        )
                                     )
-                                )
-                                .frame(height: 4)     // здесь можно уменьшить высоту
-                                .padding(.horizontal, 40)
+                                    .frame(height: 4)
 
-                            // Процент справа
-                            HStack {
-                                Spacer()
-                                Text(
-                                    String(
-                                        format: "%.1f%%",
-                                        group.total / (totalSegment == 0 ? 1 : totalSegment) * 100
+                                // процент
+                                HStack {
+                                    Spacer()
+                                    Text(
+                                        String(
+                                            format: "%.1f%%",
+                                            group.total / (totalSegment == 0 ? 1 : totalSegment) * 100
+                                        )
                                     )
-                                )
-                                .font(.caption)
-                                .foregroundColor(.gray)
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                }
                             }
                         }
-                        .padding(.vertical, 6)
+                        .padding()
+                        // фон «карты»
+                        .background(Color.white)
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
             }
+            .background(Color(.systemGray6))
+            .ignoresSafeArea(edges: .bottom)
 
         case .assets:
-            List(sortedAssets) { asset in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(asset.name)
-                            .font(.headline)
-                        Text(asset.assetType?.name ?? "Без типа")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(sortedAssets) { asset in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(asset.name)
+                                    .font(.headline)
+                                Text(asset.assetType?.name ?? "Без типа")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Text(String(format: "%.2f ₽", asset.price))
+                                .foregroundColor(.black)
+                        }
+                        .padding()
+                        .background(Color.white)
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
                     }
-                    Spacer()
-                    Text(String(format: "%.2f ₽", asset.price))
-                        .foregroundColor(.black)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
             }
+            .background(Color(.systemGray6))
+            .ignoresSafeArea(edges: .bottom)
         }
     }
+
 
 
 
