@@ -225,15 +225,17 @@ struct StatsView: View {
     private var listOfFilteredItems: some View {
         switch selectedSegment {
         case .income, .expenses:
-            // Выбираем нужный массив транзакций
+            // выбрали нужный массив транзакций
             let allTx = (selectedSegment == .income)
                 ? filteredIncomeTransactions
                 : filteredExpenseTransactions
+            // общая сумма для вычисления процентов
+            let totalSegment = allTx.reduce(0) { $0 + $1.amount }
 
             List {
                 ForEach(groupedTransactions(allTx), id: \.category) { group in
                     DisclosureGroup {
-                        // Детализация по дням
+                        // детализация по дням, без изменений
                         ForEach(dailyTotals(for: group.category, in: allTx), id: \.date) { day in
                             HStack {
                                 Text(dayFormatter.string(from: day.date))
@@ -247,35 +249,50 @@ struct StatsView: View {
                             .padding(.vertical, 2)
                         }
                     } label: {
-                        HStack(spacing: 8) {
-                            // Иконка категории
-                            if let cat = categoryObject(named: group.category),
-                               let iconName = cat.iconName
-                            {
-                                Image(systemName: iconName)
-                                    .foregroundColor(.appPurple)
-                            } else {
-                                Image(systemName: defaultIconName(for: group.category))
-                                    .foregroundColor(.appPurple)
+                        VStack(alignment: .leading, spacing: 4) {
+                            // первая строка с иконкой, названием и суммой
+                            HStack(spacing: 8) {
+                                if let cat = categoryObject(named: group.category),
+                                   let iconName = cat.iconName {
+                                    Image(systemName: iconName)
+                                        .foregroundColor(.appPurple)
+                                } else {
+                                    Image(systemName: defaultIconName(for: group.category))
+                                        .foregroundColor(.appPurple)
+                                }
+
+                                Text(group.category)
+                                    .font(.body)
+                                    .foregroundColor(.primary)
+
+                                Spacer()
+
+                                Text("\(group.total, specifier: "%.2f") ₽")
+                                    .font(.body)
+                                    .foregroundColor(.black)
                             }
 
-                            Text(group.category)
-                                .font(.body)
-                                .foregroundColor(.primary)
+                            // сам ProgressView, с прогрессом = группа / общий сегмент
+                            ProgressView(value: group.total, total: totalSegment)
+                                .tint(.appPurple)
+                                .padding(.horizontal, 40)
 
-                            Spacer()
-
-                            Text("\(group.total, specifier: "%.2f") ₽")
-                                .font(.body)
-                                .foregroundColor(.black)
+                            // процент справа
+                            HStack {
+                                Spacer()
+                                Text(String(format: "%.1f%%", group.total / (totalSegment == 0 ? 1 : totalSegment) * 100))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
                         }
                         .padding(.vertical, 6)
                     }
                 }
             }
-            // Показываем список всех активов (без фильтра по датам)
+
         case .assets:
-            List(sortedAssets) { asset in          // ←  вместо  List(assets)
+            // без изменений
+            List(sortedAssets) { asset in
                 HStack {
                     VStack(alignment: .leading) {
                         Text(asset.name)
@@ -291,6 +308,7 @@ struct StatsView: View {
             }
         }
     }
+
     private func categoryObject(named name: String) -> Category? {
         guard let acct = selectedAccount else { return nil }
         // ищем категорию текущего счёта с нужным именем
@@ -311,7 +329,7 @@ struct StatsView: View {
         case "Развлечения": return "gamecontroller.fill"
         case "Образование": return "book.fill"
         case "Дети": return "figure.walk"
-            
+
         case "Зарплата": return "wallet.bifold.fill"
         case "Дивиденды": return "chart.line.uptrend.xyaxis"
         case "Купоны": return "banknote"
