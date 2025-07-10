@@ -88,8 +88,6 @@ struct GoldBagView: View {
       }
     }
 
-
-
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading) {
@@ -306,7 +304,7 @@ struct AddOrEditAssetView: View {
                 .ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 24) {
                     // ручка
                     Capsule()
                         .frame(width: 36, height: 5)
@@ -326,8 +324,7 @@ struct AddOrEditAssetView: View {
                     }
                     .padding(.horizontal)
 
-                    // поля
-                    VStack(spacing: 8) {
+                    VStack(spacing: 16) {
                         // Название
                         HStack {
                             TextField("Введите название", text: $name)
@@ -371,21 +368,7 @@ struct AddOrEditAssetView: View {
                         .cornerRadius(12)
                     }
                     .padding(.horizontal)
-
-                    // Кнопка Удалить (лишь при редактировании)
-                    if draftAsset != nil {
-                        Button(role: .destructive) {
-                            deleteAsset()
-                        } label: {
-                            Text("Удалить актив")
-                                .frame(maxWidth: .infinity, minHeight: 50)
-                        }
-                        .foregroundColor(.red)
-                        .background(Color(.systemGray4))
-                        .cornerRadius(12)
-                        .padding(.horizontal)
-                    }
-
+                    Spacer()
                     // Кнопка Сохранить / Добавить
                     Button(action: saveAndDismiss) {
                         Text(draftAsset == nil ? "Добавить" : "Сохранить")
@@ -398,9 +381,22 @@ struct AddOrEditAssetView: View {
                             ? Color.gray.opacity(0.5)
                             : Color.appPurple
                     )
-                    .cornerRadius(12)
+                    .cornerRadius(16)
                     .padding(.horizontal)
                     .padding(.bottom, 16)
+
+                    if draftAsset != nil {
+                        Button(role: .destructive) {
+                            deleteAsset()
+                        } label: {
+                            Text("Удалить актив")
+                                .frame(maxWidth: .infinity, minHeight: 50)
+                        }
+                        .foregroundColor(.red)
+                        .background(Color(.systemGray4))
+                        .cornerRadius(16)
+                        .padding(.horizontal)
+                    }
                 }
             }
         }
@@ -449,6 +445,3 @@ enum TypeSelection: Hashable {
     case existing(AssetType)
     case newType
 }
-
-// Не забудьте ваши @Model-классы Asset и AssetType и расширение Color.appPurple, если оно есть в проекте.
-
