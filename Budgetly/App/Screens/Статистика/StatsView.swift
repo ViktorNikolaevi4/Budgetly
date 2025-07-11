@@ -246,8 +246,10 @@ struct StatsView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 
-                    ForEach(groups, id: \.type) { group in
-                        assetRow(group)
+                    ForEach(Array(groupedAssetsByType.enumerated()), id: \.element.type) { idx, group in
+                        // Подбираем цвет по порядку (и оборачиваем по кругу, если групп больше, чем цветов)
+                        let color = Color.predefinedColors[idx % Color.predefinedColors.count]
+                        assetRow(group, tintColor: color)
                     }
                 }
             }
@@ -371,9 +373,11 @@ struct StatsView: View {
 
     // MARK: — Assets Row
     @ViewBuilder
-    private func assetRow(_ group: (type: String, total: Double)) -> some View {
+    private func assetRow(
+        _ group: (type: String, total: Double),
+        tintColor: Color
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // — 1) Заголовок без иконки —
             HStack {
                 Text(group.type)
                     .font(.body)
@@ -383,11 +387,12 @@ struct StatsView: View {
                     .font(.body)
                     .foregroundColor(.primary)
             }
-            // — 2) Прогресс-бар —
+
+            // Вот здесь используем переданный цвет
             ProgressView(value: group.total, total: totalAssets)
-                .tint(.appPurple)
+                .tint(tintColor)
                 .frame(height: 4)
-            // — 3) Процент —
+
             HStack {
                 Spacer()
                 Text(
@@ -408,6 +413,7 @@ struct StatsView: View {
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
     }
+
 
 
     // MARK: — Helpers
