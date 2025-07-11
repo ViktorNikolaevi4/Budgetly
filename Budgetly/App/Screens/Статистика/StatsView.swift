@@ -235,38 +235,65 @@ struct StatsView: View {
                 let groups = groupedTransactions(allTx)
 
                 ForEach(groups, id: \.category) { group in
-                    // Заголовок категории
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    Color.colorForCategoryName(
-                                        group.category,
-                                        type: selectedSegment == .income ? .income : .expenses
+                    // считаем общий total для этого сегмента
+                    let total = allTx.reduce(0) { $0 + $1.amount }
+                    let percent = group.total / (total == 0 ? 1 : total) * 100
+
+                    // — вместо HStack просто оборачиваем всё в VStack
+                    VStack(alignment: .leading, spacing: 8) {
+                        // 1) Заголовок: иконка, название, сумма, стрелка
+                        HStack(spacing: 12) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        Color.colorForCategoryName(
+                                            group.category,
+                                            type: selectedSegment == .income ? .income : .expenses
+                                        )
                                     )
-                                )
-                                .frame(width: 28, height: 28)
-                            Image(
-                                systemName:
-                                    categoryObject(named: group.category)?
-                                    .iconName
+                                    .frame(width: 28, height: 28)
+                                Image(
+                                    systemName:
+                                        categoryObject(named: group.category)?
+                                        .iconName
                                     ?? defaultIconName(for: group.category)
+                                )
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                            }
+                            Text(group.category)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("\(group.total, specifier: "%.2f") ₽")
+                                .font(.body)
+                                .foregroundColor(.primary)
+                            Image(systemName:
+                                    expandedItems.contains(group.category)
+                                    ? "chevron.up"
+                                    : "chevron.down"
                             )
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
+                            .font(.caption)
+                            .foregroundColor(.gray)
                         }
-                        Text(group.category)
-                            .font(.body)
-                        Spacer()
-                        Text("\(group.total, specifier: "%.2f") ₽")
-                            .font(.body)
-                        Image(systemName:
-                                expandedItems.contains(group.category)
-                                ? "chevron.up"
-                                : "chevron.down"
-                        )
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                        // 2) Прогресс-бар
+                        ProgressView(value: group.total, total: total)
+                            .tint(
+                                Color.colorForCategoryName(
+                                    group.category,
+                                    type: selectedSegment == .income ? .income : .expenses
+                                )
+                            )
+                            .frame(height: 4)
+                            .padding(.horizontal, 48)
+
+                        // 3) Процент под полосой
+                        HStack {
+                            Spacer()
+                            Text(String(format: "%.1f%%", percent))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -319,52 +346,56 @@ struct StatsView: View {
                 }
 
             case .assets:
-                // 2) Активы
-                Section {
-                    ForEach(groupedAssetsByType, id: \.type) { group in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text(group.type)
-                                    .font(.body)
-                                Spacer()
-                                Text("\(group.total, specifier: "%.2f") ₽")
-                                    .font(.body)
-                            }
-                            ProgressView(value: group.total, total: totalAssets)
-                                .tint(.appPurple)
-                                .frame(height: 4)
-                            HStack {
-                                Spacer()
-                                Text(
-                                    String(
-                                        format: "%.1f%%",
-                                        group.total / (totalAssets == 0 ? 1 : totalAssets) * 100
-                                    )
-                                )
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            }
+                // Общая стоимость
+                HStack {
+                    Text("Общая стоимость активов:")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Text("\(totalAssets, specifier: "%.2f") ₽")
+                        .font(.subheadline).bold()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
+                // Сам список типов активов
+                ForEach(groupedAssetsByType, id: \.type) { group in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(group.type)
+                                .font(.body)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("\(group.total, specifier: "%.2f") ₽")
+                                .font(.body)
+                                .foregroundColor(.primary)
                         }
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 16)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(16)
-                        .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                    }
-                } header: {
-                    HStack {
-                        Text("Общая стоимость активов:")
-                            .font(.subheadline)
+
+                        ProgressView(value: group.total, total: totalAssets)
+                            .tint(.appPurple)
+                            .frame(height: 4)
+
+                        HStack {
+                            Spacer()
+                            Text(
+                                String(
+                                    format: "%.1f%%",
+                                    group.total / (totalAssets == 0 ? 1 : totalAssets) * 100
+                                )
+                            )
+                            .font(.caption)
                             .foregroundColor(.gray)
-                        Spacer()
-                        Text("\(totalAssets, specifier: "%.2f") ₽")
-                            .font(.subheadline).bold()
+                        }
                     }
+                    .padding(.vertical, 12)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color(.systemGray6))
+                    .background(Color(.systemBackground))
+                    .cornerRadius(16)
+                    .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 4)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
             }
         }
