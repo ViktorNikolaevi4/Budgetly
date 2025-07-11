@@ -42,7 +42,7 @@ struct StatsView: View {
                         (
                             Text("За \(selectedPeriodTitle) вы ")
                             + Text(selectedSegment == .income ? "получили " : "потратили ")
-                            + Text("\(sumForPeriod, specifier: "%.2f") ₽").bold()
+                            + Text("\(sumForPeriod, specifier: "%.2f") ₽").bold().foregroundStyle(.black)
                         )
                         .font(.subheadline)
                         .foregroundColor(.secondary)
