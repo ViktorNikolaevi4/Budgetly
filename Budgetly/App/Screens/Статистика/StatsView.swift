@@ -81,6 +81,20 @@ struct StatsView: View {
 
                     segmentControl
                     periodPicker
+                    if selectedSegment != .assets {
+                        // Собираем текст в две части
+                        (
+                            Text("За \(selectedPeriodTitle) вы ")
+                            + Text(selectedSegment == .income ? "получили " : "потратили ")
+                            + Text("\(sumForPeriod, specifier: "%.2f") ₽")
+                                .bold() // вот здесь делаем жирнее только цифры
+                                .foregroundColor(.black)
+
+                        )
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 16)
+                    }
                     listOfFilteredItems
                 }
                 .padding()
@@ -513,6 +527,17 @@ struct StatsView: View {
     private func isInSelectedAccount(_ tx: Transaction) -> Bool {
         guard let acct = selectedAccount else { return true }
         return tx.account?.id == acct.id
+    }
+
+    private var sumForPeriod: Double {
+        switch selectedSegment {
+        case .income:
+            return filteredIncomeTransactions.reduce(0) { $0 + $1.amount }
+        case .expenses:
+            return filteredExpenseTransactions.reduce(0) { $0 + $1.amount }
+        case .assets:
+            return 0
+        }
     }
 
     private func isInSelectedPeriod(_ transaction: Transaction) -> Bool {
