@@ -42,7 +42,7 @@ struct StatsView: View {
                         (
                             Text("За \(selectedPeriodTitle) вы ")
                             + Text(selectedSegment == .income ? "получили " : "потратили ")
-                            + Text("\(sumForPeriod, specifier: "%.2f") ₽").bold().foregroundStyle(.black)
+                            + Text("\(sumForPeriod, specifier: "%.2f")  \(currencySign)").bold().foregroundStyle(.black)
                         )
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -133,6 +133,11 @@ struct StatsView: View {
             }
         }
         .pickerStyle(.segmented)
+    }
+
+    private var currencySign: String {
+        guard let code = selectedAccount?.currency else { return "₽" }
+        return currencySymbols[code] ?? code
     }
 
     // MARK: — Period Picker
@@ -238,7 +243,7 @@ struct StatsView: View {
                         Text("Общая стоимость активов:")
                             .font(.subheadline).foregroundColor(.gray)
                         Spacer()
-                        Text("\(totalAssets, specifier: "%.2f") ₽")
+                        Text("\(totalAssets, specifier: "%.2f") \(currencySign)")
                             .font(.subheadline).bold()
                     }
                     .padding(.horizontal, 16)
@@ -308,8 +313,9 @@ struct StatsView: View {
                     }
                     Text(group.category).font(.body).foregroundColor(.primary)
                     Spacer()
-                    Text("\(group.total, specifier: "%.2f") ₽")
-                        .font(.body).foregroundColor(.primary)
+                    Text("\(group.total, specifier: "%.2f")\(currencySign)")
+                        .font(.body)
+                        .foregroundColor(.primary)
                     Image(systemName:
                         expandedItems.contains(group.category)
                         ? "chevron.up" : "chevron.down"
@@ -349,7 +355,7 @@ struct StatsView: View {
                         Text(dayFormatter.string(from: tx.date))
                             .font(.subheadline).foregroundColor(.gray)
                         Spacer()
-                        Text("\(tx.amount, specifier: "%.2f") ₽")
+                        Text("\(tx.amount, specifier: "%.2f") \(currencySign)")
                             .font(.subheadline).foregroundColor(.gray)
                     }
                     .padding(.vertical, 8)
@@ -383,7 +389,7 @@ struct StatsView: View {
                     .font(.body)
                     .foregroundColor(.primary)
                 Spacer()
-                Text("\(group.total, specifier: "%.2f") ₽")
+                Text("\(group.total, specifier: "%.2f") \(currencySign)")
                     .font(.body)
                     .foregroundColor(.primary)
             }
@@ -574,4 +580,3 @@ struct StatsView: View {
         return f
     }()
 }
-
