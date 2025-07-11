@@ -313,14 +313,21 @@ struct StatsView: View {
                     }
                     Text(group.category).font(.body).foregroundColor(.primary)
                     Spacer()
-                    Text("\(group.total, specifier: "%.2f")\(currencySign)")
-                        .font(.body)
-                        .foregroundColor(.primary)
+                    HStack(spacing: 0) {
+                        Text("\(group.total, specifier: "%.2f")")
+                            .font(.body)
+                            .foregroundColor(.primary)
+                        Text(currencySign)
+                            .font(.body)
+                            .foregroundColor(.primary)
+                            .padding(.leading, 4) // вот отступ перед знаком
+                    }
                     Image(systemName:
                         expandedItems.contains(group.category)
                         ? "chevron.up" : "chevron.down"
                     )
-                    .font(.caption).foregroundColor(.gray)
+                    .font(.caption)
+                    .foregroundColor(.gray)
                 }
 
                 ProgressView(value: group.total, total: total)
@@ -353,10 +360,18 @@ struct StatsView: View {
                 ForEach(details, id: \.id) { tx in
                     HStack {
                         Text(dayFormatter.string(from: tx.date))
-                            .font(.subheadline).foregroundColor(.gray)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
                         Spacer()
-                        Text("\(tx.amount, specifier: "%.2f") \(currencySign)")
-                            .font(.subheadline).foregroundColor(.gray)
+                        HStack(spacing: 0) {
+                            Text("\(tx.amount, specifier: "%.2f")")
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                            Text(currencySign)
+                                .font(.subheadline)
+                                .foregroundColor(.gray)
+                                .padding(.leading, 4)
+                        }
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
@@ -389,11 +404,16 @@ struct StatsView: View {
                     .font(.body)
                     .foregroundColor(.primary)
                 Spacer()
-                Text("\(group.total, specifier: "%.2f") \(currencySign)")
-                    .font(.body)
-                    .foregroundColor(.primary)
+                HStack(spacing: 0) {
+                    Text("\(group.total, specifier: "%.2f")")
+                        .font(.body)
+                        .foregroundColor(.primary)
+                    Text(currencySign)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .padding(.leading, 4)
+                }
             }
-
             // Вот здесь используем переданный цвет
             ProgressView(value: group.total, total: totalAssets)
                 .tint(tintColor)
