@@ -14,7 +14,12 @@ struct SettingsScreen: View {
                         Label {
                             Text("Вход / Регистрация")
                         } icon: {
-                            IconBackground(systemName: "person.crop.circle.fill", backgroundColor: .blue)
+                            IconBackground(systemName: "person.crop.circle.fill", backgroundColor: Color(
+                                red:   255   / 255,
+                                green: 45    / 255,
+                                blue:  85    / 255
+                            )
+                          )
                         }
                     }
                 }
@@ -27,7 +32,12 @@ struct SettingsScreen: View {
                         Label {
                             Text("Поделиться с друзьями")
                         } icon: {
-                            IconBackground(systemName: "square.and.arrow.up", backgroundColor: .green)
+                            IconBackground(systemName: "square.and.arrow.up", backgroundColor: Color(
+                                red:   194   / 255,
+                                green: 98    / 255,
+                                blue:  228    / 255
+                            )
+                           )
                         }
                     }
 
@@ -47,7 +57,12 @@ struct SettingsScreen: View {
                         Label {
                             Text("Написать разработчикам")
                         } icon: {
-                            IconBackground(systemName: "envelope.fill", backgroundColor: .pink)
+                            IconBackground(systemName: "envelope.fill", backgroundColor: Color(
+                                red:   0   / 255,
+                                green: 184    / 255,
+                                blue:  148    / 255
+                            )
+                           )
                         }
                     }
                 }
