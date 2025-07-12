@@ -14,12 +14,10 @@ struct SettingsScreen: View {
                         Label {
                             Text("Вход / Регистрация")
                         } icon: {
-                            IconBackground(systemName: "person.crop.circle.fill", backgroundColor: Color(
-                                red:   255   / 255,
-                                green: 45    / 255,
-                                blue:  85    / 255
+                            IconBackground(
+                                systemName: "person.crop.circle.fill",
+                                backgroundColor: Color(red: 255/255, green: 45/255, blue: 85/255)
                             )
-                          )
                         }
                     }
                 }
@@ -32,12 +30,10 @@ struct SettingsScreen: View {
                         Label {
                             Text("Поделиться с друзьями")
                         } icon: {
-                            IconBackground(systemName: "square.and.arrow.up", backgroundColor: Color(
-                                red:   194   / 255,
-                                green: 98    / 255,
-                                blue:  228    / 255
+                            IconBackground(
+                                systemName: "square.and.arrow.up",
+                                backgroundColor: Color(red: 194/255, green: 98/255, blue: 228/255)
                             )
-                           )
                         }
                     }
 
@@ -57,12 +53,10 @@ struct SettingsScreen: View {
                         Label {
                             Text("Написать разработчикам")
                         } icon: {
-                            IconBackground(systemName: "envelope.fill", backgroundColor: Color(
-                                red:   0   / 255,
-                                green: 184    / 255,
-                                blue:  148    / 255
+                            IconBackground(
+                                systemName: "envelope.fill",
+                                backgroundColor: Color(red: 0/255, green: 184/255, blue: 148/255)
                             )
-                           )
                         }
                     }
                 }
@@ -83,7 +77,7 @@ struct SettingsScreen: View {
             .background(GradientView().ignoresSafeArea())
         }
         .foregroundStyle(.black)
-        // *** Здесь возвращаем листы ***
+        // Шиты
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(items: ["Проверьте наше приложение! https://apps.apple.com/app/idXXXXXXXXX"])
         }
@@ -114,9 +108,7 @@ struct IconBackground: View {
     }
 }
 
-
-
-// MARK: - Обёртка для UIActivityViewController (ShareSheet)
+// Обёртка для UIActivityViewController (ShareSheet)
 struct ShareSheet: UIViewControllerRepresentable {
     var items: [Any]
     var excludedActivityTypes: [UIActivity.ActivityType]? = nil
@@ -127,7 +119,6 @@ struct ShareSheet: UIViewControllerRepresentable {
         return controller
     }
 
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {
-        // Не требуется обновление.
-    }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
 }
+
