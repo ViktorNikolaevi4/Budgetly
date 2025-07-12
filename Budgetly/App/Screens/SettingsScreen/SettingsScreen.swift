@@ -6,64 +6,100 @@ struct SettingsScreen: View {
     @State private var showContactDeveloperSheet = false
 
     var body: some View {
-            NavigationStack {
-                       List {
-                           // Раздел для аккаунта
-                           Section(header: Text("Аккаунт")) {
-                               NavigationLink(destination: RegistrationView()) {
-                                   Label("Регистрация", systemImage: "person.crop.circle.badge.plus")
-                               }
-                           }
+        NavigationStack {
+            List {
+                // MARK: — Аккаунт
+                Section {
+                    NavigationLink(destination: RegistrationView()) {
+                        Label {
+                            Text("Вход / Регистрация")
+                        } icon: {
+                            IconBackground(systemName: "person.crop.circle.fill", backgroundColor: .blue)
+                        }
+                    }
+                }
 
-                           // Раздел для работы с приложением
-                           Section(header: Text("О приложении")) {
-                               Button {
-                                   showShareSheet = true
-                               } label: {
-                                   Label("Поделиться с друзьями", systemImage: "square.and.arrow.up")
-                               }
+                // MARK: — О приложении
+                Section {
+                    Button {
+                        showShareSheet = true
+                    } label: {
+                        Label {
+                            Text("Поделиться с друзьями")
+                        } icon: {
+                            IconBackground(systemName: "square.and.arrow.up", backgroundColor: .green)
+                        }
+                    }
 
-                               Button {
-                                   showRateSheet = true
-                               } label: {
-                                   Label("Оценить приложение", systemImage: "star.fill")
-                               }
+                    Button {
+                        showRateSheet = true
+                    } label: {
+                        Label {
+                            Text("Оценить приложение")
+                        } icon: {
+                            IconBackground(systemName: "star.fill", backgroundColor: .yellow)
+                        }
+                    }
 
-                               Button {
-                                   showContactDeveloperSheet = true
-                               } label: {
-                                   Label("Написать разработчикам", systemImage: "envelope")
-                               }
-                           }
-                           // Новый раздел "Дополнительно" — или как вы хотите назвать
-                           Section("Дополнительно") {
-                               NavigationLink(destination: RegularPaymentsScreen()) {
-                                   Label("Регулярные платежи", systemImage: "scroll")
-                               }
-                               NavigationLink(destination: RemindersScreen()) {
-                                   Label("Напоминания", systemImage: "bell")
-                               }
-                           }
-                       }
-                       .listStyle(InsetGroupedListStyle())
-                       .navigationTitle("Настройки")
-                       .background(GradientView().ignoresSafeArea())
-                       // Открываем ShareSheet
-                       .sheet(isPresented: $showShareSheet) {
-                           ShareSheet(items: ["Проверьте наше приложение! https://apps.apple.com/app/idXXXXXXXXX"])
-                       }
-                       // Открываем окно оценки (RateAppView должен принимать привязку для закрытия окна)
-                       .sheet(isPresented: $showRateSheet) {
-                           RateAppView(isPresented: $showRateSheet)
-                       }
-                       // Открываем окно связи с разработчиками
-                       .sheet(isPresented: $showContactDeveloperSheet) {
-                           ContactDeveloperView()
-                       }
-                   }
-            .foregroundStyle(.black)
-               }
+                    Button {
+                        showContactDeveloperSheet = true
+                    } label: {
+                        Label {
+                            Text("Написать разработчикам")
+                        } icon: {
+                            IconBackground(systemName: "envelope.fill", backgroundColor: .pink)
+                        }
+                    }
+                }
+
+                // MARK: — Дополнительно (только Регулярные платежи)
+                Section {
+                    NavigationLink(destination: RegularPaymentsScreen()) {
+                        Label {
+                            Text("Регулярные платежи")
+                        } icon: {
+                            IconBackground(systemName: "scroll.fill", backgroundColor: .orange)
+                        }
+                    }
+                }
+            }
+            .listStyle(InsetGroupedListStyle())
+            .navigationTitle("Настройки")
+            .background(GradientView().ignoresSafeArea())
         }
+        .foregroundStyle(.black)
+        // *** Здесь возвращаем листы ***
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(items: ["Проверьте наше приложение! https://apps.apple.com/app/idXXXXXXXXX"])
+        }
+        .sheet(isPresented: $showRateSheet) {
+            RateAppView(isPresented: $showRateSheet)
+        }
+        .sheet(isPresented: $showContactDeveloperSheet) {
+            ContactDeveloperView()
+        }
+    }
+}
+
+/// Вспомогательный view для цветного квадратика под SF Symbol
+struct IconBackground: View {
+    let systemName: String
+    let backgroundColor: Color
+    let cornerRadius: CGFloat = 8
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(backgroundColor)
+                .frame(width: 32, height: 32)
+            Image(systemName: systemName)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+        }
+    }
+}
+
+
 
 // MARK: - Обёртка для UIActivityViewController (ShareSheet)
 struct ShareSheet: UIViewControllerRepresentable {
