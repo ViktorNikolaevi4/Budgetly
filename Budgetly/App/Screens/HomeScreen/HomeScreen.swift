@@ -604,45 +604,37 @@ struct HomeScreen: View {
         }
     }
     private func generateMissedRecurringTransactions() {
-         // 1. Текущая дата и календарь
-         let now = Date()
-         let calendar = Calendar.current
+        let now = Date()
+        guard let account = selectedAccount else { return }
 
-         // 2. Убедимся, что у нас есть выбранный счёт
-         guard let account = selectedAccount else { return }
+        for template in account.regularPayments where template.isActive {
+            var nextDate = template.startDate
 
-         // 3. Перебираем все шаблоны регулярных платежей
-         for template in regularPayments where template.isActive {
-             // 3.1. Начинаем с самой первой даты шаблона
-             var nextDate = template.startDate
+            while nextDate <= now && (template.endDate == nil || nextDate <= template.endDate!) {
+                // Проверяем, не создана ли уже транзакция за эту дату
+                let alreadyExists = account.transactions.contains {
+                    $0.date.isSameDay(as: nextDate) &&
+                    $0.category == template.name &&
+                    $0.amount == template.amount
+                }
 
-             // 3.2. Пока nextDate не позже «сейчас», и (endDate == nil или nextDate ≤ endDate!)
-             while nextDate <= now
-                 && (template.endDate == nil || nextDate <= template.endDate!)
-             {
-                 // 4. Создаём транзакцию-повтор
-                 let tx = Transaction(
-                     category: template.name,
-                     amount: template.amount,
-                     type: .expenses,       // или .income, если вам нужно хранить тип в шаблоне
-                     account: account       // привязываем к выбранному счёту
-                 )
-                 tx.date = nextDate
+                if !alreadyExists {
+                    let tx = Transaction(
+                        category: template.name,
+                        amount: template.amount,
+                        type: .expenses, // если нужно, храни тип в шаблоне
+                        account: account
+                    )
+                    tx.date = nextDate
+                    modelContext.insert(tx)
+                }
 
-                 modelContext.insert(tx)
+                nextDate = template.frequency.nextDate(after: nextDate)
+            }
+        }
 
-                 // 5. Переходим к следующей дате в соответствии с frequency
-                 nextDate = template.frequency.nextDate(after: nextDate, calendar: calendar)
-             }
-         }
-
-         // 6. Сохраняем все вставленные транзакции
-         do {
-             try modelContext.save()
-         } catch {
-             print("Ошибка при сохранении сгенерированных транзакций: \(error)")
-         }
-     }
+        try? modelContext.save()
+    }
 
 
     // Удаление транзакции
@@ -795,4 +787,9 @@ extension ReminderFrequency {
     guard let r = ReminderFrequenci(rawValue: self.rawValue) else { return date }
     return r.nextDate(after: date, calendar: calendar)
   }
+}
+extension Date {
+    func isSameDay(as otherDate: Date) -> Bool {
+        Calendar.current.isDate(self, inSameDayAs: otherDate)
+    }
 }

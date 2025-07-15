@@ -19,6 +19,9 @@ class RegularPayment: Identifiable {
         set { frequencyRaw = newValue.rawValue }
     }
 
+    @Relationship(deleteRule: .cascade, inverse: \Account.regularPayments)
+    var account: Account?
+
     init(id: UUID = UUID(),
          name: String,
          frequency: ReminderFrequency,
@@ -26,7 +29,9 @@ class RegularPayment: Identifiable {
          endDate: Date?,
          amount: Double,
          comment: String,
-         isActive: Bool = true) {
+         isActive: Bool = true,
+         account: Account? = nil) {
+        
         self.id = id
         self.name = name
         self.frequencyRaw = frequency.rawValue // Сохраняем как строку
@@ -35,6 +40,7 @@ class RegularPayment: Identifiable {
         self.amount = amount
         self.comment = comment
         self.isActive = isActive
+        self.account = account
     }
 }
 

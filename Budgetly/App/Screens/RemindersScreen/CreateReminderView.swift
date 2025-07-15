@@ -20,6 +20,7 @@ struct CreateReminderView: View {
     @Environment(\.dismiss) private var dismiss
 
     var existingPayment: RegularPayment?
+    var account: Account
 
     @State private var paymentType: CategoryType = .expenses
     @State private var paymentName: String = ""
@@ -30,7 +31,8 @@ struct CreateReminderView: View {
     @State private var amount: String = ""
     @State private var comment: String = ""
 
-    init(existingPayment: RegularPayment? = nil) {
+    init(account: Account, existingPayment: RegularPayment? = nil) {
+        self.account = account
         self.existingPayment = existingPayment
         _paymentName = State(initialValue: existingPayment?.name ?? "")
         _reminderFrequency = State(initialValue: existingPayment?.frequency ?? .monthly)
@@ -150,6 +152,7 @@ struct CreateReminderView: View {
             payment.endDate    = includeEndDate ? endDate : nil
             payment.amount     = amountValue
             payment.comment    = comment
+            payment.account = account
 
             payment.cancelNotification()
             payment.sheduleNotification()
@@ -169,7 +172,8 @@ struct CreateReminderView: View {
                 startDate: startDate,
                 endDate: includeEndDate ? endDate : nil,
                 amount: amountValue,
-                comment: comment
+                comment: comment,
+                account: account
             )
             modelContext.insert(newReminder)
             newReminder.sheduleNotification()

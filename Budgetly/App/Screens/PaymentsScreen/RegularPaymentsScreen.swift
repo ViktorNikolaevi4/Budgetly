@@ -2,10 +2,15 @@ import SwiftUI
 import SwiftData
 
 struct RegularPaymentsScreen: View {
+    var account: Account
     @Environment(\.modelContext) private var modelContext
     @State private var isCreateReminderViewPresented = false
     @State private var selectedPayment: RegularPayment?
-    @Query private var regularPayments: [RegularPayment]
+//    @Query private var regularPayments: [RegularPayment]
+
+    private var regularPayments: [RegularPayment] {
+        account.regularPayments
+    }
 
     var body: some View {
         List {
@@ -94,9 +99,9 @@ struct RegularPaymentsScreen: View {
         // переносим sheet сюда
         .sheet(isPresented: $isCreateReminderViewPresented) {
             if let payment = selectedPayment {
-                CreateReminderView(existingPayment: payment)
+                CreateReminderView(account: account, existingPayment: selectedPayment)
             } else {
-                CreateReminderView()
+                CreateReminderView(account: account)
             }
         }
     }

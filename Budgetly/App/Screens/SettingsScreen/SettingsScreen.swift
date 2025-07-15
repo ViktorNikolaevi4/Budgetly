@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsScreen: View {
+    @Query private var accounts: [Account]
     @State private var showShareSheet = false
     @State private var showRateSheet = false
     @State private var showContactDeveloperSheet = false
@@ -63,12 +65,19 @@ struct SettingsScreen: View {
 
                 // MARK: — Дополнительно (только Регулярные платежи)
                 Section {
-                    NavigationLink(destination: RegularPaymentsScreen()) {
-                        Label {
-                            Text("Регулярные платежи")
-                        } icon: {
-                            IconBackground(systemName: "scroll.fill", backgroundColor: .orange)
+                    // Сначала проверяем, что у нас хотя бы один счёт
+                    if let firstAccount = accounts.first {
+                        NavigationLink(destination: RegularPaymentsScreen(account: firstAccount)) {
+                            Label {
+                                Text("Регулярные платежи")
+                            } icon: {
+                                IconBackground(systemName: "scroll.fill", backgroundColor: .orange)
+                            }
                         }
+                    } else {
+                        // Покажем плейсхолдер, если счетов нет
+                        Text("Сначала создайте счет")
+                            .foregroundColor(.secondary)
                     }
                 }
             }

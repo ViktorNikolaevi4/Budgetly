@@ -20,6 +20,9 @@ class Account: Identifiable {
     @Relationship(deleteRule: .cascade)
     var categories: [Category] = []
 
+    @Relationship(deleteRule: .cascade)
+    var regularPayments: [RegularPayment] = []
+
     init(
         id: UUID = UUID(),
         name: String,

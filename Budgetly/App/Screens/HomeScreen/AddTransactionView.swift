@@ -373,48 +373,50 @@ struct AddTransactionView: View {
     }
 
     private func saveTransaction() {
-        guard
-            let account = account,
-            let amountValue = Double(amount),
-            !selectedCategory.isEmpty
-        else {
-            return
-        }
+         guard
+             let account = account,
+             let amountValue = Double(amount),
+             !selectedCategory.isEmpty
+         else { return }
 
-        let txDate = Date()
-        let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
-        let newTx = Transaction(
-            category: selectedCategory,
-            amount: amountValue,
-            type: transactionType,
-            account: account
-        )
-        newTx.date = txDate
-        modelContext.insert(newTx)
-        account.transactions.append(newTx)
+         let txDate = Date()
+         let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
+         let newTx = Transaction(
+             category: selectedCategory,
+             amount: amountValue,
+             type: transactionType,
+             account: account
+         )
+         newTx.date = txDate
+         modelContext.insert(newTx)
 
-        if repeatRule != EndOption.never.rawValue {
-            let freq = ReminderFrequency(rawValue: repeatRule) ?? .once
-            let template = RegularPayment(
-                name: selectedCategory,
-                frequency: freq,
-                startDate: txDate,
-                endDate: (endOption == .onDate ? endDate : nil),
-                amount: amountValue,
-                comment: repeatComment,
-                isActive: true
-            )
-            modelContext.insert(template)
-        }
+         // Привязываем транзакцию к счету (необязательно, SwiftData сделает это сам)
+         account.transactions.append(newTx)
 
-        do {
-            try modelContext.save()
-            onTransactionAdded?(transactionType)
-            dismiss()
-        } catch {
-            print("Ошибка при сохранении транзакции и шаблона: \(error)")
-        }
-    }
+         // Если нужно шаблон регулярного платежа — создаём и привязываем к тому же account
+         if repeatRule != EndOption.never.rawValue {
+             let freq = ReminderFrequency(rawValue: repeatRule) ?? .once
+             let template = RegularPayment(
+                 name: selectedCategory,
+                 frequency: freq,
+                 startDate: txDate,
+                 endDate: endOption == .onDate ? endDate : nil,
+                 amount: amountValue,
+                 comment: repeatComment,
+                 isActive: true,
+                 account: account      // ← связали шаблон с этим счётом
+             )
+             modelContext.insert(template)
+         }
+
+         do {
+             try modelContext.save()
+             onTransactionAdded?(transactionType)
+             dismiss()
+         } catch {
+             print("Ошибка при сохранении транзакции и шаблона: \(error)")
+         }
+     }
 }
 
 struct CategoryBadge: View {
