@@ -142,11 +142,12 @@ struct FlowLayout: Layout {
 }
 
 struct HomeScreen: View {
+    @AppStorage("selectedAccountID") private var selectedAccountID: String = ""
     @Query private var accounts: [Account]
     @Query private var regularPayments: [RegularPayment]
     @Query private var allCategories: [Category]
 
-    @State private var selectedAccount: Account?
+  //  @State private var selectedAccount: Account?
     @State private var isAddTransactionViewPresented = false
     @State private var selectedTransactionType: TransactionType = .income
     @State private var selectedTimePeriod: TimePeriod = .currentMonth
@@ -157,6 +158,10 @@ struct HomeScreen: View {
     @State private var appliedEndDate: Date?
 
     @Environment(\.modelContext) private var modelContext
+
+    private var selectedAccount: Account? {
+        accounts.first { $0.id.uuidString == selectedAccountID } ?? accounts.first
+    }
 
     /// Баланс за выбранный период (учитывает все доходы и расходы)
     /// Баланс за выбранный период (учитывает начальный баланс + доходы − расходы)
@@ -320,32 +325,26 @@ struct HomeScreen: View {
              generateMissedRecurringTransactions()
 
              // Если пока нет выбранного — ставим первый из списка
-             if selectedAccount == nil {
-                 selectedAccount = accounts.first
-             }
+            if selectedAccountID.isEmpty {
+                selectedAccountID = accounts.first?.id.uuidString ?? ""
+            }
              // Сразу заливаем дефолтные категории
              if let acc = selectedAccount {
                  Category.seedDefaults(for: acc, in: modelContext)
              }
          }
-         .onChange(of: selectedAccount) { newAcc in
-             // Как только пользователь сменил аккаунт, заливаем дефолтные категории
-             if let acc = newAcc {
-                 Category.seedDefaults(for: acc, in: modelContext)
-             }
-         }
-         .onChange(of: accounts) { newAccounts in
-             // Если среди новых аккаунтов нет текущего selectedAccount → перенацион на первый
-             if let current = selectedAccount {
-                 // Если текущий selectedAccount исчез из списка accounts
-                 if !newAccounts.contains(where: { $0.id == current.id }) {
-                     selectedAccount = newAccounts.first
-                 }
-             } else {
-                 // Если ещё не было selectedAccount, выбираем первый
-                 selectedAccount = newAccounts.first
-             }
-         }
+        .onChange(of: selectedAccountID) { newID in
+            if let acc = selectedAccount {
+                Category.seedDefaults(for: acc, in: modelContext)
+            }
+        }
+        .onChange(of: accounts) { newAccounts in
+            // если удалили текущий, переключаем на первого
+            if !newAccounts.contains(where: { $0.id.uuidString == selectedAccountID }) {
+                selectedAccountID = newAccounts.first?.id.uuidString ?? ""
+            }
+        }
+    
             .sheet(isPresented: $isAddTransactionViewPresented) {
                 AddTransactionView(account: selectedAccount) { addedType in
                     selectedTransactionType = addedType // ← здесь переключается сегмент
@@ -392,11 +391,9 @@ struct HomeScreen: View {
 
                 Spacer()
 
-                Picker("Выберите счет", selection: $selectedAccount) {
-                    Text("Выберите счет")
-                        .tag(nil as Account?)
-                    ForEach(accounts) { account in
-                        Text(account.name).tag(account as Account?)
+                Picker("Выберите счет", selection: $selectedAccountID) {
+                    ForEach(accounts, id: \.id) { acc in
+                        Text(acc.name).tag(acc.id.uuidString)
                     }
                 }
                 .tint(.white).opacity(0.85) // Изменяет цвет выделенного текста на белый
@@ -445,6 +442,7 @@ struct HomeScreen: View {
                 .cornerRadius(16)
             }
         }
+
         .padding()
         .frame(maxWidth: .infinity)
         .background(

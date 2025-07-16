@@ -65,19 +65,16 @@ struct SettingsScreen: View {
 
                 // MARK: — Дополнительно (только Регулярные платежи)
                 Section {
-                    // Сначала проверяем, что у нас хотя бы один счёт
-                    if let firstAccount = accounts.first {
-                        NavigationLink(destination: RegularPaymentsScreen(account: firstAccount)) {
-                            Label {
-                                Text("Регулярные платежи")
-                            } icon: {
-                                IconBackground(systemName: "scroll.fill", backgroundColor: .orange)
-                            }
-                        }
-                    } else {
-                        // Покажем плейсхолдер, если счетов нет
+                    if accounts.isEmpty {
                         Text("Сначала создайте счет")
                             .foregroundColor(.secondary)
+                    } else {
+                        NavigationLink {
+                            RegularPaymentsScreen()
+                        } label: {
+                            Label("Регулярные платежи", systemImage: "scroll.fill")
+                                .foregroundColor(.primary)
+                        }
                     }
                 }
             }
