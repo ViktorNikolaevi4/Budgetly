@@ -62,7 +62,7 @@ struct SettingsScreen: View {
                         }
                     }
                 }
-
+              //  "scroll.fill"
                 // MARK: — Дополнительно (только Регулярные платежи)
                 Section {
                     if accounts.isEmpty {
@@ -72,8 +72,14 @@ struct SettingsScreen: View {
                         NavigationLink {
                             RegularPaymentsScreen()
                         } label: {
-                            Label("Регулярные платежи", systemImage: "scroll.fill")
-                                .foregroundColor(.primary)
+                            Label {
+                                Text("Регулярные платежи")
+                            } icon: {
+                                IconBackground(
+                                    systemName: "scroll.fill",
+                                    backgroundColor: Color(red: 80/255, green: 127/255, blue: 252/255)
+                                )
+                            }
                         }
                     }
                 }
