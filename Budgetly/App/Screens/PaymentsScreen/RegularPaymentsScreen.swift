@@ -7,6 +7,7 @@ struct RegularPaymentsScreen: View {
   @Environment(\.modelContext) private var modelContext
   @State private var isCreateReminderViewPresented = false
   @State private var selectedPayment: RegularPayment?
+    @Environment(\.dismiss) private var dismiss
 
   /// Текущий счёт (или nil, если не найден)
   private var account: Account? {
@@ -75,6 +76,7 @@ struct RegularPaymentsScreen: View {
               }
             ))
             .labelsHidden()
+            .tint(.appPurple)
           }
           .frame(width: 80)
         }
@@ -96,14 +98,25 @@ struct RegularPaymentsScreen: View {
     }
     .navigationTitle("Регулярные платежи")
     .navigationBarTitleDisplayMode(.inline)
+    .navigationBarBackButtonHidden(true)
     .toolbar {
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button {
+                dismiss()
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                    Text("Назад")
+                }.foregroundStyle(.appPurple)
+            }
+        }
       ToolbarItem(placement: .navigationBarTrailing) {
         Button {
           selectedPayment = nil
           isCreateReminderViewPresented = true
         } label: {
           Image(systemName: "plus")
-        }
+        }.foregroundStyle(.appPurple)
       }
     }
     .sheet(isPresented: $isCreateReminderViewPresented) {
@@ -131,4 +144,3 @@ private extension DateFormatter {
     return df
   }()
 }
-

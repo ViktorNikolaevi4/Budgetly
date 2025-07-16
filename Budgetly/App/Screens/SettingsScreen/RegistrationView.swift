@@ -157,4 +157,3 @@ struct RegistrationView: View {
         }
     }
 }
-
