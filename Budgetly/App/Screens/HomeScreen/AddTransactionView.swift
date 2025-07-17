@@ -395,7 +395,7 @@ struct AddTransactionView: View {
 
          // Если нужно шаблон регулярного платежа — создаём и привязываем к тому же account
          if repeatRule != EndOption.never.rawValue {
-             let freq = ReminderFrequency(rawValue: repeatRule) ?? .once
+             let freq = ReminderFrequency(rawValue: repeatRule) ?? .daily
              let template = RegularPayment(
                  name: selectedCategory,
                  frequency: freq,

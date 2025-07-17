@@ -138,13 +138,13 @@ struct RegularPaymentsScreen: View {
     }
 }
 
-private extension DateFormatter {
-    static let short: DateFormatter = {
-        let df = DateFormatter()
-        df.dateStyle = .short
-        df.timeStyle = .none
-        return df
-    }()
-}
+//private extension DateFormatter {
+//    static let short: DateFormatter = {
+//        let df = DateFormatter()
+//        df.dateStyle = .short
+//        df.timeStyle = .none
+//        return df
+//    }()
+//}
 
 

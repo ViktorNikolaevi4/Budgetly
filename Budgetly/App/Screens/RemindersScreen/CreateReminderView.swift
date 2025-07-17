@@ -2,36 +2,37 @@ import SwiftUI
 import SwiftData
 
 enum ReminderFrequency: String, CaseIterable, Identifiable {
-    case daily = "Каждый день"
-    case weekly = "Каждую неделю"
-    case biWeekly = "Каждые 2 недели"
-    case monthly = "Каждый месяц"
-    case biMonthly = "Каждые 2 месяца"
-    case quarterly = "Каждыe 3 месяца"
-    case semiAnnually = "Каждыe полгода"
-    case annually = "Каждый год"
+    case daily         = "Каждый день"
+    case weekly        = "Каждую неделю"
+    case biWeekly      = "Каждые 2 недели"
+    case monthly       = "Каждый месяц"
+    case biMonthly     = "Каждые 2 месяца"
+    case quarterly     = "Каждые 3 месяца"
+    case semiAnnually  = "Каждый полгода"
+    case annually      = "Каждый год"
 
-    var id: String { self.rawValue }
+    var id: String { rawValue }
 }
 
 struct CreateReminderView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)      private var dismiss
 
     @Query private var allAccounts: [Account]
 
     var existingPayment: RegularPayment?
     var account: Account
 
-    @State private var paymentType: CategoryType = .expenses
-    @State private var paymentName: String = ""
-    @State private var reminderFrequency: ReminderFrequency = .daily
-    @State private var startDate = Date()
-    @State private var includeEndDate = false
-    @State private var endDate: Date? = nil
-    @State private var amount: String = ""
-    @State private var comment: String = ""
-    @State private var selectedAccount: Account
+    @State private var paymentType      : CategoryType        = .expenses
+    @State private var paymentName      : String              = ""
+    @State private var reminderFrequency: ReminderFrequency   = .monthly
+    @State private var startDate        : Date                = Date()
+    @State private var includeEndDate   : Bool                = false
+    @State private var endDate          : Date?               = nil
+    @State private var amount           : String              = ""
+    @State private var comment          : String              = ""
+    @State private var selectedAccount  : Account
+    @State private var showingEndOptions: Bool                = false
 
     init(account: Account, existingPayment: RegularPayment? = nil) {
         self.account = account
@@ -46,173 +47,219 @@ struct CreateReminderView: View {
         _includeEndDate = State(initialValue: existingPayment?.endDate != nil)
         _selectedAccount  = State(initialValue: existingPayment?.account ?? account)
     }
-
+    
     private var currencySign: String {
         let code = account.currency ?? "RUB"
         return currencySymbols[code] ?? code
     }
 
-    var isFormValid: Bool {
+    private var isFormValid: Bool {
         !paymentName.isEmpty && !amount.isEmpty
     }
 
     var body: some View {
-            NavigationStack {
-                Form {
-                    // MARK: — Тип платежа
-                    Section {
-                        Picker("", selection: $paymentType) {
-                            Text("Расходы").tag(CategoryType.expenses)
-                            Text("Доходы").tag(CategoryType.income)
-                        }
-                        .pickerStyle(.segmented)
-                        .tint(.appPurple)
+        NavigationStack {
+            Form {
+                // MARK: Тип платежа
+                Section {
+                    Picker("", selection: $paymentType) {
+                        Text("Расходы").tag(CategoryType.expenses)
+                        Text("Доходы").tag(CategoryType.income)
+                    }
+                    .pickerStyle(.segmented)
+                    .tint(.appPurple)
+                }
+
+                // MARK: Основные поля
+                Section {
+                    TextField("Название", text: $paymentName)
+                    TextField("Комментарий", text: $comment)
+                }
+
+                // MARK: Сумма и счёт
+                Section {
+                    HStack {
+                        Text("Сумма")
+                        Spacer()
+                        TextField("0,00", text: $amount)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                        Text(currencySign)
+                            .foregroundColor(.secondary)
                     }
 
-                    // MARK: — Основные поля
-                    Section {
-                        TextField("Название", text: $paymentName)
-                        TextField("Комментарий", text: $comment)
+                    Picker(selection: $selectedAccount, label: Text("Счет")) {
+                        ForEach(allAccounts) { acct in
+                            Text(acct.name).tag(acct)
+                        }
+                    }
+                }
+
+                // MARK: Даты и повтор
+                Section {
+                    HStack {
+                        Text("Дата начала")
+                        Spacer()
+                        DatePicker("", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
+                            .labelsHidden()
                     }
 
-                    // MARK: — Сумма и счёт
-                    Section {
-                        HStack {
-                            Text("Сумма")
-                            Spacer()
-                            TextField("0,00", text: $amount)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                            Text(currencySign)
-                                .foregroundColor(.secondary)
-                        }
-                        // вместо NavigationLink — Picker
-                        Picker(selection: $selectedAccount, label: HStack {
-                            Text("Счет")
-                            Spacer()
-//                            Text(selectedAccount.name)
-//                                .foregroundColor(.primary)
-//                            Image(systemName: "chevron.down")
-//                                .foregroundColor(.secondary)
-                        }) {
-                            ForEach(allAccounts) { acct in
-                                Text(acct.name).tag(acct)
+                    HStack {
+                        Text("Повтор")
+                        Spacer()
+                        Menu {
+                            ForEach(ReminderFrequency.allCases) { freq in
+                                Button(freq.rawValue) { reminderFrequency = freq }
                             }
-                        }
-                    }
-
-                    // MARK: — Даты и повтор
-                    Section {
-                        HStack {
-                            Text("Дата начала")
-                            Spacer()
-                            DatePicker("", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
-                                .labelsHidden()
-                        }
-                        HStack {
-                            Text("Повтор")
-                            Spacer()
-                            Menu {
-                                ForEach(ReminderFrequency.allCases) { freq in
-                                    Button(freq.rawValue) { reminderFrequency = freq }
-                                }
-                            } label: {
-                                Text(reminderFrequency.rawValue)
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        HStack {
-                            Text("Конец повтора")
-                            Spacer()
-                            if includeEndDate, let end = endDate {
-                                Text(end, style: .date)
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                            } else {
-                                Button("Никогда") { includeEndDate.toggle() }
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-
-                    // MARK: — Секция «Напоминание»
-                    Section {
-                        HStack {
-                            Text("Напоминание")
-                            Spacer()
-                            Text("Нет")
-                                .foregroundColor(.secondary)
+                        } label: {
+                            Text(reminderFrequency.rawValue)
                             Image(systemName: "chevron.right")
                                 .foregroundColor(.secondary)
                         }
                     }
-                }
-                .listStyle(.insetGrouped)
-                .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Отменить") { dismiss() }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button(existingPayment == nil ? "Добавить" : "Обновить") {
-                            saveOrUpdateReminder()
-                            dismiss()
+
+                    Section {
+                        HStack {
+                            Text("Конец повтора")
+                            Spacer()
+                            // Меняем Button+confirmationDialog на Menu
+                            Menu {
+                                // Пункт «Никогда»
+                                Button(role: .destructive) {
+                                    includeEndDate = false
+                                    endDate = nil
+                                } label: {
+                                    Text("Никогда")
+                                }
+                                // Пункт «В дату»
+                                Button {
+                                    includeEndDate = true
+                                    // по умолчанию через год от даты старта
+                                    endDate = Calendar.current.date(
+                                        byAdding: .year,
+                                        value: 1,
+                                        to: startDate
+                                    )
+                                } label: {
+                                    Text("В дату")
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    if includeEndDate, let end = endDate {
+                                        Text(DateFormatter.short.string(from: end))
+                                    } else {
+                                        Text("Никогда")
+                                    }
+                                    Image(systemName: "chevron.down")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
-                        .disabled(!isFormValid)
+                    }
+                        // Если выбран «В дату», показываем DatePicker
+                        if includeEndDate, let end = endDate {
+                            DatePicker(
+                                "Окончание",
+                                selection: Binding(
+                                    get: { endDate! },
+                                    set: { endDate = $0 }
+                                ),
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            .padding(.top, 4)
+                        }
+                    }
+                // MARK: Напоминание
+                Section {
+                    HStack {
+                        Text("Напоминание")
+                        Spacer()
+                        Text("Нет")
+                            .foregroundColor(.secondary)
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
                     }
                 }
             }
+            .listStyle(.insetGrouped)
+            .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Отменить") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(existingPayment == nil ? "Добавить" : "Обновить") {
+                        saveOrUpdateReminder()
+                        dismiss()
+                    }
+                    .disabled(!isFormValid)
+                }
+            }
         }
+    }
 
+    @MainActor
     private func saveOrUpdateReminder() {
-        guard let amountValue = Double(amount) else { return }
+        guard let value = Double(amount) else { return }
 
         if let payment = existingPayment {
-            // ——— обновляем старый
+            // обновляем
             payment.name       = paymentName
+            payment.comment    = comment
+            payment.amount     = value
             payment.frequency  = reminderFrequency
             payment.startDate  = startDate
             payment.endDate    = includeEndDate ? endDate : nil
-            payment.amount     = amountValue
-            payment.comment    = comment
-            payment.account = account
+            payment.account    = selectedAccount
 
             payment.cancelNotification()
             payment.sheduleNotification()
 
-            // Сохраняем изменения
-            do {
-                try modelContext.save()
-            } catch {
-                print("Ошибка при обновлении шаблона:", error)
-            }
-
         } else {
-            // ——— создаём новый
-            let newReminder = RegularPayment(
-                name: paymentName,
-                frequency: reminderFrequency,
-                startDate: startDate,
-                endDate: includeEndDate ? endDate : nil,
-                amount: amountValue,
-                comment: comment,
-                account: account
+            // создаём новый
+            let newPayment = RegularPayment(
+                name:       paymentName,
+                frequency:  reminderFrequency,
+                startDate:  startDate,
+                endDate:    includeEndDate ? endDate : nil,
+                amount:     value,
+                comment:    comment,
+                account:    selectedAccount
             )
-            modelContext.insert(newReminder)
-            newReminder.sheduleNotification()
-
-            // Сохраняем новый
-            do {
-                try modelContext.save()
-            } catch {
-                print("Ошибка при создании шаблона:", error)
-            }
+            modelContext.insert(newPayment)
+            newPayment.sheduleNotification()
         }
 
-        // Закрываем экран
-        dismiss()
+        try? modelContext.save()
     }
 }
+
+// MARK: — Форматтер в том же файле, чтобы он был видим
+extension DateFormatter {
+    static let short: DateFormatter = {
+        let df = DateFormatter()
+        df.dateStyle = .short
+        df.timeStyle = .none
+        return df
+    }()
+}
+
+//init(account: Account, existingPayment: RegularPayment? = nil) {
+//    self.account = account
+//    self.existingPayment = existingPayment
+//    _paymentName = State(initialValue: existingPayment?.name ?? "")
+//    _reminderFrequency = State(initialValue: existingPayment?.frequency ?? .monthly)
+//    _startDate = State(initialValue: existingPayment?.startDate ?? Date())
+//    _endDate = State(initialValue: existingPayment?.endDate)
+//    _amount = State(initialValue: existingPayment?.amount != nil ? String(existingPayment!.amount) : "")
+//    _comment = State(initialValue: existingPayment?.comment ?? "")
+////    _paymentType = State(initialValue: existingPayment?.type ?? .expenses)
+//    _includeEndDate = State(initialValue: existingPayment?.endDate != nil)
+//    _selectedAccount  = State(initialValue: existingPayment?.account ?? account)
+//}
+//
+//private var currencySign: String {
+//    let code = account.currency ?? "RUB"
+//    return currencySymbols[code] ?? code
+//}
