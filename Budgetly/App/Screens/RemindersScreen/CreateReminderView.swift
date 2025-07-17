@@ -44,102 +44,136 @@ struct CreateReminderView: View {
         _includeEndDate = State(initialValue: existingPayment?.endDate != nil)
     }
 
+    private var currencySign: String {
+        let code = account.currency ?? "RUB"
+        return currencySymbols[code] ?? code
+    }
+
     var isFormValid: Bool {
         !paymentName.isEmpty && !amount.isEmpty
     }
 
     var body: some View {
-        NavigationStack {
-        VStack {
-            HStack {
-                Button(action: {
-                    paymentType = .expenses
-                }) {
-                    Text("РАСХОДЫ")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(paymentType == .expenses ? Color.appPurple : Color.gray)
-                        .foregroundColor(.white)
-                        .cornerRadius(16)
-                }
-                Button(action: {
-                    paymentType = .income
-                }) {
-                    Text("ДОХОДЫ")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(paymentType == .income ? Color.appPurple : Color.gray)
-                        .foregroundColor(.white)
-                        .cornerRadius(16)
-                }
-            }
-            .padding()
+         NavigationStack {
+             Form {
+                 // MARK: — Тип платежа
+                 Section {
+                     Picker("", selection: $paymentType) {
+                         Text("Расходы").tag(CategoryType.expenses)
+                         Text("Доходы").tag(CategoryType.income)
+                     }
+                     .pickerStyle(.segmented)
+                     .tint(.appPurple)
+                 }
 
-            TextField("Наименование платежа", text: $paymentName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                 // MARK: — Основные поля
+                 Section {
+                     TextField("Название", text: $paymentName)
+                     TextField("Комментарий", text: $comment)
+                 }
 
-            // Выбор периодичности
-            Picker("Периодичность напоминания", selection: $reminderFrequency) {
-                ForEach(ReminderFrequency.allCases) { frequency in
-                    Text(frequency.rawValue).tag(frequency)
-                }
-            }
-            .tint(.appPurple)
-            .pickerStyle(MenuPickerStyle()) // Используем меню для удобства
-            .padding()
+                 // MARK: — Сумма и счёт
+                 Section {
+                     HStack {
+                         Text("Сумма")
+                         Spacer()
+                         TextField("0,00", text: $amount)
+                             .keyboardType(.decimalPad)
+                             .multilineTextAlignment(.trailing)
+                         Text(currencySign)
+                             .foregroundColor(.secondary)
+                     }
+                     HStack {
+                         Text("Счёт")
+                         Spacer()
+                         NavigationLink {
+                             // Ваша логика выбора счёта
+                         } label: {
+                             Text(account.name)
+                             Image(systemName: "chevron.right")
+                                 .foregroundColor(.secondary)
+                         }
+                     }
+                 }
 
-            DatePicker("Дата начала напоминания", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
-                .padding()
+                 // MARK: — Даты и повтор
+                 Section {
+                     HStack {
+                         Text("Дата начала")
+                         Spacer()
+                         DatePicker(
+                             "",
+                             selection: $startDate,
+                             displayedComponents: [.date, .hourAndMinute]
+                         )
+                         .labelsHidden()
+                     }
+                     HStack {
+                         Text("Повтор")
+                         Spacer()
+                         Menu {
+                             ForEach(ReminderFrequency.allCases) { freq in
+                                 Button(freq.rawValue) {
+                                     reminderFrequency = freq
+                                 }
+                             }
+                         } label: {
+                             Text(reminderFrequency.rawValue)
+                             Image(systemName: "chevron.right")
+                                 .foregroundColor(.secondary)
+                         }
+                     }
+                     HStack {
+                         Text("Конец повтора")
+                         Spacer()
+                         if includeEndDate, let end = endDate {
+                             Text(end, style: .date)
+                             Image(systemName: "chevron.right")
+                                 .foregroundColor(.secondary)
+                         } else {
+                             Button("Никогда") {
+                                 includeEndDate.toggle()
+                             }
+                             Image(systemName: "chevron.right")
+                                 .foregroundColor(.secondary)
+                         }
+                     }
+                 }
 
-            Toggle("Включить дату окончания", isOn: $includeEndDate)
-                .padding()
-
-            if includeEndDate {
-                DatePicker("Дата окончания напоминания", selection: Binding(get: { endDate ?? Date() }, set: { endDate = $0 }), displayedComponents: [.date, .hourAndMinute])
-                    .padding()
-            }
-
-            TextField("Сумма", text: $amount)
-                .keyboardType(.decimalPad)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-            TextField("Комментарий", text: $comment)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-
-            Button(action: {
-                saveOrUpdateReminder()
-                dismiss()
-            }) {
-                Text(existingPayment == nil ? "Создать" : "Обновить")
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(.appPurple)
-                    .foregroundStyle(.white)
-                    .font(.headline)
-                    .cornerRadius(16)
-            }
-            .padding()
-            .disabled(!isFormValid)
-        }
-        .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            // Кнопка-крестик в левом (или правом) верхнем углу
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    dismiss() // закрываем экран
-                } label: {
-                    Text("Закрыть")
-                        .foregroundColor(.appPurple)
-                }
-            }
-        }
-        .padding()
-    }
-}
+                 // MARK: — Кнопка создания / обновления
+                 Section {
+                     Button {
+                         saveOrUpdateReminder()
+                         dismiss()
+                     } label: {
+                         Text(existingPayment == nil ? "Создать" : "Обновить")
+                             .frame(maxWidth: .infinity, minHeight: 44)
+                             .background(Color.appPurple)
+                             .foregroundColor(.white)
+                             .cornerRadius(10)
+                     }
+                     .disabled(!isFormValid)
+                 }
+             }
+             .listStyle(.insetGrouped)
+             .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
+             .navigationBarTitleDisplayMode(.inline)
+             .toolbar {
+                 ToolbarItem(placement: .cancellationAction) {
+                     Button("Отменить") {
+                         dismiss()
+                     }
+                 }
+                 ToolbarItem(placement: .confirmationAction) {
+                     Button(existingPayment == nil ? "Добавить" : "Обновить") {
+                         saveOrUpdateReminder()
+                         dismiss()
+                     }
+                     .disabled(!isFormValid)
+                 }
+             }
+         }
+     }
 
     private func saveOrUpdateReminder() {
         guard let amountValue = Double(amount) else { return }
@@ -190,5 +224,3 @@ struct CreateReminderView: View {
         dismiss()
     }
 }
-
-
