@@ -19,7 +19,7 @@ class RegularPayment: Identifiable {
         set { frequencyRaw = newValue.rawValue }
     }
 
-    @Relationship(deleteRule: .cascade, inverse: \Account.regularPayments)
+    @Relationship(inverse: \Account.regularPayments)
     var account: Account?
 
     init(id: UUID = UUID(),
