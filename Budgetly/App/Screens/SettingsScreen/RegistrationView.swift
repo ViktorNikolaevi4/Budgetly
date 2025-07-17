@@ -1,66 +1,96 @@
 import SwiftUI
 import CloudKit
+import AuthenticationServices
 
 struct RegistrationView: View {
-    @State private var username:   String = ""
-    @State private var email:      String = ""
-    @State private var password:   String = ""
-    @State private var isLoading:  Bool   = false
+    @State private var username:     String = ""
+    @State private var email:        String = ""
+    @State private var password:     String = ""
+    @State private var isLoading:    Bool   = false
     @State private var alertMessage: String = ""
     @State private var showAlert:    Bool   = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
+            ZStack {
+                // общий фон, как в grouped-views
+                Color(.systemGray6)
+                    .ignoresSafeArea()
 
-                // Иконка + текстовое поле
-                IconTextField(
-                    systemImage: "person.fill",
-                    placeholder: "Имя или никнейм",
-                    text: $username,
-                    keyboard: .default,
-                    isSecure: false
-                )
+                VStack(spacing: 12) {
+                    Spacer().frame(height: 40)
 
-                IconTextField(
-                    systemImage: "envelope.fill",
-                    placeholder: "Ваш e-mail",
-                    text: $email,
-                    keyboard: .emailAddress,
-                    isSecure: false
-                )
+                    IconTextField(
+                        systemImage: "person.fill",
+                        placeholder: "Имя или никнейм",
+                        text: $username,
+                        keyboard: .default,
+                        isSecure: false
+                    )
 
-                IconTextField(
-                    systemImage: "lock.fill",
-                    placeholder: "Пароль",
-                    text: $password,
-                    keyboard: .default,
-                    isSecure: true
-                )
+                    IconTextField(
+                        systemImage: "envelope.fill",
+                        placeholder: "Ваш e-mail",
+                        text: $email,
+                        keyboard: .emailAddress,
+                        isSecure: false
+                    )
 
-                if isLoading {
-                    ProgressView()
+                    IconTextField(
+                        systemImage: "lock.fill",
+                        placeholder: "Пароль",
+                        text: $password,
+                        keyboard: .default,
+                        isSecure: true
+                    )
+
+                    if isLoading {
+                        ProgressView()
+                            .padding(.top, 16)
+                    } else {
+                        Button(action: handleRegistration) {
+                            Text("Регистрация")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(Color.appPurple)
+                                .foregroundColor(.white)
+                                .cornerRadius(16)
+                        }
+                        .disabled(username.isEmpty || email.isEmpty || password.isEmpty)
                         .padding(.top, 16)
-                } else {
-                    Button(action: handleRegistration) {
-                        Text("Регистрация")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.appPurple)
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
                     }
-                    .disabled(username.isEmpty || email.isEmpty || password.isEmpty)
-                    .padding(.top, 16)
-                }
 
-                Spacer()
+                    Button(action: {
+                        // переход на экран входа
+                    }) {
+                        Text("Войти")
+                            .foregroundColor(.appPurple)
+                            .font(.subheadline.bold())
+                    }
+                    .padding(.top, 8)
+
+                    Text("или")
+                        .foregroundColor(.secondary)
+                        .font(.subheadline)
+                        .padding(.vertical, 4)
+
+                    SignInWithAppleButton(.signUp) { request in
+                        // конфигурация, если нужно
+                    } onCompletion: { result in
+                        // обработка результата
+                    }
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 44)
+                    .cornerRadius(16)
+
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
             }
-            .padding(.horizontal, 24)
+            .navigationTitle("Регистрация")
             .alert(alertMessage, isPresented: $showAlert) {
                 Button("OK", role: .cancel) { }
             }
-            .navigationTitle("Регистрация")
         }
     }
 
@@ -85,7 +115,7 @@ struct RegistrationView: View {
                 }
             }
             .padding(12)
-            .background(Color(white: 0.95))
+            .background(Color(.white))
             .cornerRadius(8)
         }
     }
