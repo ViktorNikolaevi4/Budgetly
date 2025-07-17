@@ -60,83 +60,84 @@ struct CreateReminderView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                // MARK: Тип платежа
-                Section {
-                    Picker("", selection: $paymentType) {
-                        Text("Расходы").tag(CategoryType.expenses)
-                        Text("Доходы").tag(CategoryType.income)
-                    }
-                    .pickerStyle(.segmented)
-                    .tint(.appPurple)
-                }
-
-                // MARK: Основные поля
-                Section {
-                    TextField("Название", text: $paymentName)
-                    TextField("Комментарий", text: $comment)
-                }
-
-                // MARK: Сумма и счёт
-                Section {
-                    HStack {
-                        Text("Сумма")
-                        Spacer()
-                        TextField("0,00", text: $amount)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                        Text(currencySign)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Picker(selection: $selectedAccount, label: Text("Счет")) {
-                        ForEach(allAccounts) { acct in
-                            Text(acct.name).tag(acct)
-                        }
-                    }
-                }
-
-                // MARK: Даты и повтор
-                Section {
-                    HStack {
-                        Text("Дата начала")
-                        Spacer()
-                        DatePicker("", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
-                            .labelsHidden()
-                    }
-
-                    HStack {
-                        Text("Повтор")
-                        Spacer()
-                        Menu {
-                            ForEach(ReminderFrequency.allCases) { freq in
-                                Button(freq.rawValue) { reminderFrequency = freq }
-                            }
-                        } label: {
-                            Text(reminderFrequency.rawValue)
-                            Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
+            NavigationStack {
+                Form {
+                    // MARK: Тип платежа
                     Section {
+                        Picker("", selection: $paymentType) {
+                            Text("Расходы").tag(CategoryType.expenses)
+                            Text("Доходы").tag(CategoryType.income)
+                        }
+                        .pickerStyle(.segmented)
+                        .tint(.appPurple)
+                    }
+
+                    // MARK: Основные поля
+                    Section {
+                        TextField("Название", text: $paymentName)
+                        TextField("Комментарий", text: $comment)
+                    }
+
+                    // MARK: Сумма и счёт
+                    Section {
+                        HStack {
+                            Text("Сумма")
+                            Spacer()
+                            TextField("0,00", text: $amount)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                            Text(currencySign)
+                                .foregroundColor(.black)
+                        }
+
+                        Picker("Счёт", selection: $selectedAccount) {
+                            ForEach(allAccounts) { acct in
+                                Text(acct.name).tag(acct)
+                            }
+                        }
+                        .tint(.appPurple)
+                        // отображаем выбранное название фиолетовым
+                        .onAppear {
+                            UITableView.appearance().tintColor = UIColor(named: "appPurple")
+                        }
+                    }
+
+                    // MARK: Даты и повтор
+                    Section {
+                        HStack {
+                            Text("Дата начала")
+                            Spacer()
+                            DatePicker("", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
+                                .labelsHidden()
+                                .tint(.appPurple)
+                        }
+
+                        HStack {
+                            Text("Повтор")
+                            Spacer()
+                            Menu {
+                                ForEach(ReminderFrequency.allCases) { freq in
+                                    Button(freq.rawValue) { reminderFrequency = freq }
+                                }
+                            } label: {
+                                Text(reminderFrequency.rawValue)
+                                Image(systemName: "chevron.down")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+
                         HStack {
                             Text("Конец повтора")
                             Spacer()
-                            // Меняем Button+confirmationDialog на Menu
                             Menu {
-                                // Пункт «Никогда»
                                 Button(role: .destructive) {
                                     includeEndDate = false
                                     endDate = nil
                                 } label: {
                                     Text("Никогда")
                                 }
-                                // Пункт «В дату»
                                 Button {
                                     includeEndDate = true
-                                    // по умолчанию через год от даты старта
                                     endDate = Calendar.current.date(
                                         byAdding: .year,
                                         value: 1,
@@ -146,70 +147,73 @@ struct CreateReminderView: View {
                                     Text("В дату")
                                 }
                             } label: {
-                                HStack(spacing: 4) {
-                                    if includeEndDate, let end = endDate {
-                                        Text(DateFormatter.short.string(from: end))
-                                    } else {
-                                        Text("Никогда")
-                                    }
+                                HStack {
+                                    Text(includeEndDate && endDate != nil
+                                         ? DateFormatter.short.string(from: endDate!)
+                                         : "Никогда")
                                     Image(systemName: "chevron.down")
                                         .foregroundColor(.secondary)
                                 }
                             }
+                            .tint(.appPurple)
                         }
-                    }
-                        // Если выбран «В дату», показываем DatePicker
+
                         if includeEndDate, let end = endDate {
-                            DatePicker(
-                                "Окончание",
-                                selection: Binding(
+                            DatePicker("Окончание", selection:
+                                Binding(
                                     get: { endDate! },
                                     set: { endDate = $0 }
                                 ),
                                 displayedComponents: [.date, .hourAndMinute]
                             )
-                            .padding(.top, 4)
+                            .tint(.appPurple)
                         }
                     }
-                // MARK: Напоминание
-                Section {
-                     HStack {
-                         Text("Напоминание")
-                         Spacer()
-                         Menu {
-                             ForEach(ReminderLeadTime.allCases) { option in
-                                 Button(option.rawValue) {
-                                     leadTime = option
-                                 }
-                             }
-                         } label: {
-                             HStack(spacing: 4) {
-                                 Text(leadTime.rawValue)
-                                     .foregroundColor(leadTime == .none ? .secondary : .primary)
-                                 Image(systemName: "chevron.down")
-                                     .foregroundColor(.secondary)
-                             }
-                         }
-                     }
-                 }
-             }
-            .listStyle(.insetGrouped)
-            .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Отменить") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(existingPayment == nil ? "Добавить" : "Обновить") {
-                        saveOrUpdateReminder()
-                        dismiss()
+
+                    // MARK: Напоминание
+                    Section {
+                        HStack {
+                            Text("Напоминание")
+                            Spacer()
+                            Menu {
+                                ForEach(ReminderLeadTime.allCases) { option in
+                                    Button(option.rawValue) {
+                                        leadTime = option
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(leadTime.rawValue)
+                                        .foregroundColor(leadTime == .none ? .secondary : .primary)
+                                    Image(systemName: "chevron.down")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .tint(.appPurple)
+                        }
                     }
-                    .disabled(!isFormValid)
+                }
+                .listStyle(.insetGrouped)
+                .navigationTitle(existingPayment == nil
+                                 ? "Создать напоминание"
+                                 : "Редактировать напоминание")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Отменить") { dismiss() }
+                            .foregroundColor(.appPurple)
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(existingPayment == nil ? "Добавить" : "Обновить") {
+                            saveOrUpdateReminder()
+                            dismiss()
+                        }
+                        .disabled(!isFormValid)
+                        .foregroundColor(.appPurple)
+                    }
                 }
             }
         }
-    }
 
     @MainActor
     private func saveOrUpdateReminder() {
