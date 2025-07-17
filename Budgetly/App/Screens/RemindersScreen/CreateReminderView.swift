@@ -33,6 +33,7 @@ struct CreateReminderView: View {
     @State private var comment          : String              = ""
     @State private var selectedAccount  : Account
     @State private var showingEndOptions: Bool                = false
+    @State private var leadTime: ReminderLeadTime             = .none
 
     init(account: Account, existingPayment: RegularPayment? = nil) {
         self.account = account
@@ -46,6 +47,7 @@ struct CreateReminderView: View {
     //    _paymentType = State(initialValue: existingPayment?.type ?? .expenses)
         _includeEndDate = State(initialValue: existingPayment?.endDate != nil)
         _selectedAccount  = State(initialValue: existingPayment?.account ?? account)
+        _leadTime = State(initialValue: existingPayment?.leadTime ?? .none)
     }
     
     private var currencySign: String {
@@ -171,16 +173,26 @@ struct CreateReminderView: View {
                     }
                 // MARK: Напоминание
                 Section {
-                    HStack {
-                        Text("Напоминание")
-                        Spacer()
-                        Text("Нет")
-                            .foregroundColor(.secondary)
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
+                     HStack {
+                         Text("Напоминание")
+                         Spacer()
+                         Menu {
+                             ForEach(ReminderLeadTime.allCases) { option in
+                                 Button(option.rawValue) {
+                                     leadTime = option
+                                 }
+                             }
+                         } label: {
+                             HStack(spacing: 4) {
+                                 Text(leadTime.rawValue)
+                                     .foregroundColor(leadTime == .none ? .secondary : .primary)
+                                 Image(systemName: "chevron.down")
+                                     .foregroundColor(.secondary)
+                             }
+                         }
+                     }
+                 }
+             }
             .listStyle(.insetGrouped)
             .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
             .navigationBarTitleDisplayMode(.inline)
@@ -245,21 +257,24 @@ extension DateFormatter {
     }()
 }
 
-//init(account: Account, existingPayment: RegularPayment? = nil) {
-//    self.account = account
-//    self.existingPayment = existingPayment
-//    _paymentName = State(initialValue: existingPayment?.name ?? "")
-//    _reminderFrequency = State(initialValue: existingPayment?.frequency ?? .monthly)
-//    _startDate = State(initialValue: existingPayment?.startDate ?? Date())
-//    _endDate = State(initialValue: existingPayment?.endDate)
-//    _amount = State(initialValue: existingPayment?.amount != nil ? String(existingPayment!.amount) : "")
-//    _comment = State(initialValue: existingPayment?.comment ?? "")
-////    _paymentType = State(initialValue: existingPayment?.type ?? .expenses)
-//    _includeEndDate = State(initialValue: existingPayment?.endDate != nil)
-//    _selectedAccount  = State(initialValue: existingPayment?.account ?? account)
-//}
-//
-//private var currencySign: String {
-//    let code = account.currency ?? "RUB"
-//    return currencySymbols[code] ?? code
-//}
+enum ReminderLeadTime: String, CaseIterable, Identifiable, Codable {
+    case none    = "Нет"
+    case min5    = "За 5 минут"
+    case min10   = "За 10 минут"
+    case hour1   = "За 1 час"
+    case day1    = "За 1 день"
+    // добавьте, если нужно, ещё
+
+    var id: String { rawValue }
+
+    /// сколько секунд вычесть из даты платежа
+    var seconds: TimeInterval {
+        switch self {
+        case .none:  return 0
+        case .min5:  return 5 * 60
+        case .min10: return 10 * 60
+        case .hour1: return 60 * 60
+        case .day1:  return 24 * 60 * 60
+        }
+    }
+}

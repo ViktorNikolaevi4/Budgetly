@@ -13,6 +13,13 @@ class RegularPayment: Identifiable {
     var comment: String
     var isActive: Bool // Новое свойство для состояния напоминания
 
+    private var leadTimeRaw: String
+
+    var leadTime: ReminderLeadTime {
+      get { ReminderLeadTime(rawValue: leadTimeRaw) ?? .none }
+      set { leadTimeRaw = newValue.rawValue }
+    }
+
     // Преобразование строки в enum и обратно
     var frequency: ReminderFrequency {
         get { ReminderFrequency(rawValue: frequencyRaw) ?? .monthly }
@@ -30,8 +37,9 @@ class RegularPayment: Identifiable {
          amount: Double,
          comment: String,
          isActive: Bool = true,
-         account: Account? = nil) {
-        
+         account: Account? = nil,
+         leadTime: ReminderLeadTime = .none) {
+
         self.id = id
         self.name = name
         self.frequencyRaw = frequency.rawValue // Сохраняем как строку
@@ -41,8 +49,56 @@ class RegularPayment: Identifiable {
         self.comment = comment
         self.isActive = isActive
         self.account = account
+        self.leadTimeRaw = leadTime.rawValue
     }
-}
+    func scheduleNotification() {
+            guard isActive else { return }
+
+            // находим следующую дату платежа
+            let paymentDate = frequency.nextDate(after: startDate)
+
+            // вычитаем выбранный lead-time
+            let triggerDate = Calendar.current.date(
+              byAdding: .second,
+              value: Int(-leadTime.seconds),
+              to: paymentDate
+            ) ?? paymentDate
+
+            // готовим контент
+            let content = UNMutableNotificationContent()
+            content.title = "Платёж «\(name)»"
+            content.body  = "Запланирован на \(DateFormatter.short.string(from: paymentDate))"
+            content.sound = .default
+
+            // мэпим в компоненты
+            let comps = Calendar.current.dateComponents(
+              [.year, .month, .day, .hour, .minute],
+              from: triggerDate
+            )
+            let trigger = UNCalendarNotificationTrigger(
+              dateMatching: comps,
+              repeats: frequency != .daily
+            )
+
+            let id = "RegularPayment-\(self.id.uuidString)"
+            let req = UNNotificationRequest(
+              identifier: id,
+              content: content,
+              trigger: trigger
+            )
+
+            UNUserNotificationCenter.current().add(req) { err in
+              if let err = err {
+                print("Ошибка планирования уведомления:", err)
+              }
+            }
+        }
+
+        func cancelNotification() {
+            let id = "RegularPayment-\(self.id.uuidString)"
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
+        }
+    }
 
 extension RegularPayment {
     func sheduleNotification() {
@@ -73,8 +129,8 @@ extension RegularPayment {
         }
     }
 
-    func cancelNotification() {
-        let notificationID = "RegularPayment-\(id.uuidString)"
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationID])
-    }
+//    func cancelNotification() {
+//        let notificationID = "RegularPayment-\(id.uuidString)"
+//        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationID])
+//    }
 }
