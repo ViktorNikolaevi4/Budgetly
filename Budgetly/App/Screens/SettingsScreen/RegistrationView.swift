@@ -102,12 +102,32 @@ struct RegistrationView: View {
         var keyboard: UIKeyboardType = .default
         var isSecure: Bool = false
 
+        // локальный стейт для переключения режима
+        @State private var isSecuredText: Bool = true
+
         var body: some View {
             HStack(spacing: 12) {
                 Image(systemName: systemImage)
                     .foregroundColor(.appPurple)
+
                 if isSecure {
-                    SecureField(placeholder, text: $text)
+                    Group {
+                        if isSecuredText {
+                            SecureField(placeholder, text: $text)
+                        } else {
+                            TextField(placeholder, text: $text)
+                                .autocapitalization(.none)
+                        }
+                    }
+                    .keyboardType(keyboard)
+
+                    // кнопка «глазик»
+                    Button {
+                        isSecuredText.toggle()
+                    } label: {
+                        Image(systemName: isSecuredText ? "eye.slash" : "eye")
+                            .foregroundColor(.secondary)
+                    }
                 } else {
                     TextField(placeholder, text: $text)
                         .keyboardType(keyboard)
