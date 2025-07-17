@@ -2,56 +2,95 @@ import SwiftUI
 import CloudKit
 
 struct RegistrationView: View {
-    @State private var username: String = ""
-    @State private var email: String = ""
-    @State private var password: String = ""
-    @State private var isLoading: Bool = false
+    @State private var username:   String = ""
+    @State private var email:      String = ""
+    @State private var password:   String = ""
+    @State private var isLoading:  Bool   = false
     @State private var alertMessage: String = ""
-    @State private var showAlert: Bool = false
+    @State private var showAlert:    Bool   = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Text("Регистрация")
-                    .font(.largeTitle)
-                    .bold()
+            VStack(spacing: 12) {
 
-                TextField("Имя пользователя", text: $username)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
+                // Иконка + текстовое поле
+                IconTextField(
+                    systemImage: "person.fill",
+                    placeholder: "Имя или никнейм",
+                    text: $username,
+                    keyboard: .default,
+                    isSecure: false
+                )
 
-                TextField("Email", text: $email)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .keyboardType(.emailAddress)
-                    .autocapitalization(.none)
-                    .padding()
+                IconTextField(
+                    systemImage: "envelope.fill",
+                    placeholder: "Ваш e-mail",
+                    text: $email,
+                    keyboard: .emailAddress,
+                    isSecure: false
+                )
 
-                SecureField("Пароль", text: $password)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.horizontal)
+                IconTextField(
+                    systemImage: "lock.fill",
+                    placeholder: "Пароль",
+                    text: $password,
+                    keyboard: .default,
+                    isSecure: true
+                )
 
                 if isLoading {
                     ProgressView()
+                        .padding(.top, 16)
                 } else {
                     Button(action: handleRegistration) {
-                        Text("Зарегистрироваться")
+                        Text("Регистрация")
                             .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
+                            .padding(.vertical, 14)
+                            .background(Color.appPurple)
                             .foregroundColor(.white)
-                            .cornerRadius(8)
+                            .cornerRadius(16)
                     }
                     .disabled(username.isEmpty || email.isEmpty || password.isEmpty)
+                    .padding(.top, 16)
                 }
 
                 Spacer()
             }
-            .padding()
+            .padding(.horizontal, 24)
             .alert(alertMessage, isPresented: $showAlert) {
-                Button("OK", role: .cancel) {}
+                Button("OK", role: .cancel) { }
             }
+            .navigationTitle("Регистрация")
         }
     }
+
+    /// Обёртка для полей с иконкой
+    struct IconTextField: View {
+        let systemImage: String
+        let placeholder: String
+        @Binding var text: String
+        var keyboard: UIKeyboardType = .default
+        var isSecure: Bool = false
+
+        var body: some View {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .foregroundColor(.appPurple)
+                if isSecure {
+                    SecureField(placeholder, text: $text)
+                } else {
+                    TextField(placeholder, text: $text)
+                        .keyboardType(keyboard)
+                        .autocapitalization(.none)
+                }
+            }
+            .padding(12)
+            .background(Color(white: 0.95))
+            .cornerRadius(8)
+        }
+    }
+
+    @Environment(\.dismiss) private var dismiss
 
     /// Основной метод для обработки регистрации
     private func handleRegistration() {
