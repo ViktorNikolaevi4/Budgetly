@@ -2,14 +2,13 @@ import SwiftUI
 import SwiftData
 
 enum ReminderFrequency: String, CaseIterable, Identifiable {
-    case once = "Один раз"
     case daily = "Каждый день"
     case weekly = "Каждую неделю"
     case biWeekly = "Каждые 2 недели"
     case monthly = "Каждый месяц"
     case biMonthly = "Каждые 2 месяца"
-    case quarterly = "Каждый квартал"
-    case semiAnnually = "Каждый полгода"
+    case quarterly = "Каждыe 3 месяца"
+    case semiAnnually = "Каждыe полгода"
     case annually = "Каждый год"
 
     var id: String { self.rawValue }
@@ -19,17 +18,20 @@ struct CreateReminderView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    @Query private var allAccounts: [Account]
+
     var existingPayment: RegularPayment?
     var account: Account
 
     @State private var paymentType: CategoryType = .expenses
     @State private var paymentName: String = ""
-    @State private var reminderFrequency: ReminderFrequency = .once
+    @State private var reminderFrequency: ReminderFrequency = .daily
     @State private var startDate = Date()
     @State private var includeEndDate = false
     @State private var endDate: Date? = nil
     @State private var amount: String = ""
     @State private var comment: String = ""
+    @State private var selectedAccount: Account
 
     init(account: Account, existingPayment: RegularPayment? = nil) {
         self.account = account
@@ -42,6 +44,7 @@ struct CreateReminderView: View {
         _comment = State(initialValue: existingPayment?.comment ?? "")
     //    _paymentType = State(initialValue: existingPayment?.type ?? .expenses)
         _includeEndDate = State(initialValue: existingPayment?.endDate != nil)
+        _selectedAccount  = State(initialValue: existingPayment?.account ?? account)
     }
 
     private var currencySign: String {
@@ -83,15 +86,17 @@ struct CreateReminderView: View {
                             Text(currencySign)
                                 .foregroundColor(.secondary)
                         }
-                        HStack {
+                        // вместо NavigationLink — Picker
+                        Picker(selection: $selectedAccount, label: HStack {
                             Text("Счет")
                             Spacer()
-                            NavigationLink {
-                                // ваш выбор счёта
-                            } label: {
-                                Text(account.name)
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
+//                            Text(selectedAccount.name)
+//                                .foregroundColor(.primary)
+//                            Image(systemName: "chevron.down")
+//                                .foregroundColor(.secondary)
+                        }) {
+                            ForEach(allAccounts) { acct in
+                                Text(acct.name).tag(acct)
                             }
                         }
                     }
@@ -125,16 +130,14 @@ struct CreateReminderView: View {
                                 Image(systemName: "chevron.right")
                                     .foregroundColor(.secondary)
                             } else {
-                                Button("Никогда") {
-                                    includeEndDate.toggle()
-                                }
+                                Button("Никогда") { includeEndDate.toggle() }
                                 Image(systemName: "chevron.right")
                                     .foregroundColor(.secondary)
                             }
                         }
                     }
 
-                    // MARK: — Новая секция «Напоминание»
+                    // MARK: — Секция «Напоминание»
                     Section {
                         HStack {
                             Text("Напоминание")
@@ -150,13 +153,9 @@ struct CreateReminderView: View {
                 .navigationTitle(existingPayment == nil ? "Создать напоминание" : "Редактировать напоминание")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    // левая кнопка «Отменить»
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Отменить") {
-                            dismiss()
-                        }
+                        Button("Отменить") { dismiss() }
                     }
-                    // правая кнопка «Добавить» / «Обновить»
                     ToolbarItem(placement: .confirmationAction) {
                         Button(existingPayment == nil ? "Добавить" : "Обновить") {
                             saveOrUpdateReminder()
