@@ -258,23 +258,36 @@ extension DateFormatter {
 }
 
 enum ReminderLeadTime: String, CaseIterable, Identifiable, Codable {
-    case none    = "Нет"
-    case min5    = "За 5 минут"
-    case min10   = "За 10 минут"
-    case hour1   = "За 1 час"
-    case day1    = "За 1 день"
-    // добавьте, если нужно, ещё
+    case none     = "Нет"
+    case atTime   = "В момент платежа"
+    case min5     = "За 5 минут"
+    case min10    = "За 10 минут"
+    case min30    = "За 30 минут"
+    case hour1    = "За 1 час"
+    case hour2    = "За 2 часа"
+    case day1     = "За 1 день"
+    case day2     = "За 2 дня"
 
     var id: String { rawValue }
 
-    /// сколько секунд вычесть из даты платежа
     var seconds: TimeInterval {
         switch self {
-        case .none:  return 0
-        case .min5:  return 5 * 60
-        case .min10: return 10 * 60
-        case .hour1: return 60 * 60
-        case .day1:  return 24 * 60 * 60
+        case .none, .atTime:
+            return 0
+        case .min5:
+            return 5 * 60
+        case .min10:
+            return 10 * 60
+        case .min30:
+            return 30 * 60
+        case .hour1:
+            return 60 * 60
+        case .hour2:
+            return 2 * 60 * 60
+        case .day1:
+            return 24 * 60 * 60
+        case .day2:
+            return 2 * 24 * 60 * 60
         }
     }
 }
