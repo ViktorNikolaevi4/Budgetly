@@ -73,6 +73,7 @@ struct RegistrationView: View {
                         .foregroundColor(.secondary)
                         .font(.subheadline)
                         .padding(.vertical, 4)
+                        .padding(.top, 30)
 
                     SignInWithAppleButton(.signUp) { request in
                         // конфигурация, если нужно
@@ -82,6 +83,7 @@ struct RegistrationView: View {
                     .signInWithAppleButtonStyle(.white)
                     .frame(height: 44)
                     .cornerRadius(16)
+                    .padding(.top, 24)
 
                     Spacer()
                 }
@@ -104,6 +106,7 @@ struct RegistrationView: View {
 
         // локальный стейт для переключения режима
         @State private var isSecuredText: Bool = true
+        @FocusState private var isFocused: Bool
 
         var body: some View {
             HStack(spacing: 12) {
@@ -114,12 +117,16 @@ struct RegistrationView: View {
                     Group {
                         if isSecuredText {
                             SecureField(placeholder, text: $text)
+                                .focused($isFocused)
                         } else {
                             TextField(placeholder, text: $text)
                                 .autocapitalization(.none)
+                                .focused($isFocused)
                         }
                     }
                     .keyboardType(keyboard)
+                    .frame(maxWidth: .infinity)
+                    .autocapitalization(.none)
 
                     // кнопка «глазик»
                     Button {
@@ -130,6 +137,7 @@ struct RegistrationView: View {
                     }
                 } else {
                     TextField(placeholder, text: $text)
+                        .focused($isFocused)
                         .keyboardType(keyboard)
                         .autocapitalization(.none)
                 }
@@ -137,6 +145,15 @@ struct RegistrationView: View {
             .padding(12)
             .background(Color(.white))
             .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(
+                        (isFocused || !text.isEmpty)
+                            ? Color.appPurple
+                            : Color.clear,
+                        lineWidth: 2
+                    )
+            )
         }
     }
 
