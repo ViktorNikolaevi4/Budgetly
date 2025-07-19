@@ -10,6 +10,12 @@ struct RegistrationView: View {
     @State private var alertMessage: String = ""
     @State private var showAlert:    Bool   = false
 
+    private var isFormValid: Bool {
+        !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !password.isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -55,8 +61,9 @@ struct RegistrationView: View {
                                 .background(Color.appPurple)
                                 .foregroundColor(.white)
                                 .cornerRadius(16)
+                                .opacity(isFormValid ? 1.0 : 0.6)
                         }
-                        .disabled(username.isEmpty || email.isEmpty || password.isEmpty)
+                        .disabled(!isFormValid)
                         .padding(.top, 16)
                     }
 
