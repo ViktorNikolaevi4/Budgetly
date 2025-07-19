@@ -10,11 +10,14 @@ struct RegistrationView: View {
     @State private var alertMessage: String = ""
     @State private var showAlert:    Bool   = false
 
+    @Environment(\.authService) private var authService
+
     private var isFormValid: Bool {
         !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !password.isEmpty
     }
+    var onSwitchToLogin: (() -> Void)? = nil
 
     var body: some View {
         NavigationStack {
@@ -31,7 +34,8 @@ struct RegistrationView: View {
                         placeholder: "Имя или никнейм",
                         text: $username,
                         keyboard: .default,
-                        isSecure: false
+                        isSecure: false,
+                        contentType: .username
                     )
 
                     IconTextField(
@@ -39,7 +43,8 @@ struct RegistrationView: View {
                         placeholder: "Ваш e-mail",
                         text: $email,
                         keyboard: .emailAddress,
-                        isSecure: false
+                        isSecure: false,
+                        contentType: .emailAddress
                     )
 
                     IconTextField(
@@ -47,7 +52,8 @@ struct RegistrationView: View {
                         placeholder: "Пароль",
                         text: $password,
                         keyboard: .default,
-                        isSecure: true
+                        isSecure: true,
+                        contentType: .password
                     )
 
                     if isLoading {
@@ -68,7 +74,7 @@ struct RegistrationView: View {
                     }
 
                     Button(action: {
-                        // переход на экран входа
+                        onSwitchToLogin?()
                     }) {
                         Text("Войти")
                             .foregroundColor(.appPurple)
@@ -104,65 +110,8 @@ struct RegistrationView: View {
     }
 
     /// Обёртка для полей с иконкой
-    struct IconTextField: View {
-        let systemImage: String
-        let placeholder: String
-        @Binding var text: String
-        var keyboard: UIKeyboardType = .default
-        var isSecure: Bool = false
 
-        // локальный стейт для переключения режима
-        @State private var isSecuredText: Bool = true
-        @FocusState private var isFocused: Bool
 
-        var body: some View {
-            HStack(spacing: 12) {
-                Image(systemName: systemImage)
-                    .foregroundColor(.appPurple)
-
-                if isSecure {
-                    Group {
-                        if isSecuredText {
-                            SecureField(placeholder, text: $text)
-                                .focused($isFocused)
-                        } else {
-                            TextField(placeholder, text: $text)
-                                .autocapitalization(.none)
-                                .focused($isFocused)
-                        }
-                    }
-                    .keyboardType(keyboard)
-                    .frame(maxWidth: .infinity)
-                    .autocapitalization(.none)
-
-                    // кнопка «глазик»
-                    Button {
-                        isSecuredText.toggle()
-                    } label: {
-                        Image(systemName: isSecuredText ? "eye.slash" : "eye")
-                            .foregroundColor(.secondary)
-                    }
-                } else {
-                    TextField(placeholder, text: $text)
-                        .focused($isFocused)
-                        .keyboardType(keyboard)
-                        .autocapitalization(.none)
-                }
-            }
-            .padding(12)
-            .background(Color(.white))
-            .cornerRadius(8)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(
-                        (isFocused || !text.isEmpty)
-                            ? Color.appPurple
-                            : Color.clear,
-                        lineWidth: 2
-                    )
-            )
-        }
-    }
 
     @Environment(\.dismiss) private var dismiss
 
@@ -252,8 +201,10 @@ struct RegistrationView: View {
                     alertMessage = "Ошибка: \(error.localizedDescription)"
                     showAlert = true
                 } else {
-                    alertMessage = "Регистрация успешна!"
-                    showAlert = true
+                    authService.register(email: email, password: password)
+                    _ = authService.login(email: email, password: password)
+//                    alertMessage = "Регистрация успешна!"
+//                    showAlert = true
                 }
             }
         }
@@ -268,5 +219,68 @@ struct RegistrationView: View {
             print("Ошибка при сохранении пароля.")
             return false
         }
+    }
+}
+struct IconTextField: View {
+    let systemImage: String
+    let placeholder: String
+    @Binding var text: String
+    var keyboard: UIKeyboardType = .default
+    var isSecure: Bool = false
+    var contentType: UITextContentType? = nil   // можно передавать .emailAddress, .password и т.п.
+
+    // локальный стейт «показать/скрыть»
+    @State private var isSecuredText: Bool = true
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .foregroundColor(.appPurple)
+
+            if isSecure {
+                Group {
+                    if isSecuredText {
+                        SecureField(placeholder, text: $text)
+                            .textContentType(contentType)
+                            .focused($isFocused)
+                    } else {
+                        TextField(placeholder, text: $text)
+                            .textContentType(contentType)
+                            .focused($isFocused)
+                            .autocapitalization(.none)
+                            .textInputAutocapitalization(.never)
+                            .disableAutocorrection(true)
+                    }
+                }
+                .keyboardType(keyboard)
+
+                Button {
+                    isSecuredText.toggle()
+                } label: {
+                    Image(systemName: isSecuredText ? "eye.slash" : "eye")
+                        .foregroundColor(.secondary)
+                }
+                .animation(.none, value: isSecuredText) // чтобы размер не «прыгал»
+            } else {
+                TextField(placeholder, text: $text)
+                    .keyboardType(keyboard)
+                    .textContentType(contentType)
+                    .autocapitalization(.none)
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    .focused($isFocused)
+            }
+        }
+        .padding(12)
+        .background(Color.white)
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(
+                    (isFocused || !text.isEmpty) ? Color.appPurple : Color.clear,
+                    lineWidth: 2
+                )
+        )
     }
 }

@@ -4,6 +4,7 @@ import UserNotifications
 
 @main
 struct BudgetApp: App {
+    @State private var auth = AuthService()
     init() {
         requestNotificationPermission()
     }
@@ -11,6 +12,7 @@ struct BudgetApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.authService, auth)
                 .modelContainer(for: [Transaction.self,
                                       Category.self,
                                       Account.self,
