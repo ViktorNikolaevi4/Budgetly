@@ -179,6 +179,7 @@ struct ForgotPasswordView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var emailError: String? = nil
+    @State private var showSent = false
 
     var body: some View {
         ZStack {
@@ -248,6 +249,9 @@ struct ForgotPasswordView: View {
                 .padding(.top, 32)
                 .navigationTitle("Забыли пароль?")
                 .navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(isPresented: $showSent) {
+                    PasswordResetSentView(email: email)
+                }
             }
         }
         .alert(alertMessage, isPresented: $showAlert) {
@@ -293,7 +297,7 @@ struct ForgotPasswordView: View {
                 isSending = false
                 switch result {
                 case .success:
-                    alertMessage = "Ссылка для сброса пароля отправлена на \(email)."
+                    showSent = true
                     showAlert = true
                 case .failure(let err):
                     switch err {
