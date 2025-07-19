@@ -9,6 +9,7 @@ struct RegistrationView: View {
     @State private var isLoading:    Bool   = false
     @State private var alertMessage: String = ""
     @State private var showAlert:    Bool   = false
+    @State private var passwordError: String? = nil
 
     @Environment(\.authService) private var authService
 
@@ -44,7 +45,8 @@ struct RegistrationView: View {
                         text: $email,
                         keyboard: .emailAddress,
                         isSecure: false,
-                        contentType: .emailAddress
+                        contentType: .emailAddress,
+                        isError: false
                     )
 
                     IconTextField(
@@ -53,7 +55,8 @@ struct RegistrationView: View {
                         text: $password,
                         keyboard: .default,
                         isSecure: true,
-                        contentType: .password
+                        contentType: .password,
+                        isError: passwordError != nil
                     )
 
                     if isLoading {
@@ -228,6 +231,7 @@ struct IconTextField: View {
     var keyboard: UIKeyboardType = .default
     var isSecure: Bool = false
     var contentType: UITextContentType? = nil   // можно передавать .emailAddress, .password и т.п.
+    var isError: Bool = false
 
     // локальный стейт «показать/скрыть»
     @State private var isSecuredText: Bool = true
@@ -278,6 +282,7 @@ struct IconTextField: View {
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(
+                    isError ? Color.red :
                     (isFocused || !text.isEmpty) ? Color.appPurple : Color.clear,
                     lineWidth: 2
                 )

@@ -6,14 +6,13 @@ struct LoginView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.authService) private var auth
 
-    @State private var email: String = ""
-    @State private var password: String = ""
-
+    @State private var email = ""
+    @State private var password = ""
     @State private var isLoading = false
     @State private var alertMessage = ""
     @State private var showAlert = false
-
-    var onSwitchToRegister: (() -> Void)? = nil
+    @State private var passwordError: String? = nil
+    @State private var emailError: String? = nil
 
     @FocusState private var focused: Field?
     enum Field { case email, password }
@@ -23,11 +22,12 @@ struct LoginView: View {
         !password.isEmpty
     }
 
+    var onSwitchToRegister: (() -> Void)? = nil
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(.systemGray6).ignoresSafeArea()
-
                 VStack(spacing: 12) {
                     Spacer().frame(height: 40)
 
@@ -37,25 +37,39 @@ struct LoginView: View {
                         text: $email,
                         keyboard: .emailAddress,
                         isSecure: false,
-                        contentType: .emailAddress
+                        contentType: .emailAddress,
+                        isError: emailError != nil
+                    )
+                    if let emailError {
+                        Text(emailError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 4)
+                    }
+
+                    IconTextField(
+                        systemImage: "lock.fill",
+                        placeholder: "Пароль",
+                        text: $password,
+                        keyboard: .default,
+                        isSecure: true,
+                        contentType: .password,
+                        isError: passwordError != nil
                     )
 
-//                    PasswordField(
-//                        systemImage: "lock.fill",
-//                        placeholder: "Пароль",
-//                        text: $password
-//                    )
-                    // или напрямую:
-                     IconTextField(systemImage: "lock.fill", placeholder: "Пароль", text: $password, isSecure: true, contentType: .password)
-
-                    .focused($focused, equals: .email)
-
+                    if let passwordError {
+                        Text(passwordError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 4)
+                    }
 
                     HStack {
                         Spacer()
                         Button("Забыли пароль?") {
-                            alertMessage = "Функция восстановления не реализована."
-                            showAlert = true
+                            // TODO: Реализация восстановления
                         }
                         .font(.caption)
                         .foregroundColor(.appPurple)
@@ -107,18 +121,22 @@ struct LoginView: View {
             .alert(alertMessage, isPresented: $showAlert) {
                 Button("OK") { }
             }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Готово") { focused = nil }
-                }
-            }
+        }
+        .onChange(of: email) { _ in
+            emailError = nil
+            passwordError = nil
+        }
+        .onChange(of: password) { _ in
+            passwordError = nil
         }
     }
 
     private func login() {
         guard formValid else { return }
+        emailError = nil
+        passwordError = nil
         isLoading = true
+
         DispatchQueue.global().async {
             let result = auth.login(email: email, password: password)
             DispatchQueue.main.async {
@@ -127,10 +145,23 @@ struct LoginView: View {
                 case .success:
                     dismiss()
                 case .failure(let err):
-                    alertMessage = err.errorDescription ?? "Ошибка входа."
-                    showAlert = true
+                    switch err {
+                    case .userNotFound:
+                        emailError = "Не удалось найти такой e-mail. Попробуйте ещё раз."
+                    case .wrongPassword:
+                        passwordError = "Пароль неверный. Попробуйте снова или воспользуйтесь восстановлением."
+                    case .emptyFields:
+                        // Можно подсветить оба
+                        if email.isEmpty { emailError = "Введите e-mail" }
+                        if password.isEmpty { passwordError = "Введите пароль" }
+                    default:
+                        // Общий fallback – через alert
+                        alertMessage = err.errorDescription ?? "Ошибка входа."
+                        showAlert = true
+                    }
                 }
             }
         }
     }
+
 }
