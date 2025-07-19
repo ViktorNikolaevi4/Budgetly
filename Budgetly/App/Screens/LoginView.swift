@@ -13,6 +13,7 @@ struct LoginView: View {
     @State private var showAlert = false
     @State private var passwordError: String? = nil
     @State private var emailError: String? = nil
+    @State private var showForgot = false
 
     @FocusState private var focused: Field?
     enum Field { case email, password }
@@ -69,7 +70,7 @@ struct LoginView: View {
                     HStack {
                         Spacer()
                         Button("Забыли пароль?") {
-                            // TODO: Реализация восстановления
+                            showForgot = true
                         }
                         .font(.caption)
                         .foregroundColor(.appPurple)
@@ -121,6 +122,9 @@ struct LoginView: View {
             .alert(alertMessage, isPresented: $showAlert) {
                 Button("OK") { }
             }
+            .navigationDestination(isPresented: $showForgot) {
+                ForgotPasswordView()
+            }
         }
         .onChange(of: email) { _ in
             emailError = nil
@@ -164,4 +168,143 @@ struct LoginView: View {
         }
     }
 
+}
+
+struct ForgotPasswordView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.authService) private var auth
+
+    @State private var email: String = ""
+    @State private var isSending: Bool = false
+    @State private var showAlert: Bool = false
+    @State private var alertMessage: String = ""
+    @State private var emailError: String? = nil
+
+    var body: some View {
+        ZStack {
+            Color(.systemGray6).ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 24) {
+
+                    // Иконка письма
+                    Image(systemName: "envelope.open.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.appPurple)
+                        .padding(.top, 8)
+
+                    // Описание
+                    VStack(spacing: 4) {
+                        Text("Введите e-mail, с которым вы регистрировались —")
+                        Text("мы пришлём ссылку для сброса пароля.")
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 12)
+
+                    // Поле ввода
+                    IconTextField(
+                        systemImage: "envelope.fill",
+                        placeholder: "Ваш e-mail",
+                        text: $email,
+                        keyboard: .emailAddress,
+                        isSecure: false,
+                        contentType: .emailAddress,
+                        isError: emailError != nil
+                    )
+
+                    if let emailError {
+                        Text(emailError)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, -12)
+                    }
+
+                    // Кнопка отправки
+                    Button(action: sendReset) {
+                        if isSending {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        } else {
+                            Text("Отправить ссылку")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                        }
+                    }
+                    .background(Color.appPurple)
+                    .foregroundColor(.white)
+                    .font(.headline)
+                    .cornerRadius(16)
+                    .opacity(isFormValid ? 1 : 0.6)
+                    .disabled(!isFormValid || isSending)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 32)
+                .navigationTitle("Забыли пароль?")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+        .alert(alertMessage, isPresented: $showAlert) {
+            Button("OK") {
+                // при успехе можно закрыть экран
+                if emailError == nil {
+                    dismiss()
+                }
+            }
+        }
+        .onChange(of: email) { _ in
+            emailError = nil
+        }
+    }
+
+    private var isFormValid: Bool {
+        !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        isValidEmail(email)
+    }
+
+    private func isValidEmail(_ email: String) -> Bool {
+        let regex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+        return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: email)
+    }
+
+    private func sendReset() {
+        guard isFormValid else {
+            if email.isEmpty {
+                emailError = "Введите e-mail"
+            } else if !isValidEmail(email) {
+                emailError = "Некорректный e-mail"
+            }
+            return
+        }
+        emailError = nil
+        isSending = true
+
+        // Пример асинхронного вызова сервиса восстановления
+        DispatchQueue.global().async {
+            // Замените на ваш метод: auth.sendPasswordReset(email:)
+            let result = auth.sendPasswordReset(email: email) // предполагаемый API
+            DispatchQueue.main.async {
+                isSending = false
+                switch result {
+                case .success:
+                    alertMessage = "Ссылка для сброса пароля отправлена на \(email)."
+                    showAlert = true
+                case .failure(let err):
+                    switch err {
+                    case .userNotFound:
+                        emailError = "Пользователь с таким e-mail не найден."
+                    default:
+                        alertMessage = err.errorDescription ?? "Не удалось отправить ссылку."
+                        showAlert = true
+                    }
+                }
+            }
+        }
+    }
 }

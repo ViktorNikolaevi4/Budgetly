@@ -5,6 +5,7 @@ import UserNotifications
 @main
 struct BudgetApp: App {
     @State private var auth = AuthService()
+    
     init() {
         requestNotificationPermission()
     }
