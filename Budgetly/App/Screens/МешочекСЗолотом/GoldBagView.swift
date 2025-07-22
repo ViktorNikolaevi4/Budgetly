@@ -179,7 +179,7 @@ struct GoldBagView: View {
                 }
             }
             // Навигационная панель (заголовок + кнопка "+")
-            .navigationTitle("Мои активы")
+            .navigationTitle("Мои Инвестиции")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

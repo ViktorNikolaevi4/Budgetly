@@ -35,7 +35,7 @@ struct ContentView: View {
                 }
             GoldBagView()
                 .tabItem {
-                    Label("Активы", systemImage: "bag.fill")
+                    Label("Инвестиции", systemImage: "bag.fill")
                 }
 
             StatsView()
