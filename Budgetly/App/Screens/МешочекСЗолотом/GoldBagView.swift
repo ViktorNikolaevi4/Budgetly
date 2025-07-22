@@ -409,6 +409,10 @@ struct AddOrEditAssetView: View {
                     Text("Вы уверены, что хотите удалить этот актив?")
                 }
             }
+        }.onChange(of: typeSelection) { newValue in
+            if case .newType = newValue {
+                isShowingNewTypeAlert = true
+            }
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.hidden)
