@@ -55,11 +55,13 @@ class Account: Identifiable {
     }
 
     /// Форматированный баланс: «100 000 ₽» или «123.45 USD»
+    // Account.swift
+
     var formattedBalance: String {
-        let amountString = "\(balance.toShortStringWithSuffix())"
-        // Если валюты нет, подставляем «RUB»
-        let cur = currency ?? "RUB"
-        return "\(amountString) \(cur)"
+        let amount = balance.toShortStringWithSuffix()
+        let code   = currency ?? "RUB"
+        let sign   = currencySymbols[code] ?? code
+        return "\(amount) \(sign)"
     }
 }
 enum TransactionType: Codable {
@@ -174,4 +176,7 @@ extension Category {
         account.hasSeededCategories = true
         try? context.save()
     }
+}
+extension Account {
+    var currencyCode: String { currency ?? "RUB" }
 }

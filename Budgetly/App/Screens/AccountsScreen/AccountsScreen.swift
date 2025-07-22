@@ -56,17 +56,17 @@ struct AccountsScreen: View {
             .environment(\.editMode, $editMode)
 
             // кнопка «Добавить»
-            Button("Добавить новый счет") {
-                isShowingAddAccountSheet = true
-            }
-            .font(.headline)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.appPurple)
-            .foregroundColor(.white)
-            .cornerRadius(16)
-            .padding(.horizontal)
-            .padding(.bottom, 20)
+//            Button("Добавить новый счет") {
+//                isShowingAddAccountSheet = true
+//            }
+//            .font(.headline)
+//            .frame(maxWidth: .infinity)
+//            .padding()
+//            .background(Color.appPurple)
+//            .foregroundColor(.white)
+//            .cornerRadius(16)
+//            .padding(.horizontal)
+//            .padding(.bottom, 20)
 
             .navigationTitle("Счета")
             .toolbar {
@@ -101,6 +101,9 @@ struct AccountsScreen: View {
             } message: {
                 Text("Все связанные транзакции и категории будут удалены без возможности восстановления.")
             }
+        }
+        .onAppear {
+            fixNilCurrencies(modelContext)
         }
     }
 
@@ -256,4 +259,12 @@ struct AccountCreationView: View {
         return all.count
     }
 }
-
+func fixNilCurrencies(_ context: ModelContext) {
+    let fetch = FetchDescriptor<Account>()
+    if let accs = try? context.fetch(fetch) {
+        for acc in accs where acc.currency == nil || acc.currency == "" {
+            acc.currency = "RUB"
+        }
+        try? context.save()
+    }
+}
