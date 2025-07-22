@@ -308,10 +308,24 @@ struct HomeScreen: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         timePeriodPicker
-                        PieChartView(transactions: filteredTransactions,
-                                     transactionType: selectedTransactionType,
-                                     currencySign: currencySign
-                        )
+                        if filteredTransactions.isEmpty {
+                            EmptyPiePlaceholderView(
+                                title: selectedTransactionType == .expenses ? "Расходы" : "Доходы",
+                                amountText: "0\(currencySign)", // или "0,00\(currencySign)" если нужно с копейками
+                                subtitle: selectedTransactionType == .expenses
+                                    ? "Нет расходов за выбранный период"
+                                    : "Нет доходов за выбранный период",
+                                hint: selectedTransactionType == .expenses
+                                    ? "Добавьте первую операцию — и диаграмма оживет 📊"
+                                    : "Добавьте первую операцию — и пусть ваш бюджет растёт 📈"
+                            )
+                        } else {
+                            PieChartView(
+                                transactions: filteredTransactions,
+                                transactionType: selectedTransactionType,
+                                currencySign: currencySign
+                            )
+                        }
                         categoryTags
                     }
                 }
@@ -789,5 +803,49 @@ extension ReminderFrequency {
 extension Date {
     func isSameDay(as otherDate: Date) -> Bool {
         Calendar.current.isDate(self, inSameDayAs: otherDate)
+    }
+}
+struct EmptyPiePlaceholderView: View {
+    let title: String
+    let amountText: String    
+    let subtitle: String
+    let hint: String
+
+    var body: some View {
+        VStack(spacing: 16) {
+
+            // Пончик
+            ZStack {
+                Circle()
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 24)
+                    .frame(width: 145, height: 145)
+
+                VStack(spacing: 4) {
+                    Text(title)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Text(amountText)
+                        .font(.title2).bold()
+                        .foregroundColor(.primary)
+                }
+            }
+            .padding(.top, 8)
+
+            // Подписи
+            VStack(spacing: 6) {
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Text(hint)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 24)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
