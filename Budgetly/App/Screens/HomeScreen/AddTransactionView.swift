@@ -214,7 +214,7 @@ struct AddTransactionView: View {
                     .padding(.vertical, 10)
                 }
 
-                HStack(spacing: 8) {
+                HStack {
                     Button {
                         showDateTimeSheet = true
                     } label: {
@@ -237,7 +237,7 @@ struct AddTransactionView: View {
                                 .fill(Color.white)
                         )
                     }
-
+                    Spacer()
                     Button {
                         showRepeatSheet = true
                     } label: {
