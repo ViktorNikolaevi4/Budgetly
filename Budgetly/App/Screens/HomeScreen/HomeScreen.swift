@@ -308,24 +308,24 @@ struct HomeScreen: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         timePeriodPicker
-                        if filteredTransactions.isEmpty {
-                            EmptyPiePlaceholderView(
-                                title: selectedTransactionType == .expenses ? "Расходы" : "Доходы",
-                                amountText: "0\(currencySign)", // или "0,00\(currencySign)" если нужно с копейками
-                                subtitle: selectedTransactionType == .expenses
-                                    ? "Нет расходов за выбранный период"
-                                    : "Нет доходов за выбранный период",
-                                hint: selectedTransactionType == .expenses
-                                    ? "Добавьте первую операцию — и диаграмма оживет 📊"
-                                    : "Добавьте первую операцию — и пусть ваш бюджет растёт 📈"
-                            )
-                        } else {
-                            PieChartView(
-                                transactions: filteredTransactions,
-                                transactionType: selectedTransactionType,
-                                currencySign: currencySign
-                            )
+                        let emptyTexts: EmptyChartText = (selectedTransactionType == .expenses) ? .expenses : .income
+
+                        Group {
+                            if filteredTransactions.isEmpty {
+                                EmptyPiePlaceholderView(
+                                    texts: emptyTexts,
+                                    amountText: "0,00\(currencySign)"
+                                )
+                            } else {
+                                PieChartView(
+                                    transactions: filteredTransactions,
+                                    transactionType: selectedTransactionType,
+                                    currencySign: currencySign
+                                )
+                                .transition(.opacity)   // появление диаграммы
+                            }
                         }
+                        .animation(.easeInOut, value: filteredTransactions.count)
                         categoryTags
                     }
                 }
@@ -806,40 +806,33 @@ extension Date {
     }
 }
 struct EmptyPiePlaceholderView: View {
-    let title: String
-    let amountText: String    
-    let subtitle: String
-    let hint: String
+    let texts: EmptyChartText
+    let amountText: String   // уже форматированная строка с символом
 
     var body: some View {
         VStack(spacing: 16) {
-
-            // Пончик
             ZStack {
                 Circle()
                     .stroke(Color.gray.opacity(0.2), lineWidth: 24)
-                    .frame(width: 145, height: 145)
+                    .frame(width: 140, height: 140)
 
                 VStack(spacing: 4) {
-                    Text(title)
+                    Text(texts.title)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-
                     Text(amountText)
-                        .font(.title2).bold()
+                        .font(.title2.bold())
                         .foregroundColor(.primary)
                 }
             }
             .padding(.top, 8)
 
-            // Подписи
             VStack(spacing: 6) {
-                Text(subtitle)
+                Text(texts.subtitle)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
-
-                Text(hint)
+                Text(texts.hint)
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -847,5 +840,40 @@ struct EmptyPiePlaceholderView: View {
             .padding(.horizontal, 24)
         }
         .frame(maxWidth: .infinity)
+        .transition(.opacity)           // для анимации
     }
 }
+
+extension NumberFormatter {
+    static let currencyRu: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .currency
+        f.currencySymbol = ""          // символ добавим сами
+        f.maximumFractionDigits = 2
+        f.minimumFractionDigits = 2
+        f.groupingSeparator = " "
+        f.locale = Locale(identifier: "ru_RU")
+        return f
+    }()
+}
+
+extension Double {
+    func asMoney2() -> String {
+        NumberFormatter.currencyRu.string(from: NSNumber(value: self)) ?? "\(self)"
+    }
+}
+enum EmptyChartText {
+    case expenses
+    case income
+
+    var title: String { self == .expenses ? "Расходы" : "Доходы" }
+    var subtitle: String {
+        self == .expenses ? "Нет расходов за выбранный период"
+                          : "Нет доходов за выбранный период"
+    }
+    var hint: String {
+        self == .expenses ? "Добавьте первую операцию — и диаграмма оживет 📊"
+                          : "Добавьте первую операцию — и пусть ваш бюджет растёт 📈"
+    }
+}
+
