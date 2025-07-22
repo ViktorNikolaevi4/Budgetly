@@ -70,31 +70,38 @@ struct AddTransactionView: View {
 
 
     private var visibleCategories: [Category?] {
-          let cats = filteredCategories
-          // если категорий мало — просто возвращаем их все
-          guard cats.count > 7 else {
-              return cats.map { Optional($0) }
-          }
+        let cats = filteredCategories
+        let maxQuick = 7
 
-          // берём изначальные «топ-7»
-          var top7 = Array(cats.prefix(7))
+        // если категорий мало — возвращаем все
+        guard cats.count > maxQuick else {
+            return cats.map { Optional($0) }
+        }
 
-          // если выбранная категория вообще не попала в эти 7
-          if let sel = cats.first(where: { $0.name == selectedCategory }),
-             !top7.contains(where: { $0.id == sel.id }),
-             sel.name != Category.uncategorizedName // и это не «Без категории»
-          {
-              // ищем, где в топ-7 стоит «Без категории»
-              if let idx = top7.firstIndex(where: { $0.name == Category.uncategorizedName }) {
-                  top7[idx] = sel                    // заменяем её на выбранную
-              } else {
-                  top7[0] = sel                      // или просто на нулевую
-              }
-          }
+        var quick = Array(cats.prefix(maxQuick))
 
-          // дополняем «…» в конец
-          return top7.map { Optional($0) } + [nil]
-      }
+        // Найдём выбранную категорию (в т.ч. только что созданную)
+        if let selected = cats.first(where: { $0.name == selectedCategory }) {
+
+            // Если её нет в первых maxQuick — вставим
+            if !quick.contains(where: { $0.id == selected.id }) {
+
+                // 1. Попробуем заменить «Без категории»
+                if let idx = quick.firstIndex(where: { $0.name == Category.uncategorizedName }) {
+                    quick[idx] = selected
+
+                // 2. Иначе вытесним последний элемент
+                } else {
+                    quick.removeLast()
+                    quick.insert(selected, at: 0)
+                }
+            }
+        }
+
+        // Возвращаем + кнопку «Ещё»
+        return quick.map { Optional($0) } + [nil]
+    }
+
 
     struct FlowLayout: Layout {
         var spacing: CGFloat = 10
