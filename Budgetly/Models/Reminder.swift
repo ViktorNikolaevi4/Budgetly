@@ -11,15 +11,16 @@ import UserNotifications
 
 @Model
 class Reminder: Identifiable {
-    var id: UUID
-    var name: String
-    var date: Date
-    var comment: String
+    var id: UUID = UUID() // Значение по умолчанию
+    var name: String = "" // Значение по умолчанию
+    var date: Date = Date() // Значение по умолчанию
+    var comment: String = "" // Значение по умолчанию
 
-    init(id: UUID = UUID(),
-         name: String,
-         date: Date,
-         comment: String
+    init(
+        id: UUID = UUID(),
+        name: String = "",
+        date: Date = Date(),
+        comment: String = ""
     ) {
         self.id = id
         self.name = name

@@ -86,9 +86,6 @@ struct ContentView: View {
 }
 
 
-#Preview {
-    ContentView()
-}
 
 struct SideMenuView: View {
     @Binding var isMenuVisible: Bool

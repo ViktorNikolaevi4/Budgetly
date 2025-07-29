@@ -96,8 +96,8 @@ struct AccountEditView: View {
 
     private func deleteSelf() {
         onDelete?()
-        for tx in account.transactions { modelContext.delete(tx) }
-        for cat in account.categories { modelContext.delete(cat) }
+        for tx in account.allTransactions { modelContext.delete(tx) }
+        for cat in account.allCategories { modelContext.delete(cat) }
         modelContext.delete(account)
         try? modelContext.save()
         dismiss()

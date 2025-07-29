@@ -186,10 +186,10 @@ struct HomeScreen: View {
         guard let account = selectedAccount else { return [] }
 
         guard let (start, end) = periodRange(for: selectedTimePeriod) else {
-            return account.transactions
+            return account.allTransactions
         }
 
-        return account.transactions.filter { tx in
+        return account.allTransactions.filter { tx in
             (tx.date >= start) && (tx.date <= end)
         }
     }
@@ -619,12 +619,12 @@ struct HomeScreen: View {
         let now = Date()
         guard let account = selectedAccount else { return }
 
-        for template in account.regularPayments where template.isActive {
+        for template in account.allRegularPayments where template.isActive {
             var nextDate = template.startDate
 
             while nextDate <= now && (template.endDate == nil || nextDate <= template.endDate!) {
                 // Проверяем, не создана ли уже транзакция за эту дату
-                let alreadyExists = account.transactions.contains {
+                let alreadyExists = account.allTransactions.contains {
                     $0.date.isSameDay(as: nextDate) &&
                     $0.category == template.name &&
                     $0.amount == template.amount

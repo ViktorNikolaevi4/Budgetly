@@ -1,66 +1,70 @@
 import Foundation
 import SwiftData
 
+
 @Model
 class Account: Identifiable {
-    var id: UUID
-    var name: String
-    /// Опциональное поле «Начальный баланс»
-    var initialBalance: Double?
-    /// Опциональное поле «Валюта»
-    var currency: String?
+    var id: UUID = UUID()
+    var name: String = ""
+    var initialBalance: Double? = nil
+    var currency: String? = nil
     var hasSeededCategories: Bool = false
     var isHidden: Bool = false
 
     @Attribute var sortOrder: Int = 0
 
     @Relationship(deleteRule: .cascade)
-    var transactions: [Transaction] = []
+    var transactions: [Transaction]? // Опциональный массив
 
     @Relationship(deleteRule: .cascade)
-    var categories: [Category] = []
+    var categories: [Category]? // Опциональный массив
 
     @Relationship(deleteRule: .cascade)
-    var regularPayments: [RegularPayment] = []
+    var regularPayments: [RegularPayment]? // Опциональный массив
+
+    var allTransactions: [Transaction] {
+        transactions ?? []
+    }
+
+    var allCategories: [Category] {
+        categories ?? []
+    }
+
+    var allRegularPayments: [RegularPayment] {
+        regularPayments ?? []
+    }
 
     init(
         id: UUID = UUID(),
-        name: String,
+        name: String = "",
         currency: String? = nil,
         initialBalance: Double? = nil,
         sortOrder: Int = 0,
-        transactions: [Transaction] = []
+        transactions: [Transaction]? = nil,
+        categories: [Category]? = nil,
+        regularPayments: [RegularPayment]? = nil
     ) {
         self.id = id
         self.name = name
         self.currency = currency
         self.initialBalance = initialBalance
-        self.transactions = transactions
         self.sortOrder = sortOrder
+        self.transactions = transactions
+        self.categories = categories
+        self.regularPayments = regularPayments
     }
 
-    /// Баланс считается как: (initialBalance ?? 0) + все «доходы» - все «расходы»
     var balance: Double {
         let base = initialBalance ?? 0
-
-        let income = transactions
-            .filter { $0.type == .income }
-            .reduce(0) { $0 + $1.amount }
-
-        let expenses = transactions
-            .filter { $0.type == .expenses }
-            .reduce(0) { $0 + $1.amount }
-
+        let income = allTransactions.filter { $0.type == .income }.reduce(0) { $0 + ($1.amount) }
+        let expenses = allTransactions.filter { $0.type == .expenses }.reduce(0) { $0 + ($1.amount) }
         return base + income - expenses
     }
 
-    /// Форматированный баланс: «100 000 ₽» или «123.45 USD»
-    // Account.swift
-
     var formattedBalance: String {
         let amount = balance.toShortStringWithSuffix()
-        let code   = currency ?? "RUB"
-        let sign   = currencySymbols[code] ?? code
+        let code = currency ?? "RUB"
+        let sign = currencySymbols[code] ?? code
         return "\(amount) \(sign)"
     }
 }
@@ -70,21 +74,22 @@ enum TransactionType: Codable {
 
 @Model
 class Transaction: Identifiable {
-    var id: UUID
-    var category: String
-    var amount: Double
-    var date: Date
-    var type: TransactionType
+    var id: UUID = UUID()
+    var category: String = ""
+    var amount: Double = 0.0
+    var date: Date = Date()
+    var type: TransactionType = TransactionType.income
 
     @Relationship(inverse: \Account.transactions)
-    var account: Account? // Связь с конкретным счетом
+    var account: Account?
 
-    init(id: UUID = UUID(),
-         category: String,
-         amount: Double,
-         date: Date = Date(),
-         type: TransactionType,
-         account: Account
+    init(
+        id: UUID = UUID(),
+        category: String = "",
+        amount: Double = 0.0,
+        date: Date = Date(),
+        type: TransactionType = .income,
+        account: Account? = nil
     ) {
         self.id = id
         self.category = category
@@ -94,10 +99,9 @@ class Transaction: Identifiable {
         self.account = account
     }
 
-    // Вычисляемое свойство для получения сальдо
-    static func calculateSaldo(from transactions: [Transaction]) -> Double {
-        let income = transactions.filter { $0.type == .income }.reduce(0) { $0 + $1.amount }
-        let expenses = transactions.filter { $0.type == .expenses }.reduce(0) { $0 + $1.amount }
+    static func calculateSaldo(from transactions: [Transaction]?) -> Double {
+        let income = transactions?.filter { $0.type == .income }.reduce(0) { $0 + ($1.amount) } ?? 0
+        let expenses = transactions?.filter { $0.type == .expenses }.reduce(0) { $0 + ($1.amount) } ?? 0
         return income - expenses
     }
 }
@@ -112,25 +116,25 @@ enum CategoryType: String, CaseIterable, Identifiable {
 
 @Model
 class Category: Identifiable {
-    var id: UUID
-    var name: String
-    private var typeRawValue: String
+    var id: UUID = UUID() // Значение по умолчанию
+    var name: String = "" // Значение по умолчанию
+    private var typeRawValue: String = CategoryType.expenses.rawValue // Значение по умолчанию
 
     @Relationship(inverse: \Account.categories)
-    var account: Account?
+    var account: Account? // Обратная связь
 
-    // Новое свойство
-    var iconName: String?
+    var iconName: String? = nil
 
     var type: CategoryType {
-        get { CategoryType(rawValue: typeRawValue) ?? .expenses } // По умолчанию .expenses, если значение отсутствует
+        get { CategoryType(rawValue: typeRawValue) ?? .expenses }
         set { typeRawValue = newValue.rawValue }
     }
 
-    init(id: UUID = UUID(),
-         name: String,
-         type: CategoryType,
-         account: Account
+    init(
+        id: UUID = UUID(),
+        name: String = "",
+        type: CategoryType = .expenses,
+        account: Account? = nil
     ) {
         self.id = id
         self.name = name

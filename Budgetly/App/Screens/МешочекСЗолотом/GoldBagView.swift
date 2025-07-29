@@ -3,26 +3,30 @@ import SwiftData
 import Charts
 
 @Model
-class AssetType {
-    var id: UUID
-    var name: String
+class AssetType: Identifiable {
+    var id: UUID = UUID()
+    var name: String = ""
 
-    init(name: String) {
-        self.id = UUID()
+    @Relationship(deleteRule: .cascade)
+        var assets: [Asset]?
+
+    init(name: String = "") {
+        self.id = id
         self.name = name
     }
 }
 
 @Model
-class Asset {
-    var id: UUID
-    var name: String
-    var price: Double
-    @Relationship
-    var assetType: AssetType?
+class Asset: Identifiable {
+    var id: UUID = UUID() // Default value
+    var name: String = "" // Default value
+    var price: Double = 0.0 // Default value
 
-    init(name: String, price: Double, assetType: AssetType? = nil) {
-        self.id = UUID()
+    @Relationship(inverse: \AssetType.assets)
+    var assetType: AssetType? // Relationship to AssetType with inverse
+
+    init(id: UUID = UUID(), name: String = "", price: Double = 0.0, assetType: AssetType? = nil) {
+        self.id = id
         self.name = name
         self.price = price
         self.assetType = assetType

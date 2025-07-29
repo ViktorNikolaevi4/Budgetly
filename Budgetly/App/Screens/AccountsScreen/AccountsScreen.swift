@@ -111,8 +111,8 @@ struct AccountsScreen: View {
         for idx in pendingDeleteOffsets {
             let account = accounts[idx]
             // удаляем связанные транзакции и категории
-            for tx in account.transactions { modelContext.delete(tx) }
-            for cat in account.categories  { modelContext.delete(cat) }
+            for tx in account.allTransactions { modelContext.delete(tx) }
+            for cat in account.allCategories  { modelContext.delete(cat) }
             modelContext.delete(account)
         }
         pendingDeleteOffsets = []

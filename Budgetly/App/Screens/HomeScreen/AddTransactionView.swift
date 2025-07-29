@@ -54,8 +54,8 @@ struct AddTransactionView: View {
         return cats.sorted { lhs, rhs in
             if lhs.name == Category.uncategorizedName { return true }
             if rhs.name == Category.uncategorizedName { return false }
-            let lhsTx = acct.transactions.filter { $0.type == txType && $0.category == lhs.name }
-            let rhsTx = acct.transactions.filter { $0.type == txType && $0.category == rhs.name }
+            let lhsTx = acct.allTransactions.filter { $0.type == txType && $0.category == lhs.name }
+            let rhsTx = acct.allTransactions.filter { $0.type == txType && $0.category == rhs.name }
             if lhsTx.count != rhsTx.count {
                 return lhsTx.count > rhsTx.count
             }
@@ -367,7 +367,7 @@ struct AddTransactionView: View {
 
     private func removeCategory(_ category: Category) {
         guard let account = account else { return }
-        let transactionsToRemove = account.transactions.filter { $0.category == category.name }
+        let transactionsToRemove = account.allTransactions.filter { $0.category == category.name }
         for transaction in transactionsToRemove {
             modelContext.delete(transaction)
         }
@@ -398,7 +398,7 @@ struct AddTransactionView: View {
          modelContext.insert(newTx)
 
          // Привязываем транзакцию к счету (необязательно, SwiftData сделает это сам)
-         account.transactions.append(newTx)
+      //   account.transactions.append(newTx)
 
          // Если нужно шаблон регулярного платежа — создаём и привязываем к тому же account
          if repeatRule != EndOption.never.rawValue {
@@ -624,7 +624,7 @@ struct AllCategoriesView: View {
                     if let indexSet = pendingDeleteIndex {
                         for idx in indexSet {
                             let cat = allCats[idx]
-                            let toDelete = account.transactions.filter { $0.category == cat.name }
+                            let toDelete = account.allTransactions.filter { $0.category == cat.name }
                             toDelete.forEach { modelContext.delete($0) }
                             modelContext.delete(cat)
                         }
@@ -660,7 +660,7 @@ struct AllCategoriesView: View {
     }
 
     private func deleteCategory(_ cat: Category) {
-        let txToDelete = account.transactions.filter { $0.category == cat.name }
+        let txToDelete = account.allTransactions.filter { $0.category == cat.name }
         txToDelete.forEach { modelContext.delete($0) }
         modelContext.delete(cat)
         if selected == cat.name {
