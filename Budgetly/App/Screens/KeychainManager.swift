@@ -1,48 +1,47 @@
-import Security
 import Foundation
+import Security
 
 struct KeychainManager {
-    static func savePassword(_ password: String, for email: String) -> Bool {
+    @discardableResult
+    static func savePassword(_ password: String, for account: String) -> Bool {
         let data = Data(password.utf8)
-
         let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: email,
-            kSecValueData as String: data
+            kSecClass as String:            kSecClassGenericPassword,
+            kSecAttrAccount as String:      account,
+            kSecValueData as String:        data
         ]
-
-        SecItemDelete(query as CFDictionary) // Удаляем предыдущий пароль, если он существует
-
+        SecItemDelete(query as CFDictionary)
         let status = SecItemAdd(query as CFDictionary, nil)
         return status == errSecSuccess
     }
 
-    static func retrievePassword(for email: String) -> String? {
+    static func retrievePassword(for account: String) -> String? {
         let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: email,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecClass as String:           kSecClassGenericPassword,
+            kSecAttrAccount as String:     account,
+            kSecReturnData as String:      true,
+            kSecMatchLimit as String:      kSecMatchLimitOne
         ]
-
-        var dataTypeRef: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &dataTypeRef)
-
-        guard status == errSecSuccess, let data = dataTypeRef as? Data else {
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let pw = String(data: data, encoding: .utf8)
+        else {
             return nil
         }
-
-        return String(data: data, encoding: .utf8)
+        return pw
     }
 
-    static func deletePassword(for email: String) -> Bool {
+    @discardableResult
+    static func deletePassword(for account: String) -> Bool {
         let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrAccount as String: email
+            kSecClass as String:       kSecClassGenericPassword,
+            kSecAttrAccount as String: account
         ]
-
         let status = SecItemDelete(query as CFDictionary)
         return status == errSecSuccess
     }
 }
+
 

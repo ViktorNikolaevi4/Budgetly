@@ -6,13 +6,15 @@ struct LoginView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.authService) private var auth
 
+    let onSwitchToRegister: () -> Void
+
     @State private var email = ""
     @State private var password = ""
     @State private var isLoading = false
     @State private var alertMessage = ""
     @State private var showAlert = false
-    @State private var passwordError: String? = nil
     @State private var emailError: String? = nil
+    @State private var passwordError: String? = nil
     @State private var showForgot = false
 
     @FocusState private var focused: Field?
@@ -23,8 +25,6 @@ struct LoginView: View {
         !password.isEmpty
     }
 
-    var onSwitchToRegister: (() -> Void)? = nil
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -34,7 +34,7 @@ struct LoginView: View {
 
                     IconTextField(
                         systemImage: "envelope.fill",
-                        placeholder: "Ваш e-mail",
+                        placeholder: "Ваш e‑mail",
                         text: $email,
                         keyboard: .emailAddress,
                         isSecure: false,
@@ -58,7 +58,6 @@ struct LoginView: View {
                         contentType: .password,
                         isError: passwordError != nil
                     )
-
                     if let passwordError {
                         Text(passwordError)
                             .font(.caption)
@@ -96,7 +95,7 @@ struct LoginView: View {
                     }
 
                     Button("Зарегистрироваться") {
-                        onSwitchToRegister?()
+                        onSwitchToRegister()
                     }
                     .foregroundColor(.appPurple)
                     .font(.subheadline.bold())
@@ -112,7 +111,6 @@ struct LoginView: View {
                         .signInWithAppleButtonStyle(.white)
                         .frame(height: 44)
                         .cornerRadius(16)
-                        .padding(.top, 16)
 
                     Spacer()
                 }
@@ -151,24 +149,22 @@ struct LoginView: View {
                 case .failure(let err):
                     switch err {
                     case .userNotFound:
-                        emailError = "Не удалось найти такой e-mail. Попробуйте ещё раз."
+                        emailError = "Не удалось найти такой e-mail."
                     case .wrongPassword:
-                        passwordError = "Пароль неверный. Попробуйте снова или воспользуйтесь восстановлением."
+                        passwordError = "Пароль неверный."
                     case .emptyFields:
-                        // Можно подсветить оба
                         if email.isEmpty { emailError = "Введите e-mail" }
                         if password.isEmpty { passwordError = "Введите пароль" }
-                    default:
-                        // Общий fallback – через alert
-                        alertMessage = err.errorDescription ?? "Ошибка входа."
+                    case .unknown:
+                        alertMessage = err.errorDescription ?? ""
                         showAlert = true
                     }
                 }
             }
         }
     }
-
 }
+
 
 struct ForgotPasswordView: View {
     @Environment(\.dismiss) private var dismiss

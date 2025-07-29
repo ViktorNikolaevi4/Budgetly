@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct SettingsScreen: View {
+    @Environment(\.authService) private var auth
     @Query private var accounts: [Account]
 
     @State private var showAuthSheet = false
@@ -16,17 +17,20 @@ struct SettingsScreen: View {
             List {
                 // MARK: — Аккаунт
                 Section {
-                    Button {
-                        showLogin = false
-                        showAuthSheet = true
-                    } label: {
-                        Label {
-                            Text("Вход / Регистрация")
-                        } icon: {
-                            IconBackground(
-                                systemName: "person.crop.circle.fill",
-                                backgroundColor: Color(red: 255/255, green: 45/255, blue: 85/255)
-                            )
+                    if auth.currentEmail == nil {
+                        // Ещё не в системе
+                        Button {
+                            showLogin     = false
+                            showAuthSheet = true
+                        } label: {
+                            Label("Войти / Регистрация", systemImage: "person.crop.circle")
+                        }
+                    } else {
+                        // Уже в системе — показываем имя или e‑mail
+                        if let name = auth.currentName, !name.isEmpty {
+                            Label(name, systemImage: "person.fill")
+                        } else {
+                            Label(auth.currentEmail!, systemImage: "envelope.fill")
                         }
                     }
                 }
@@ -88,6 +92,14 @@ struct SettingsScreen: View {
                                 )
                             }
                         }
+                    }
+                }
+                if auth.currentEmail != nil {
+                    Section {
+                        Button("Выйти") {
+                            auth.logout()
+                        }
+                        .foregroundColor(.red)
                     }
                 }
             }
