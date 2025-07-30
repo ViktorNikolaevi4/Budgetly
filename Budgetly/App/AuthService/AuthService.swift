@@ -92,7 +92,8 @@ extension AuthService {
         userRecord["name"]  = name as NSString
         userRecord["email"] = trimmed as NSString
 
-        let db = CKContainer.default().publicCloudDatabase
+        let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
+        let db = container.publicCloudDatabase
         db.save(userRecord) { _, error in
             DispatchQueue.main.async {
                 if let error = error {
@@ -137,18 +138,25 @@ extension AuthService {
             userRecord["email"] = email as NSString
         }
 
-        let db = CKContainer.default().publicCloudDatabase
-        db.save(userRecord) { _, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ CloudKit signInWithApple error:", error)
-                    completion(.failure(.unknown))
-                } else {
-                    self.currentEmail = userId
-                    self.currentName  = fullName
-                    completion(.success(()))
-                }
+        let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
+        let db = container.publicCloudDatabase
+        db.save(userRecord) { record, error in
+          DispatchQueue.main.async {
+            if let ckErr = error as? CKError, ckErr.code == .serverRecordChanged {
+              // запись уже есть — это не фатальная ошибка, считаем, что пользователь вошёл
+              self.currentEmail = userId
+              self.currentName  = fullName
+              completion(.success(()))
             }
+            else if let error = error {
+              print("❌ CloudKit signInWithApple error:", error)
+              completion(.failure(.unknown))
+            } else {
+              self.currentEmail = userId
+              self.currentName  = fullName
+              completion(.success(()))
+            }
+          }
         }
     }
 }
