@@ -18,19 +18,19 @@ struct SettingsScreen: View {
                 // MARK: — Аккаунт
                 Section {
                     if auth.currentEmail == nil {
-                        // Ещё не в системе
                         Button {
-                            showLogin     = false
+                            showLogin = false
                             showAuthSheet = true
                         } label: {
                             Label("Войти / Регистрация", systemImage: "person.crop.circle")
                         }
                     } else {
-                        // Уже в системе — показываем имя или e‑mail
                         if let name = auth.currentName, !name.isEmpty {
                             Label(name, systemImage: "person.fill")
+                        } else if let email = auth.originalEmail {
+                            Label(email, systemImage: "envelope.fill") // Используем originalEmail
                         } else {
-                            Label(auth.currentEmail!, systemImage: "envelope.fill")
+                            Label(auth.currentEmail!, systemImage: "envelope.fill") // Резервный вариант
                         }
                     }
                 }
@@ -73,7 +73,7 @@ struct SettingsScreen: View {
                         }
                     }
                 }
-              //  "scroll.fill"
+
                 // MARK: — Дополнительно (только Регулярные платежи)
                 Section {
                     if accounts.isEmpty {
@@ -108,7 +108,6 @@ struct SettingsScreen: View {
             .background(GradientView().ignoresSafeArea())
         }
         .foregroundStyle(.black)
-        // Шиты
         .sheet(isPresented: $showAuthSheet) {
             AuthSheet(showLogin: $showLogin)
         }

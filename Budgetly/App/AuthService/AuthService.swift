@@ -5,12 +5,24 @@ import AuthenticationServices
 
 @Observable
 final class AuthService {
-    // MARK: — Состояние
-    /// Текущий залогиненный e‑mail или Apple User ID
-    var currentEmail: String? = nil
-    var currentName:  String? = nil
+    var currentEmail: String? {
+        didSet {
+            UserDefaults.standard.set(currentEmail, forKey: "currentEmail")
+            print("currentEmail updated to: \(String(describing: currentEmail))")
+        }
+    }
+    var originalEmail: String? {
+        didSet {
+            UserDefaults.standard.set(originalEmail, forKey: "originalEmail")
+            print("originalEmail updated to: \(String(describing: originalEmail))")
+        }
+    }
+    var currentName: String? {
+        didSet {
+            print("currentName updated to: \(String(describing: currentName))")
+        }
+    }
 
-    // MARK: — Ошибки
     enum AuthError: LocalizedError {
         case userNotFound
         case wrongPassword
@@ -27,7 +39,12 @@ final class AuthService {
         }
     }
 
-    // MARK: — Логин локально по email+паролю
+    init() {
+        self.currentEmail = UserDefaults.standard.string(forKey: "currentEmail")
+        self.originalEmail = UserDefaults.standard.string(forKey: "originalEmail")
+        print("Init: currentEmail = \(String(describing: currentEmail)), originalEmail = \(String(describing: originalEmail))")
+    }
+
     @discardableResult
     func login(email: String, password: String) -> Result<Void, AuthError> {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -41,16 +58,29 @@ final class AuthService {
             return .failure(.wrongPassword)
         }
         currentEmail = trimmed
-        currentName  = nil
+        originalEmail = trimmed
+        currentName = nil
+
+        let recordID = CKRecord.ID(recordName: trimmed)
+        let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
+        container.publicCloudDatabase.fetch(withRecordID: recordID) { record, error in
+            DispatchQueue.main.async {
+                if let name = record?["name"] as? String {
+                    self.currentName = name
+                }
+            }
+        }
         return .success(())
     }
 
     func logout() {
         currentEmail = nil
-        currentName  = nil
+        originalEmail = nil
+        currentName = nil
+        UserDefaults.standard.removeObject(forKey: "currentEmail")
+        UserDefaults.standard.removeObject(forKey: "originalEmail")
     }
 
-    // MARK: — Восстановление пароля (заглушка)
     func sendPasswordReset(email: String) -> Result<Void, AuthError> {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -61,12 +91,7 @@ final class AuthService {
         }
         return .success(())
     }
-}
 
-// MARK: — Регистрация Email+CloudKit + Sign In with Apple
-
-extension AuthService {
-    /// Sign Up по e‑mail + паролю: сохраняем в Keychain и CloudKit
     func signUp(
         name: String,
         email: String,
@@ -79,17 +104,15 @@ extension AuthService {
             return
         }
 
-        // 1) Keychain
         let saved = KeychainManager.savePassword(password, for: trimmed)
         guard saved else {
             completion(.failure(.unknown))
             return
         }
 
-        // 2) CloudKit
         let recordID = CKRecord.ID(recordName: trimmed)
         let userRecord = CKRecord(recordType: "User", recordID: recordID)
-        userRecord["name"]  = name as NSString
+        userRecord["name"] = name as NSString
         userRecord["email"] = trimmed as NSString
 
         let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
@@ -97,72 +120,107 @@ extension AuthService {
         db.save(userRecord) { _, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    print("❌ CloudKit signUp error:", error)
+                    print("❌ CloudKit signUp error: \(error.localizedDescription)")
                     completion(.failure(.unknown))
                 } else {
                     self.currentEmail = trimmed
-                    self.currentName  = name
+                    self.originalEmail = trimmed
+                    self.currentName = name
                     completion(.success(()))
                 }
             }
         }
     }
 
-    /// Sign In / Up через Sign in with Apple
     func signInWithApple(
         credential: ASAuthorizationAppleIDCredential,
         completion: @escaping (Result<Void, AuthError>) -> Void
     ) {
         let userId = credential.user
-
-        // 1) Сохраняем идентификатор как «пароль»
-        _ = KeychainManager.savePassword(userId, for: userId)
-
-        // 2) Готовим данные
-        var fullName: String?
-        if let given = credential.fullName?.givenName,
-           let family = credential.fullName?.familyName {
-            fullName = "\(given) \(family)"
-        } else if let given = credential.fullName?.givenName {
-            fullName = given
-        }
-        let emailFromApple = credential.email
-
-        // 3) CloudKit
-        let recordID = CKRecord.ID(recordName: userId)
-        let userRecord = CKRecord(recordType: "User", recordID: recordID)
-        if let name = fullName {
-            userRecord["name"] = name as NSString
-        }
-        if let email = emailFromApple {
-            userRecord["email"] = email as NSString
-        }
-
         let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
         let db = container.publicCloudDatabase
-        db.save(userRecord) { record, error in
-          DispatchQueue.main.async {
-            if let ckErr = error as? CKError, ckErr.code == .serverRecordChanged {
-              // запись уже есть — это не фатальная ошибка, считаем, что пользователь вошёл
-              self.currentEmail = userId
-              self.currentName  = fullName
-              completion(.success(()))
+
+        // 1) Попытка получить email из credential
+        let emailFromApple = credential.email
+        let savedEmailKey = "appleEmail_\(userId)"
+        let resolvedEmail: String? = emailFromApple ?? UserDefaults.standard.string(forKey: savedEmailKey)
+
+        // 2) Имя
+        let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
+            .compactMap { $0 }.joined(separator: " ")
+
+        // 3) Выбираем recordID = email, если он известен, иначе fallback — userId
+        let recordName = resolvedEmail ?? userId
+        let recordID = CKRecord.ID(recordName: recordName)
+
+        // 4) Fetch + save
+        print("Fetching existing record for userId: \(userId)")
+        db.fetch(withRecordID: recordID) { existing, fetchError in
+            DispatchQueue.main.async {
+                if let fetchError = fetchError {
+                    print("❌ Fetch error: \(fetchError.localizedDescription)")
+                }
+                let record = existing ?? CKRecord(recordType: "User", recordID: recordID)
+
+                // Имя
+                if !fullName.isEmpty {
+                    record["name"] = fullName as NSString
+                    self.currentName = fullName
+                }
+
+                // Email
+                if let email = emailFromApple {
+                    record["email"] = email as NSString
+                    UserDefaults.standard.set(email, forKey: savedEmailKey)
+                    self.currentEmail = email
+                    self.originalEmail = email
+                } else if let email = resolvedEmail {
+                    record["email"] = email as NSString
+                    self.currentEmail = email
+                    self.originalEmail = email
+                } else {
+                    print("No email available, using userId as recordName")
+                    self.currentEmail = userId
+                    self.originalEmail = nil
+                }
+
+                print("Saving record for userId: \(userId)")
+                db.save(record) { _, saveError in
+                    DispatchQueue.main.async {
+                        if let saveError = saveError {
+                            print("❌ Save error: \(saveError.localizedDescription)")
+                            completion(.failure(.unknown))
+                        } else {
+                            print("Record saved successfully for userId: \(userId)")
+                            self.currentEmail = recordName // Убедимся, что currentEmail установлен
+                            completion(.success(()))
+                        }
+                    }
+                }
             }
-            else if let error = error {
-              print("❌ CloudKit signInWithApple error:", error)
-              completion(.failure(.unknown))
-            } else {
-              self.currentEmail = userId
-              self.currentName  = fullName
-              completion(.success(()))
+        }
+    }
+
+    private func fetchUserEmail(userId: String, completion: @escaping (String?) -> Void) {
+        let recordID = CKRecord.ID(recordName: userId)
+        let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
+        let db = container.publicCloudDatabase
+        print("Fetching email for userId: \(userId)")
+        db.fetch(withRecordID: recordID) { record, error in
+            DispatchQueue.main.async {
+                if let record = record, let email = record["email"] as? String {
+                    print("Fetched email from CloudKit: \(email)")
+                    completion(email)
+                } else {
+                    print("Failed to fetch email: \(String(describing: error?.localizedDescription))")
+                    completion(nil)
+                }
             }
-          }
         }
     }
 }
 
 // MARK: — EnvironmentKey
-
 import SwiftUI
 
 private struct AuthServiceKey: EnvironmentKey {

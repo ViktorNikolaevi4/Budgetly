@@ -107,10 +107,20 @@ struct LoginView: View {
                         .padding(.vertical, 4)
                         .padding(.top, 18)
 
-                    SignInWithAppleButton(.signIn) { _ in } onCompletion: { _ in }
-                        .signInWithAppleButtonStyle(.white)
-                        .frame(height: 44)
-                        .cornerRadius(16)
+                    SignInWithAppleButton(
+                      .signIn,
+                      onRequest: { request in
+                        print("🍎 Apple onRequest")
+                        request.requestedScopes = [.fullName, .email]
+                      },
+                      onCompletion: { result in
+                        print("🍎 Apple onCompletion:", result)
+                        handleApple(result: result)
+                      }
+                    )
+                    .signInWithAppleButtonStyle(.whiteOutline)
+                    .frame(height: 44)
+                    .cornerRadius(16)
 
                     Spacer()
                 }
@@ -130,6 +140,35 @@ struct LoginView: View {
         }
         .onChange(of: password) { _ in
             passwordError = nil
+        }
+    }
+    private func handleApple(result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .failure(let err):
+            alertMessage = err.localizedDescription
+            showAlert = true
+
+        case .success(let authResults):
+            guard let cred = authResults.credential as? ASAuthorizationAppleIDCredential else {
+                alertMessage = "Что-то пошло не так в Apple Sign In"
+                showAlert = true
+                return
+            }
+
+            isLoading = true
+            auth.signInWithApple(credential: cred) { authResult in
+                isLoading = false
+
+                switch authResult {
+                case .success:
+                    // при успешном входе закрываем экран
+                    dismiss()
+
+                case .failure(let err):
+                    alertMessage = err.errorDescription ?? "Ошибка Apple Sign-In"
+                    showAlert = true
+                }
+            }
         }
     }
 
