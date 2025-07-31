@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CloudKit
 
 struct AccountDetailView: View {
     @Environment(\.authService)    private var auth
@@ -53,18 +54,33 @@ struct AccountDetailView: View {
     }
 
     private func deleteAccount() {
-        // 1) Логаут и очистка ключей
+        // 0) вытащим recordName — тот же, что использовали при сохранении:
+        let recordName = auth.originalEmail ?? auth.currentEmail!
+        let recordID   = CKRecord.ID(recordName: recordName)
+        let db         = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
+                            .publicCloudDatabase
+
+        // 1) Асинхронно удаляем запись пользователя в CloudKit
+        db.delete(withRecordID: recordID) { deletedID, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("❌ Ошибка удаления аккаунта из CloudKit:", error)
+                } else {
+                    print("✅ Удалён CloudKit-рекорд:", deletedID?.recordName ?? "")
+                }
+            }
+        }
+
+        // 2) Логаут и очистка UserDefaults
         auth.logout()
 
-        // 2) Удаляем все записи SwiftData
+        // 3) Удаляем все локальные данные SwiftData
         for acc in accountsList   { context.delete(acc) }
         for tx  in transactions   { context.delete(tx)  }
         for asset in assets       { context.delete(asset) }
 
-        // 3) Сохраняем контекст (необязательно, т.к. SwiftData auto-commit)
-        // try? context.save()
-
         // 4) Возвращаемся назад
         dismiss()
     }
+
 }
