@@ -5,6 +5,13 @@ import AuthenticationServices
 
 @Observable
 final class AuthService {
+    var currentName: String? {
+        didSet {
+            // Сохраняем в UserDefaults
+            UserDefaults.standard.set(currentName, forKey: "currentName")
+            print("currentName updated to: \(String(describing: currentName))")
+        }
+    }
     var currentEmail: String? {
         didSet {
             UserDefaults.standard.set(currentEmail, forKey: "currentEmail")
@@ -17,11 +24,11 @@ final class AuthService {
             print("originalEmail updated to: \(String(describing: originalEmail))")
         }
     }
-    var currentName: String? {
-        didSet {
-            print("currentName updated to: \(String(describing: currentName))")
-        }
-    }
+//    var currentName: String? {
+//        didSet {
+//            print("currentName updated to: \(String(describing: currentName))")
+//        }
+//    }
 
     enum AuthError: LocalizedError {
         case userNotFound
@@ -42,7 +49,8 @@ final class AuthService {
     init() {
         self.currentEmail = UserDefaults.standard.string(forKey: "currentEmail")
         self.originalEmail = UserDefaults.standard.string(forKey: "originalEmail")
-        print("Init: currentEmail = \(String(describing: currentEmail)), originalEmail = \(String(describing: originalEmail))")
+        self.currentName     = UserDefaults.standard.string(forKey: "currentName")
+        print("Init: currentEmail = \(String(describing: currentEmail)), originalEmail = \(String(describing: originalEmail)), currentName = \(String(describing: currentName))")
     }
 
     @discardableResult
@@ -59,19 +67,20 @@ final class AuthService {
         }
         currentEmail = trimmed
         originalEmail = trimmed
-        currentName = nil
+      //  currentName = nil
 
         let recordID = CKRecord.ID(recordName: trimmed)
-        let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
-        container.publicCloudDatabase.fetch(withRecordID: recordID) { record, error in
-            DispatchQueue.main.async {
-                if let name = record?["name"] as? String {
-                    self.currentName = name
-                }
-            }
-        }
-        return .success(())
-    }
+         CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
+           .publicCloudDatabase
+           .fetch(withRecordID: recordID) { record, error in
+             DispatchQueue.main.async {
+               if let name = record?["name"] as? String {
+                 self.currentName = name
+               }
+             }
+           }
+         return .success(())
+     }
 
     func logout() {
         currentEmail = nil
