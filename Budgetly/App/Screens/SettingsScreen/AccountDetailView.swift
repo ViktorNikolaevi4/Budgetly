@@ -12,6 +12,8 @@ struct AccountDetailView: View {
     @Query private var transactions:   [Transaction]
     @Query private var assets:         [Asset]
 
+    @State private var showDeleteAlert = false
+
     var body: some View {
         List {
             Section {
@@ -39,7 +41,9 @@ struct AccountDetailView: View {
             }
 
             Section {
-                Button(role: .destructive, action: deleteAccount) {
+                Button(role: .destructive) {
+                    showDeleteAlert = true
+                } label: {
                     Text("Удалить аккаунт")
                 }
                 Text("Если вы решите удалить аккаунт, все ваши операции, счета и активы будут удалены без возможности восстановления.")
@@ -50,7 +54,16 @@ struct AccountDetailView: View {
             }
         }
         .navigationTitle("Аккаунт и вход")
+        .navigationBarTitleDisplayMode(.inline)
         .listStyle(.insetGrouped)
+        .alert("Вы действительно хотите удалить аккаунт?", isPresented: $showDeleteAlert) {
+            Button("Отмена", role: .cancel) { }
+            Button("Удалить", role: .destructive) {
+                deleteAccount()
+            }
+        } message: {
+            Text("Все ваши операции, счета и активы будут удалены без возможности восстановления.")
+        }
     }
 
     private func deleteAccount() {
