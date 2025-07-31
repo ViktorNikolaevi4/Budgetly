@@ -25,12 +25,14 @@ struct SettingsScreen: View {
                             Label("Войти / Регистрация", systemImage: "person.crop.circle")
                         }
                     } else {
-                        if let name = auth.currentName, !name.isEmpty {
-                            Label(name, systemImage: "person.fill")
-                        } else if let email = auth.originalEmail {
-                            Label(email, systemImage: "envelope.fill") // Используем originalEmail
-                        } else {
-                            Label(auth.currentEmail!, systemImage: "envelope.fill") // Резервный вариант
+                        NavigationLink(destination: AccountDetailView()) {
+                            if let name = auth.currentName, !name.isEmpty {
+                                Label(name, systemImage: "person.fill")
+                            } else if let email = auth.originalEmail {
+                                Label(email, systemImage: "envelope.fill") // Используем originalEmail
+                            } else {
+                                Label(auth.currentEmail!, systemImage: "envelope.fill") // Резервный вариант
+                            }
                         }
                     }
                 }

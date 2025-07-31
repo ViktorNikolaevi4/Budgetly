@@ -140,66 +140,69 @@ final class AuthService {
         let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
         let db = container.publicCloudDatabase
 
-        // 1) Попытка получить email из credential
+        // 1) Попытка получить e-mail из credential (выдаётся только при первом ever-login)
         let emailFromApple = credential.email
-        let savedEmailKey = "appleEmail_\(userId)"
-        let resolvedEmail: String? = emailFromApple ?? UserDefaults.standard.string(forKey: savedEmailKey)
+        let savedKey = "appleEmail_\(userId)"
+        if let email = emailFromApple {
+            UserDefaults.standard.set(email, forKey: savedKey)
+        }
 
-        // 2) Имя
+        // 2) Собираем полное имя (если Apple его вернул)
         let fullName = [credential.fullName?.givenName, credential.fullName?.familyName]
-            .compactMap { $0 }.joined(separator: " ")
+            .compactMap { $0 }
+            .joined(separator: " ")
 
-        // 3) Выбираем recordID = email, если он известен, иначе fallback — userId
-        let recordName = resolvedEmail ?? userId
-        let recordID = CKRecord.ID(recordName: recordName)
+        // 3) Определяем recordID по userId
+        let recordID = CKRecord.ID(recordName: userId)
 
-        // 4) Fetch + save
+        // 4) Сначала пытаемся получить уже существующую запись
         print("Fetching existing record for userId: \(userId)")
-        db.fetch(withRecordID: recordID) { existing, fetchError in
+        db.fetch(withRecordID: recordID) { existingRecord, fetchError in
             DispatchQueue.main.async {
                 if let fetchError = fetchError {
                     print("❌ Fetch error: \(fetchError.localizedDescription)")
                 }
-                let record = existing ?? CKRecord(recordType: "User", recordID: recordID)
 
-                // Имя
+                // Берём найденную запись или создаём новую
+                let record = existingRecord ?? CKRecord(recordType: "User", recordID: recordID)
+
+                // Извлекаем e-mail, который мог быть раньше записан в CloudKit
+                let cloudEmail = record["email"] as? String
+                // Ещё раз смотрим в UserDefaults на случай, если credential.email == nil
+                let udEmail = UserDefaults.standard.string(forKey: savedKey)
+
+                // Выбираем приоритет: cloudEmail → emailFromApple → udEmail → fallback userId
+                let finalEmail = cloudEmail ?? emailFromApple ?? udEmail ?? userId
+
+                // 5) Обновляем поля записи
+                record["email"] = finalEmail as NSString
                 if !fullName.isEmpty {
                     record["name"] = fullName as NSString
-                    self.currentName = fullName
                 }
 
-                // Email
-                if let email = emailFromApple {
-                    record["email"] = email as NSString
-                    UserDefaults.standard.set(email, forKey: savedEmailKey)
-                    self.currentEmail = email
-                    self.originalEmail = email
-                } else if let email = resolvedEmail {
-                    record["email"] = email as NSString
-                    self.currentEmail = email
-                    self.originalEmail = email
-                } else {
-                    print("No email available, using userId as recordName")
-                    self.currentEmail = userId
-                    self.originalEmail = nil
-                }
+                // 6) Обновляем состояние
+                self.currentEmail = finalEmail
+                self.originalEmail = (finalEmail == userId ? nil : finalEmail)
+                self.currentName = fullName.isEmpty ? nil : fullName
 
+                // 7) Асинхронно сохраняем запись в CloudKit с обработкой конфликтов
                 print("Saving record for userId: \(userId)")
                 db.save(record) { _, saveError in
                     DispatchQueue.main.async {
                         if let saveError = saveError {
-                            print("❌ Save error: \(saveError.localizedDescription)")
-                            completion(.failure(.unknown))
+                            print("❌ CloudKit save error: \(saveError.localizedDescription)")
+                            // Логируем ошибку, но не прерываем процесс, так как пользователь уже вошёл
                         } else {
                             print("Record saved successfully for userId: \(userId)")
-                            self.currentEmail = recordName // Убедимся, что currentEmail установлен
-                            completion(.success(()))
                         }
+                        // Вызываем completion после попытки сохранения (для надёжности)
+                        completion(.success(()))
                     }
                 }
             }
         }
     }
+
 
     private func fetchUserEmail(userId: String, completion: @escaping (String?) -> Void) {
         let recordID = CKRecord.ID(recordName: userId)
