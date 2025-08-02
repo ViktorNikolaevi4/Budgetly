@@ -6,19 +6,18 @@ let supportedCurrencies: [String] = ["RUB","USD","EUR","GBP","JPY","CNY"]
 
 
 struct AccountsScreen: View {
+    @Environment(\.authService) private var auth
     @Environment(\.modelContext) private var modelContext
-
-    // Режим редактирования списка
     @State private var editMode: EditMode = .inactive
-    // Для показа sheet
     @State private var isShowingAddAccountSheet = false
-    // Для отложенного удаления
     @State private var pendingDeleteOffsets: IndexSet = []
     @State private var showDeleteAlert = false
 
-    // Сортируем по sortOrder
-    @Query(sort: \Account.sortOrder, order: .forward)
-    private var accounts: [Account]
+    @Query var accounts: [Account]
+
+    init(userRecordID: String?) {
+        _accounts = Query(filter: #Predicate<Account> { $0.ownerUserRecordID == userRecordID && !$0.isHidden }, sort: \.sortOrder, order: .forward)
+    }
 
     var body: some View {
         NavigationStack {
@@ -34,12 +33,10 @@ struct AccountsScreen: View {
                             .padding(.vertical, 6)
                     }
                 }
-                // вернули минусы
                 .onDelete { offsets in
                     pendingDeleteOffsets = offsets
                     showDeleteAlert = true
                 }
-                // хваталки для перетаскивания
                 .onMove { indices, newOffset in
                     var reordered = accounts
                     reordered.move(fromOffsets: indices, toOffset: newOffset)
@@ -52,34 +49,15 @@ struct AccountsScreen: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Color(.systemGray6))
-            // прокидываем режим редактирования, чтобы List знал о нем
             .environment(\.editMode, $editMode)
-
-            // кнопка «Добавить»
-//            Button("Добавить новый счет") {
-//                isShowingAddAccountSheet = true
-//            }
-//            .font(.headline)
-//            .frame(maxWidth: .infinity)
-//            .padding()
-//            .background(Color.appPurple)
-//            .foregroundColor(.white)
-//            .cornerRadius(16)
-//            .padding(.horizontal)
-//            .padding(.bottom, 20)
-
             .navigationTitle("Счета")
             .toolbar {
-                // левая кнопка: Править<->Готово
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(editMode.isEditing ? "Готово" : "Править") {
-                        withAnimation {
-                            editMode = editMode.isEditing ? .inactive : .active
-                        }
+                        withAnimation { editMode = editMode.isEditing ? .inactive : .active }
                     }
                     .foregroundColor(.appPurple)
                 }
-                // правая кнопка: +
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { isShowingAddAccountSheet = true } label: {
                         Image(systemName: "plus")
@@ -88,21 +66,18 @@ struct AccountsScreen: View {
                 }
             }
             .sheet(isPresented: $isShowingAddAccountSheet) {
-                AccountCreationView(modelContext: modelContext)
+                AccountCreationView()
+                    .environment(\.modelContext, modelContext)
             }
-            // алерт подтверждения удаления
             .alert("Удалить выбранный счет?", isPresented: $showDeleteAlert) {
-                Button("Удалить", role: .destructive) {
-                    performPendingDelete()
-                }
-                Button("Отмена", role: .cancel) {
-                    pendingDeleteOffsets = []
-                }
+                Button("Удалить", role: .destructive) { performPendingDelete() }
+                Button("Отмена", role: .cancel) { pendingDeleteOffsets = [] }
             } message: {
                 Text("Все связанные транзакции и категории будут удалены без возможности восстановления.")
             }
         }
         .onAppear {
+            auth.fetchCloudUserRecordID()
             fixNilCurrencies(modelContext)
         }
     }
@@ -110,9 +85,8 @@ struct AccountsScreen: View {
     private func performPendingDelete() {
         for idx in pendingDeleteOffsets {
             let account = accounts[idx]
-            // удаляем связанные транзакции и категории
             for tx in account.allTransactions { modelContext.delete(tx) }
-            for cat in account.allCategories  { modelContext.delete(cat) }
+            for cat in account.allCategories { modelContext.delete(cat) }
             modelContext.delete(account)
         }
         pendingDeleteOffsets = []
@@ -129,7 +103,6 @@ struct AccountsScreen: View {
                 .shadow(color: .black.opacity(0.16), radius: 16, x: 3, y: 6)
 
             HStack(spacing: 12) {
-                // бейдж валюты
                 ZStack {
                     Circle()
                         .strokeBorder(Color.appPurple, lineWidth: 7)
@@ -141,7 +114,6 @@ struct AccountsScreen: View {
                 }
                 .padding(.leading, 8)
 
-                // название и код
                 VStack(alignment: .leading, spacing: 4) {
                     Text(account.name)
                         .font(.body).fontWeight(.medium)
@@ -153,7 +125,6 @@ struct AccountsScreen: View {
 
                 Spacer()
 
-                // баланс
                 Text(account.formattedBalance)
                     .font(.body).fontWeight(.medium)
                     .foregroundStyle(account.balance < 0 ? .red : .primary)
@@ -166,15 +137,16 @@ struct AccountsScreen: View {
 // MARK: — экран создания (тот же, что у вас был)
 struct AccountCreationView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.authService) private var auth
+    @Environment(\.modelContext) private var modelContext
+
     @State private var accountName = ""
     @State private var initialBalanceText = ""
     @State private var selectedCurrency = "RUB"
-    let modelContext: ModelContext
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                // бейдж валюты
                 VStack(spacing: 8) {
                     ZStack {
                         Circle()
@@ -235,28 +207,32 @@ struct AccountCreationView: View {
     }
 
     private func addAccount() {
+        guard let userRecordID = auth.cloudUserRecordID else {
+            print("Ошибка: нет userRecordID")
+            return
+        }
+
         let bal: Double? = {
             let norm = initialBalanceText.replacingOccurrences(of: ",", with: ".")
             return Double(norm)
         }()
-        // вставляем новый со вторым параметром sortOrder = текущий count
+
         let newAcc = Account(
             name: accountName,
             currency: selectedCurrency,
             initialBalance: bal,
-            sortOrder: accountsCount()
+            sortOrder: accountsCount(),
+            ownerUserRecordID: userRecordID
         )
+
         modelContext.insert(newAcc)
         Category.seedDefaults(for: newAcc, in: modelContext)
         try? modelContext.save()
     }
 
-    // helper
     private func accountsCount() -> Int {
-        // Query недоступен здесь, но можно сделать fetch:
         let fetch = FetchDescriptor<Account>(sortBy: [])
-        let all = (try? modelContext.fetch(fetch)) ?? []
-        return all.count
+        return (try? modelContext.fetch(fetch))?.count ?? 0
     }
 }
 func fixNilCurrencies(_ context: ModelContext) {

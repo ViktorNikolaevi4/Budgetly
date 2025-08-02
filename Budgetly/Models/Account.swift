@@ -1,7 +1,6 @@
 import Foundation
 import SwiftData
 
-
 @Model
 class Account: Identifiable {
     var id: UUID = UUID()
@@ -10,17 +9,17 @@ class Account: Identifiable {
     var currency: String? = nil
     var hasSeededCategories: Bool = false
     var isHidden: Bool = false
-
     @Attribute var sortOrder: Int = 0
+    var ownerUserRecordID: String?
 
     @Relationship(deleteRule: .cascade)
-    var transactions: [Transaction]? // Опциональный массив
+    var transactions: [Transaction]?
 
     @Relationship(deleteRule: .cascade)
-    var categories: [Category]? // Опциональный массив
+    var categories: [Category]?
 
     @Relationship(deleteRule: .cascade)
-    var regularPayments: [RegularPayment]? // Опциональный массив
+    var regularPayments: [RegularPayment]?
 
     var allTransactions: [Transaction] {
         transactions ?? []
@@ -40,6 +39,7 @@ class Account: Identifiable {
         currency: String? = nil,
         initialBalance: Double? = nil,
         sortOrder: Int = 0,
+        ownerUserRecordID: String? = nil,
         transactions: [Transaction]? = nil,
         categories: [Category]? = nil,
         regularPayments: [RegularPayment]? = nil
@@ -49,6 +49,7 @@ class Account: Identifiable {
         self.currency = currency
         self.initialBalance = initialBalance
         self.sortOrder = sortOrder
+        self.ownerUserRecordID = ownerUserRecordID
         self.transactions = transactions
         self.categories = categories
         self.regularPayments = regularPayments
@@ -56,8 +57,8 @@ class Account: Identifiable {
 
     var balance: Double {
         let base = initialBalance ?? 0
-        let income = allTransactions.filter { $0.type == .income }.reduce(0) { $0 + ($1.amount) }
-        let expenses = allTransactions.filter { $0.type == .expenses }.reduce(0) { $0 + ($1.amount) }
+        let income = allTransactions.filter { $0.type == .income }.reduce(0) { $0 + $1.amount }
+        let expenses = allTransactions.filter { $0.type == .expenses }.reduce(0) { $0 + $1.amount }
         return base + income - expenses
     }
 
@@ -67,7 +68,10 @@ class Account: Identifiable {
         let sign = currencySymbols[code] ?? code
         return "\(amount) \(sign)"
     }
+
+    var currencyCode: String { currency ?? "RUB" }
 }
+
 enum TransactionType: Codable {
     case income, expenses
 }
@@ -79,6 +83,7 @@ class Transaction: Identifiable {
     var amount: Double = 0.0
     var date: Date = Date()
     var type: TransactionType = TransactionType.income
+    var ownerUserRecordID: String?
 
     @Relationship(inverse: \Account.transactions)
     var account: Account?
@@ -89,7 +94,8 @@ class Transaction: Identifiable {
         amount: Double = 0.0,
         date: Date = Date(),
         type: TransactionType = .income,
-        account: Account? = nil
+        account: Account? = nil,
+        ownerUserRecordID: String? = nil
     ) {
         self.id = id
         self.category = category
@@ -97,31 +103,31 @@ class Transaction: Identifiable {
         self.date = date
         self.type = type
         self.account = account
+        self.ownerUserRecordID = ownerUserRecordID
     }
 
     static func calculateSaldo(from transactions: [Transaction]?) -> Double {
-        let income = transactions?.filter { $0.type == .income }.reduce(0) { $0 + ($1.amount) } ?? 0
-        let expenses = transactions?.filter { $0.type == .expenses }.reduce(0) { $0 + ($1.amount) } ?? 0
+        let income = transactions?.filter { $0.type == .income }.reduce(0) { $0 + $1.amount } ?? 0
+        let expenses = transactions?.filter { $0.type == .expenses }.reduce(0) { $0 + $1.amount } ?? 0
         return income - expenses
     }
 }
 
-
 enum CategoryType: String, CaseIterable, Identifiable {
     var id: Self { self }
-
     case expenses = "Расходы"
     case income = "Доходы"
 }
 
 @Model
 class Category: Identifiable {
-    var id: UUID = UUID() // Значение по умолчанию
-    var name: String = "" // Значение по умолчанию
-    private var typeRawValue: String = CategoryType.expenses.rawValue // Значение по умолчанию
+    var id: UUID = UUID()
+    var name: String = ""
+    private var typeRawValue: String = CategoryType.expenses.rawValue
+    var ownerUserRecordID: String?
 
     @Relationship(inverse: \Account.categories)
-    var account: Account? // Обратная связь
+    var account: Account?
 
     var iconName: String? = nil
 
@@ -134,53 +140,58 @@ class Category: Identifiable {
         id: UUID = UUID(),
         name: String = "",
         type: CategoryType = .expenses,
-        account: Account? = nil
+        account: Account? = nil,
+        ownerUserRecordID: String? = nil
     ) {
         self.id = id
         self.name = name
         self.typeRawValue = type.rawValue
         self.account = account
+        self.ownerUserRecordID = ownerUserRecordID
     }
 }
 
-import SwiftUI
-import SwiftData
-
 extension Category {
     static let uncategorizedName = "Без категории"
-
     static let defaultExpenseNames = [
         "Еда", "Транспорт", "Дом", "Одежда",
         "Здоровье", "Питомцы", "Связь", "Развлечения",
         "Образование", "Дети"
     ]
-     static let defaultIncomeNames = [
-      "Зарплата", "Дивиденды", "Купоны", "Продажи",
-      "Премия", "Вклады", "Аренда", "Подарки", "Подработка"
+    static let defaultIncomeNames = [
+        "Зарплата", "Дивиденды", "Купоны", "Продажи",
+        "Премия", "Вклады", "Аренда", "Подарки", "Подработка"
     ]
 
     static func seedDefaults(for account: Account, in context: ModelContext) {
-        guard !account.hasSeededCategories else { return }
+        guard !account.hasSeededCategories, let userRecordID = account.ownerUserRecordID else { return }
 
-        // 1) Без категории
-        let uncExp = Category(name: uncategorizedName, type: .expenses, account: account)
-        let uncInc = Category(name: uncategorizedName, type: .income,   account: account)
+        let uncExp = Category(name: uncategorizedName, type: .expenses, account: account, ownerUserRecordID: userRecordID)
+        let uncInc = Category(name: uncategorizedName, type: .income, account: account, ownerUserRecordID: userRecordID)
         context.insert(uncExp)
         context.insert(uncInc)
 
-        // 2) Расходы
         for name in defaultExpenseNames {
-            context.insert(Category(name: name, type: .expenses, account: account))
+            context.insert(Category(name: name, type: .expenses, account: account, ownerUserRecordID: userRecordID))
         }
-        // 3) Доходы
         for name in defaultIncomeNames {
-            context.insert(Category(name: name, type: .income, account: account))
+            context.insert(Category(name: name, type: .income, account: account, ownerUserRecordID: userRecordID))
         }
 
         account.hasSeededCategories = true
         try? context.save()
     }
 }
-extension Account {
-    var currencyCode: String { currency ?? "RUB" }
+
+@Model
+class User: Identifiable {
+    var id: String = UUID().uuidString // Обязательный атрибут с дефолтным значением
+    var name: String?
+    var email: String?
+
+    init(id: String = UUID().uuidString, name: String? = nil, email: String? = nil) {
+        self.id = id
+        self.name = name
+        self.email = email
+    }
 }

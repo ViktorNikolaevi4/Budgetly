@@ -1,20 +1,28 @@
 import SwiftUI
+import SwiftData
+
 
 struct RootView: View {
     @Environment(\.authService) private var auth
-    @State private var showLogin = false   // переключатель между регистрацией и входом
+    @State private var showLogin = true
 
     var body: some View {
         Group {
-            if auth.currentEmail != nil {
+            if let _ = auth.cloudUserRecordID {
+                // Пользователь уже есть в iCloud / SwiftData — пойдём в основной UI
                 ContentView()
             } else {
+                // Показываем flow логина/регистрации
                 AuthFlowView(showLogin: $showLogin)
             }
         }
-        .animation(.easeInOut, value: auth.currentEmail)
+        .onAppear {
+            // Как только запустились — пробуем достать из iCloud свой recordID
+            auth.fetchCloudUserRecordID()
+        }
     }
 }
+
 
 struct AuthFlowView: View {
     @Binding var showLogin: Bool

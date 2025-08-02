@@ -1,10 +1,12 @@
 import SwiftUI
 import AuthenticationServices
 import Observation
+import SwiftData
 
 struct LoginView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.authService) private var auth
+    @Environment(\.authService)      private var auth
+    @Environment(\.modelContext) private var modelContext
 
     let onSwitchToRegister: () -> Void
 
@@ -108,15 +110,15 @@ struct LoginView: View {
                         .padding(.top, 18)
 
                     SignInWithAppleButton(
-                      .signIn,
-                      onRequest: { request in
-                        print("🍎 Apple onRequest")
-                        request.requestedScopes = [.fullName, .email]
-                      },
-                      onCompletion: { result in
-                        print("🍎 Apple onCompletion:", result)
-                        handleApple(result: result)
-                      }
+                        .signIn,
+                        onRequest: { request in
+                            print("🍎 Apple onRequest")
+                            request.requestedScopes = [.fullName, .email]
+                        },
+                        onCompletion: { result in
+                            print("🍎 Apple onCompletion:", result)
+                            handleApple(result: result)
+                        }
                     )
                     .signInWithAppleButtonStyle(.whiteOutline)
                     .frame(height: 44)
@@ -142,6 +144,7 @@ struct LoginView: View {
             passwordError = nil
         }
     }
+
     private func handleApple(result: Result<ASAuthorization, Error>) {
         switch result {
         case .failure(let err):
@@ -156,14 +159,12 @@ struct LoginView: View {
             }
 
             isLoading = true
-            auth.signInWithApple(credential: cred) { authResult in
+            auth.signInWithApple(credential: cred, modelContext: modelContext) { authResult in
                 isLoading = false
 
                 switch authResult {
                 case .success:
-                    // при успешном входе закрываем экран
                     dismiss()
-
                 case .failure(let err):
                     alertMessage = err.errorDescription ?? "Ошибка Apple Sign-In"
                     showAlert = true
@@ -204,10 +205,49 @@ struct LoginView: View {
     }
 }
 
+//struct IconTextField: View {
+//    let systemImage: String
+//    let placeholder: String
+//    @Binding var text: String
+//    let keyboard: UIKeyboardType
+//    let isSecure: Bool
+//    let contentType: UITextContentType
+//    let isError: Bool
+//
+//    var body: some View {
+//        HStack {
+//            Image(systemName: systemImage)
+//                .foregroundColor(isError ? .red : .gray)
+//            if isSecure {
+//                SecureField(placeholder, text: $text)
+//                    .textContentType(contentType)
+//                    .keyboardType(keyboard)
+//                    .autocapitalization(.none)
+//                    .disableAutocorrection(true)
+//            } else {
+//                TextField(placeholder, text: $text)
+//                    .textContentType(contentType)
+//                    .keyboardType(keyboard)
+//                    .autocapitalization(.none)
+//                    .disableAutocorrection(true)
+//            }
+//        }
+//        .padding()
+//        .background(Color.white)
+//        .cornerRadius(16)
+//        .overlay(
+//            RoundedRectangle(cornerRadius: 16)
+//                .stroke(isError ? Color.red : Color.gray.opacity(0.3), lineWidth: 1)
+//        )
+//    }
+//}
+
+
 
 struct ForgotPasswordView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.authService) private var auth
+    @Environment(\.modelContext) private var modelContext
 
     @State private var email: String = ""
     @State private var isSending: Bool = false
@@ -222,14 +262,11 @@ struct ForgotPasswordView: View {
 
             ScrollView {
                 VStack(spacing: 24) {
-
-                    // Иконка письма
                     Image(systemName: "envelope.open.fill")
                         .font(.system(size: 60))
                         .foregroundColor(.appPurple)
                         .padding(.top, 8)
 
-                    // Описание
                     VStack(spacing: 4) {
                         Text("Введите e-mail, с которым вы регистрировались —")
                         Text("мы пришлём ссылку для сброса пароля.")
@@ -239,7 +276,6 @@ struct ForgotPasswordView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 12)
 
-                    // Поле ввода
                     IconTextField(
                         systemImage: "envelope.fill",
                         placeholder: "Ваш e-mail",
@@ -258,7 +294,6 @@ struct ForgotPasswordView: View {
                             .padding(.top, -12)
                     }
 
-                    // Кнопка отправки
                     Button(action: sendReset) {
                         if isSending {
                             ProgressView()
@@ -291,7 +326,6 @@ struct ForgotPasswordView: View {
         }
         .alert(alertMessage, isPresented: $showAlert) {
             Button("OK") {
-                // при успехе можно закрыть экран
                 if emailError == nil {
                     dismiss()
                 }
@@ -324,15 +358,14 @@ struct ForgotPasswordView: View {
         emailError = nil
         isSending = true
 
-        // Пример асинхронного вызова сервиса восстановления
         DispatchQueue.global().async {
-            // Замените на ваш метод: auth.sendPasswordReset(email:)
-            let result = auth.sendPasswordReset(email: email) // предполагаемый API
+            let result = auth.sendPasswordReset(email: email)
             DispatchQueue.main.async {
                 isSending = false
                 switch result {
                 case .success:
                     showSent = true
+                    alertMessage = "Ссылка для сброса пароля отправлена на \(email)."
                     showAlert = true
                 case .failure(let err):
                     switch err {
@@ -347,3 +380,46 @@ struct ForgotPasswordView: View {
         }
     }
 }
+
+//struct PasswordResetSentView: View {
+//    let email: String
+//
+//    @Environment(\.dismiss) private var dismiss
+//
+//    var body: some View {
+//        ZStack {
+//            Color(.systemGray6).ignoresSafeArea()
+//            VStack(spacing: 24) {
+//                Image(systemName: "checkmark.circle.fill")
+//                    .font(.system(size: 60))
+//                    .foregroundColor(.green)
+//                    .padding(.top, 32)
+//
+//                Text("Ссылка отправлена!")
+//                    .font(.title2)
+//                    .fontWeight(.bold)
+//                    .foregroundColor(.primary)
+//
+//                Text("Мы отправили ссылку для сброса пароля на \(email). Проверьте папку 'Спам', если письмо не появилось.")
+//                    .multilineTextAlignment(.center)
+//                    .foregroundColor(.secondary)
+//                    .padding(.horizontal, 24)
+//
+//                Button(action: { dismiss() }) {
+//                    Text("Вернуться к входу")
+//                        .frame(maxWidth: .infinity)
+//                        .padding()
+//                        .background(Color.appPurple)
+//                        .foregroundColor(.white)
+//                        .cornerRadius(16)
+//                }
+//                .padding(.horizontal, 24)
+//                .padding(.top, 16)
+//
+//                Spacer()
+//            }
+//        }
+//        .navigationTitle("Сброс пароля")
+//        .navigationBarTitleDisplayMode(.inline)
+//    }
+//}

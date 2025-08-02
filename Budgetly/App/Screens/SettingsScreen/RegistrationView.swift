@@ -2,10 +2,10 @@ import SwiftUI
 import CloudKit
 import AuthenticationServices
 
-
 struct RegistrationView: View {
     let onSwitchToLogin: () -> Void
     @Environment(\.authService) private var auth
+    @Environment(\.modelContext) private var modelContext // Добавлено для передачи в signUp и signInWithApple
 
     @State private var name      = ""
     @State private var email     = ""
@@ -89,7 +89,7 @@ struct RegistrationView: View {
 
     private func signUp() {
         isLoading = true
-        auth.signUp(name: name, email: email, password: password) { result in
+        auth.signUp(name: name, email: email, password: password, modelContext: modelContext) { result in
             isLoading = false
             switch result {
             case .success:
@@ -109,7 +109,7 @@ struct RegistrationView: View {
         case .success(let res):
             guard let cred = res.credential as? ASAuthorizationAppleIDCredential else { return }
             isLoading = true
-            auth.signInWithApple(credential: cred) { res in
+            auth.signInWithApple(credential: cred, modelContext: modelContext) { res in
                 isLoading = false
                 switch res {
                 case .success:
@@ -122,6 +122,42 @@ struct RegistrationView: View {
         }
     }
 }
+
+//struct IconTextField: View {
+//    let systemImage: String
+//    let placeholder: String
+//    @Binding var text: String
+//    let keyboard: UIKeyboardType = .default
+//    let isSecure: Bool = false
+//    let contentType: UITextContentType?
+//
+//    var body: some View {
+//        HStack {
+//            Image(systemName: systemImage)
+//                .foregroundColor(.gray)
+//            if isSecure {
+//                SecureField(placeholder, text: $text)
+//                    .textContentType(contentType)
+//                    .keyboardType(keyboard)
+//                    .autocapitalization(.none)
+//                    .disableAutocorrection(true)
+//            } else {
+//                TextField(placeholder, text: $text)
+//                    .textContentType(contentType)
+//                    .keyboardType(keyboard)
+//                    .autocapitalization(.none)
+//                    .disableAutocorrection(true)
+//            }
+//        }
+//        .padding()
+//        .background(Color.white)
+//        .cornerRadius(16)
+//        .overlay(
+//            RoundedRectangle(cornerRadius: 16)
+//                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+//        )
+//    }
+//}
 
 struct IconTextField: View {
     let systemImage: String

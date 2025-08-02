@@ -15,6 +15,7 @@ struct RegularPaymentsScreen: View {
         accounts.first { $0.id.uuidString == selectedAccountID }
     }
 
+
     // Фильтр регулярных платежей именно этого аккаунта
     private var regularPayments: [RegularPayment] {
         allRegularPayments.filter { $0.account?.id.uuidString == selectedAccountID }

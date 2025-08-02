@@ -1,7 +1,7 @@
 import SwiftUI
 import Charts
-import Observation
 import SwiftData
+import CloudKit
 
 enum SelectedView {
     case registration
@@ -19,9 +19,14 @@ struct ContentView: View {
     @Query private var transactions: [Transaction]
     @Query private var accounts: [Account]
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.authService) private var auth
     @State private var selectedView: SelectedView = .contentView
     @State private var isMenuVisible = false
-    @State private var isRateAppViewPresented = false // Управление видимостью окна оценки приложения
+    @State private var isRateAppViewPresented = false
+
+    var filteredAccounts: [Account] {
+        accounts.filter { $0.ownerUserRecordID == auth.cloudUserRecordID }
+    }
 
     var body: some View {
         TabView {
@@ -29,7 +34,7 @@ struct ContentView: View {
                 .tabItem {
                     Label("Главная", systemImage: "house.fill")
                 }
-            AccountsScreen()
+            AccountsScreen(userRecordID: auth.cloudUserRecordID)
                 .tabItem {
                     Label("Счета", systemImage: "creditcard")
                 }
@@ -37,7 +42,6 @@ struct ContentView: View {
                 .tabItem {
                     Label("Инвестиции", systemImage: "bag.fill")
                 }
-
             StatsView()
                 .tabItem {
                     Label("Статистика", systemImage: "chart.bar.fill")
@@ -48,62 +52,43 @@ struct ContentView: View {
                         .symbolRenderingMode(.hierarchical)
                 }
         }
-        .background(Color(UIColor.systemGray6)) // Фон TabView
+        .background(Color(UIColor.systemGray6))
         .onAppear {
             createDefaultAccountIfNeeded()
             let appearance = UITabBarAppearance()
             appearance.configureWithOpaqueBackground()
-
-            // Цвет фона Tab Bar (как на макете)
             appearance.backgroundColor = UIColor.systemGray6
-
-            // Настройка цветов иконок и текста
             let selectedColor = UIColor(.appPurple)
-
             appearance.stackedLayoutAppearance.selected.iconColor = selectedColor
             appearance.stackedLayoutAppearance.selected.titleTextAttributes = [.foregroundColor: selectedColor]
-
             appearance.stackedLayoutAppearance.normal.iconColor = UIColor.gray
             appearance.stackedLayoutAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.gray]
-
             UITabBar.appearance().standardAppearance = appearance
             UITabBar.appearance().scrollEdgeAppearance = appearance
         }
-
     }
+
     private func createDefaultAccountIfNeeded() {
-        guard accounts.isEmpty else { return }
-
-        let defaultAccount = Account(name: "Основной счет")
+        guard filteredAccounts.isEmpty, let userRecordID = auth.cloudUserRecordID else { return }
+        let defaultAccount = Account(name: "Основной счет", ownerUserRecordID: userRecordID)
         modelContext.insert(defaultAccount)
-
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка сохранения Основного счета: \(error.localizedDescription)")
-        }
+        Category.seedDefaults(for: defaultAccount, in: modelContext)
+        try? modelContext.save()
     }
 }
-
-
 
 struct SideMenuView: View {
     @Binding var isMenuVisible: Bool
     @Binding var selectedView: SelectedView
-    @Binding var isRateAppViewPresented: Bool // Управление окном оценки
+    @Binding var isRateAppViewPresented: Bool
 
     var body: some View {
         ZStack(alignment: .leading) {
-            // Полупрозрачный фон для скрытия меню при нажатии за его пределами
             Color.black.opacity(0.3)
                 .ignoresSafeArea()
                 .onTapGesture {
-                    withAnimation {
-                        isMenuVisible.toggle()
-                    }
+                    withAnimation { isMenuVisible.toggle() }
                 }
-
-            // Само меню
             VStack(alignment: .leading) {
                 Button("Регистрация") {
                     withAnimation {
@@ -112,23 +97,20 @@ struct SideMenuView: View {
                     }
                 }
                 .padding()
-
                 Button("Главная") {
                     withAnimation {
-                        selectedView = .contentView // Устанавливаем главное представление
+                        selectedView = .contentView
                         isMenuVisible = false
                     }
                 }
                 .padding()
-
                 Button("Счета") {
                     withAnimation {
-                        selectedView = .accounts // Устанавливаем отображение "Счета"
+                        selectedView = .accounts
                         isMenuVisible = false
                     }
                 }
                 .padding()
-
                 Button("Регулярные платежи") {
                     withAnimation {
                         selectedView = .regularPayments
@@ -136,7 +118,6 @@ struct SideMenuView: View {
                     }
                 }
                 .padding()
-
                 Button("Напоминания") {
                     withAnimation {
                         selectedView = .reminders
@@ -144,7 +125,6 @@ struct SideMenuView: View {
                     }
                 }
                 .padding()
-
                 Button("Настройки") {
                     withAnimation {
                         selectedView = .settings
@@ -152,7 +132,6 @@ struct SideMenuView: View {
                     }
                 }
                 .padding()
-
                 Button("Поделиться с друзьями") {
                     withAnimation {
                         shareWithFriends()
@@ -160,7 +139,6 @@ struct SideMenuView: View {
                     }
                 }
                 .padding()
-
                 Button("Оценить приложение") {
                     withAnimation {
                         isMenuVisible = false
@@ -170,46 +148,36 @@ struct SideMenuView: View {
                     }
                 }
                 .padding()
-
-                Button("Связаться с разработчикамм") {
+                Button("Связаться с разработчиком") {
                     withAnimation {
                         selectedView = .contacTheDeveloper
                         isMenuVisible = false
                     }
                 }
                 .padding()
-
-
-                // Добавьте остальные кнопки меню
-
                 Spacer()
             }
-            .frame(width: 250) // Ширина меню
+            .frame(width: 250)
             .background(Color.white)
-            .offset(x: isMenuVisible ? 0 : -250) // Выдвижение меню
+            .offset(x: isMenuVisible ? 0 : -250)
             .animation(.easeInOut(duration: 0.3), value: isMenuVisible)
         }
     }
 
-    // Функция для вызова UIActivityViewController
     private func shareWithFriends() {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
             print("Ошибка: невозможно получить WindowScene")
             return
         }
-        // Текст и ссылка на App Store
         let shareText = """
         Я использую приложение Budgetly для управления своими финансами! Попробуй и ты:
         """
-        // Ссылка на App Store
-        let appStoreLinkString = "https://apps.apple.com/app/idXXXXXXXXX" // Укажите свою ссылку
+        let appStoreLinkString = "https://apps.apple.com/app/idXXXXXXXXX"
         guard let appStoreLink = URL(string: appStoreLinkString) else {
             print("Ошибка: ссылка на App Store недействительна")
             return
         }
-        // UIActivityViewController
         let activityVC = UIActivityViewController(activityItems: [shareText, appStoreLink], applicationActivities: nil)
-        // Указываем, с какой сцены запустить ActivityViewController
         if let rootViewController = windowScene.windows.first?.rootViewController {
             rootViewController.present(activityVC, animated: true, completion: nil)
         }
