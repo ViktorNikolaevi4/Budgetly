@@ -4,19 +4,28 @@ import UserNotifications
 import Observation
 
 @main
-struct BudgetApp: App {
+struct BudgetlyApp: App {
     private let modelContainer: ModelContainer = {
-        let config = ModelConfiguration("iCloud.Korolvoff.Budgetly2")
-        return try! ModelContainer(
-            for: Transaction.self,
+        let schema = Schema([
+            Transaction.self,
             Category.self,
             Account.self,
             RegularPayment.self,
             Reminder.self,
             Asset.self,
-            AssetType.self,
-            configurations: config
+            AssetType.self
+        ])
+
+        let config = ModelConfiguration(
+            schema: schema,
+            cloudKitDatabase: .private("iCloud.Korolvoff.Budgetly2")
         )
+
+        do {
+            return try ModelContainer(for: schema, configurations: config)
+        } catch {
+            fatalError("Не удалось создать контейнер: \(error)")
+        }
     }()
 
     @State private var auth = AuthService() // Используем @State вместо @StateObject
