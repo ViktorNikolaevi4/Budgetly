@@ -41,31 +41,44 @@ final class AuthService {
             .joined(separator: " ")
         let email = credential.email ?? userId
 
-        let record = CKRecord(recordType: "User", recordID: recordID)
-        record["email"] = email
-        record["name"] = fullName.isEmpty ? nil : fullName
-
-        db.save(record) { [weak self] _, error in
+        db.fetch(withRecordID: recordID) { [weak self] fetchedRecord, fetchError in
             guard let self = self else { return }
             DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ Ошибка CloudKit: \(error.localizedDescription) в \(Date())")
-                    completion(.failure(.unknown))
-                    return
+                let record: CKRecord
+                if let fetchedRecord = fetchedRecord {
+                    // Запись есть, обновим её
+                    record = fetchedRecord
+                } else {
+                    // Записи нет, создаём новую
+                    record = CKRecord(recordType: "User", recordID: recordID)
                 }
-                self.cloudUserRecordID = userId
-                self.currentEmail = email
-                self.originalEmail = email
-                self.currentName = fullName.isEmpty ? nil : fullName
+                record["email"] = email
+                record["name"] = fullName.isEmpty ? nil : fullName
 
-                let user = User(id: userId, name: fullName.isEmpty ? nil : fullName, email: email)
-                modelContext.insert(user)
-                try? modelContext.save()
+                db.save(record) { [weak self] _, error in
+                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        if let error = error {
+                            print("❌ Ошибка CloudKit: \(error.localizedDescription) в \(Date())")
+                            completion(.failure(.unknown))
+                            return
+                        }
+                        self.cloudUserRecordID = userId
+                        self.currentEmail = email
+                        self.originalEmail = email
+                        self.currentName = fullName.isEmpty ? nil : fullName
 
-                completion(.success(()))
+                        let user = User(id: userId, name: fullName.isEmpty ? nil : fullName, email: email)
+                        modelContext.insert(user)
+                        try? modelContext.save()
+
+                        completion(.success(()))
+                    }
+                }
             }
         }
     }
+
 
     func signUp(
         name: String,
@@ -87,32 +100,68 @@ final class AuthService {
         let db = container.privateCloudDatabase
         let recordID = CKRecord.ID(recordName: userId)
 
-        let record = CKRecord(recordType: "User", recordID: recordID)
-        record["email"] = email
-        record["name"] = name
-        record["password"] = password // В реальном приложении хешировать
-
-        db.save(record) { [weak self] _, error in
+        db.fetch(withRecordID: recordID) { [weak self] fetchedRecord, fetchError in
             guard let self = self else { return }
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ Ошибка сохранения пользователя в CloudKit: \(error.localizedDescription) в \(Date())")
-                    completion(.failure(.unknown))
-                    return
+
+            if let fetchedRecord = fetchedRecord {
+                // Уже есть — обновляем!
+                fetchedRecord["email"] = email
+                fetchedRecord["name"] = name
+                fetchedRecord["password"] = password
+
+                db.save(fetchedRecord) { savedRecord, saveError in
+                    DispatchQueue.main.async {
+                        if let saveError = saveError {
+                            print("Ошибка обновления: \(saveError)")
+                            completion(.failure(.unknown))
+                        } else {
+                            self.cloudUserRecordID = userId
+                            self.currentEmail = email
+                            self.originalEmail = email
+                            self.currentName = name
+
+                            let user = User(id: userId, name: name, email: email)
+                            modelContext.insert(user)
+                            try? modelContext.save()
+
+                            completion(.success(()))
+                        }
+                    }
                 }
-                self.cloudUserRecordID = userId
-                self.currentEmail = email
-                self.originalEmail = email
-                self.currentName = name
+            } else if let ckError = fetchError as? CKError, ckError.code == .unknownItem {
+                // Нет такого — создаём нового
+                let record = CKRecord(recordType: "User", recordID: recordID)
+                record["email"] = email
+                record["name"] = name
+                record["password"] = password
 
-                let user = User(id: userId, name: name, email: email)
-                modelContext.insert(user)
-                try? modelContext.save()
+                db.save(record) { savedRecord, saveError in
+                    DispatchQueue.main.async {
+                        if let saveError = saveError {
+                            print("Ошибка создания: \(saveError)")
+                            completion(.failure(.unknown))
+                        } else {
+                            self.cloudUserRecordID = userId
+                            self.currentEmail = email
+                            self.originalEmail = email
+                            self.currentName = name
 
-                completion(.success(()))
+                            let user = User(id: userId, name: name, email: email)
+                            modelContext.insert(user)
+                            try? modelContext.save()
+
+                            completion(.success(()))
+                        }
+                    }
+                }
+            } else {
+                // Какая-то другая ошибка
+                print("Ошибка fetch: \(fetchError?.localizedDescription ?? "")")
+                completion(.failure(.unknown))
             }
         }
     }
+
 
     func login(email: String, password: String) -> Result<Void, AuthError> {
         if email.isEmpty || password.isEmpty {

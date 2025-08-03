@@ -205,45 +205,6 @@ struct LoginView: View {
     }
 }
 
-//struct IconTextField: View {
-//    let systemImage: String
-//    let placeholder: String
-//    @Binding var text: String
-//    let keyboard: UIKeyboardType
-//    let isSecure: Bool
-//    let contentType: UITextContentType
-//    let isError: Bool
-//
-//    var body: some View {
-//        HStack {
-//            Image(systemName: systemImage)
-//                .foregroundColor(isError ? .red : .gray)
-//            if isSecure {
-//                SecureField(placeholder, text: $text)
-//                    .textContentType(contentType)
-//                    .keyboardType(keyboard)
-//                    .autocapitalization(.none)
-//                    .disableAutocorrection(true)
-//            } else {
-//                TextField(placeholder, text: $text)
-//                    .textContentType(contentType)
-//                    .keyboardType(keyboard)
-//                    .autocapitalization(.none)
-//                    .disableAutocorrection(true)
-//            }
-//        }
-//        .padding()
-//        .background(Color.white)
-//        .cornerRadius(16)
-//        .overlay(
-//            RoundedRectangle(cornerRadius: 16)
-//                .stroke(isError ? Color.red : Color.gray.opacity(0.3), lineWidth: 1)
-//        )
-//    }
-//}
-
-
-
 struct ForgotPasswordView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.authService) private var auth
@@ -380,46 +341,3 @@ struct ForgotPasswordView: View {
         }
     }
 }
-
-//struct PasswordResetSentView: View {
-//    let email: String
-//
-//    @Environment(\.dismiss) private var dismiss
-//
-//    var body: some View {
-//        ZStack {
-//            Color(.systemGray6).ignoresSafeArea()
-//            VStack(spacing: 24) {
-//                Image(systemName: "checkmark.circle.fill")
-//                    .font(.system(size: 60))
-//                    .foregroundColor(.green)
-//                    .padding(.top, 32)
-//
-//                Text("Ссылка отправлена!")
-//                    .font(.title2)
-//                    .fontWeight(.bold)
-//                    .foregroundColor(.primary)
-//
-//                Text("Мы отправили ссылку для сброса пароля на \(email). Проверьте папку 'Спам', если письмо не появилось.")
-//                    .multilineTextAlignment(.center)
-//                    .foregroundColor(.secondary)
-//                    .padding(.horizontal, 24)
-//
-//                Button(action: { dismiss() }) {
-//                    Text("Вернуться к входу")
-//                        .frame(maxWidth: .infinity)
-//                        .padding()
-//                        .background(Color.appPurple)
-//                        .foregroundColor(.white)
-//                        .cornerRadius(16)
-//                }
-//                .padding(.horizontal, 24)
-//                .padding(.top, 16)
-//
-//                Spacer()
-//            }
-//        }
-//        .navigationTitle("Сброс пароля")
-//        .navigationBarTitleDisplayMode(.inline)
-//    }
-//}
