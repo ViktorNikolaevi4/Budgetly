@@ -8,9 +8,8 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if let _ = auth.cloudUserRecordID {
-                // Пользователь уже есть в iCloud / SwiftData — пойдём в основной UI
-                ContentView()
+            if auth.cloudUserRecordID != nil || auth.firebaseUserID != nil {
+              ContentView()
             } else {
                 // Показываем flow логина/регистрации
                 AuthFlowView(showLogin: $showLogin)

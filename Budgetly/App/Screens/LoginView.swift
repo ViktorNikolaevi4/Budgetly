@@ -174,34 +174,50 @@ struct LoginView: View {
     }
 
     private func login() {
-        guard formValid else { return }
-        emailError = nil
-        passwordError = nil
-        isLoading = true
+      guard formValid else { return }
+      emailError = nil
+      passwordError = nil
+      isLoading = true
 
-        DispatchQueue.global().async {
-            let result = auth.login(email: email, password: password)
-            DispatchQueue.main.async {
-                isLoading = false
-                switch result {
-                case .success:
-                    dismiss()
-                case .failure(let err):
-                    switch err {
-                    case .userNotFound:
-                        emailError = "Не удалось найти такой e-mail."
-                    case .wrongPassword:
-                        passwordError = "Пароль неверный."
-                    case .emptyFields:
-                        if email.isEmpty { emailError = "Введите e-mail" }
-                        if password.isEmpty { passwordError = "Введите пароль" }
-                    case .unknown:
-                        alertMessage = err.errorDescription ?? ""
-                        showAlert = true
-                    }
-                }
-            }
+      auth.login(
+        email: email,
+        password: password,
+        modelContext: modelContext   // ← здесь прокинули контекст
+      ) { result in
+        // Обязательно назад на main, чтобы обновить UI
+        DispatchQueue.main.async {
+          isLoading = false
+          switch result {
+          case .success:
+            dismiss()
+
+          case .failure(let err):
+              switch err {
+              case .userNotFound:
+                  emailError = "Не удалось найти такой e-mail."
+              case .wrongPassword:
+                  passwordError = "Пароль неверный."
+              case .emptyFields:
+                  if email.isEmpty    { emailError    = "Введите e-mail" }
+                  if password.isEmpty { passwordError = "Введите пароль" }
+              case .emailExists:
+                  alertMessage = err.errorDescription!
+                  showAlert    = true
+              case .invalidEmail:
+                  emailError   = err.errorDescription
+              case .weakPassword:
+                  passwordError = err.errorDescription
+              case .unknown:
+                  alertMessage = err.errorDescription ?? "Неизвестная ошибка"
+                  showAlert    = true
+              @unknown default:
+                  alertMessage = err.errorDescription ?? "Неизвестная ошибка"
+                  showAlert    = true
+              }
+
+          }
         }
+      }
     }
 }
 
@@ -216,6 +232,8 @@ struct ForgotPasswordView: View {
     @State private var alertMessage: String = ""
     @State private var emailError: String? = nil
     @State private var showSent = false
+
+    
 
     var body: some View {
         ZStack {
@@ -255,13 +273,14 @@ struct ForgotPasswordView: View {
                             .padding(.top, -12)
                     }
 
-                    Button(action: sendReset) {
-                        if isSending {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                        } else {
+                    Button {
+                      Task {
+                        await sendReset()
+                      }
+                    } label: {
+                      if isSending {
+                        ProgressView().frame(maxWidth: .infinity).padding(.vertical, 14)
+                      } else {
                             Text("Отправить ссылку")
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -286,16 +305,14 @@ struct ForgotPasswordView: View {
             }
         }
         .alert(alertMessage, isPresented: $showAlert) {
-            Button("OK") {
-                if emailError == nil {
-                    dismiss()
-                }
+          Button("OK") {
+            // если успешно — уходим назад
+            if alertMessage.contains("отправлена") {
+              dismiss()
             }
+          }
         }
-        .onChange(of: email) { _ in
-            emailError = nil
-        }
-    }
+      }
 
     private var isFormValid: Bool {
         !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
@@ -307,37 +324,31 @@ struct ForgotPasswordView: View {
         return NSPredicate(format: "SELF MATCHES %@", regex).evaluate(with: email)
     }
 
-    private func sendReset() {
+    private func sendReset() async {
         guard isFormValid else {
-            if email.isEmpty {
-                emailError = "Введите e-mail"
-            } else if !isValidEmail(email) {
-                emailError = "Некорректный e-mail"
-            }
-            return
+          emailError = email.isEmpty ? "Введите e-mail" : "Некорректный e-mail"
+          return
         }
         emailError = nil
         isSending = true
 
-        DispatchQueue.global().async {
-            let result = auth.sendPasswordReset(email: email)
-            DispatchQueue.main.async {
-                isSending = false
-                switch result {
-                case .success:
-                    showSent = true
-                    alertMessage = "Ссылка для сброса пароля отправлена на \(email)."
-                    showAlert = true
-                case .failure(let err):
-                    switch err {
-                    case .userNotFound:
-                        emailError = "Пользователь с таким e-mail не найден."
-                    default:
-                        alertMessage = err.errorDescription ?? "Не удалось отправить ссылку."
-                        showAlert = true
-                    }
-                }
-            }
+        do {
+          try await auth.sendPasswordReset(email: email)
+          alertMessage = "📧 Ссылка для сброса пароля отправлена на \(email)."
+        } catch let err as AuthService.AuthError {
+          switch err {
+          case .emptyFields:
+            alertMessage = "Введите корректный e-mail."
+          case .userNotFound:
+            alertMessage = "Пользователь с таким e-mail не найден."
+          default:
+            alertMessage = err.errorDescription ?? "Не удалось отправить ссылку."
+          }
+        } catch {
+          alertMessage = error.localizedDescription
         }
-    }
+
+        isSending = false
+        showAlert = true
+      }
 }

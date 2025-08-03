@@ -3,9 +3,16 @@ import SwiftData
 import UserNotifications
 import Observation
 import CloudKit
+import Firebase
+import FirebaseCore
 
 @main
 struct BudgetlyApp: App {
+
+    init() {
+        FirebaseApp.configure()
+    }
+
     private let modelContainer: ModelContainer = {
         let schema = Schema([
             Transaction.self,

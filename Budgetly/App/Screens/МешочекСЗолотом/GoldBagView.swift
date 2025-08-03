@@ -21,6 +21,7 @@ class Asset: Identifiable {
     var id: UUID = UUID() // Default value
     var name: String = "" // Default value
     var price: Double = 0.0 // Default value
+  //  var ownerUserRecordID: String?
 
     @Relationship(inverse: \AssetType.assets)
     var assetType: AssetType? // Relationship to AssetType with inverse
