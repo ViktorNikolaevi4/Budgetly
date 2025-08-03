@@ -1,7 +1,6 @@
 import Foundation
 import SwiftData
 
-
 @Model
 class Account: Identifiable {
     var id: UUID = UUID()

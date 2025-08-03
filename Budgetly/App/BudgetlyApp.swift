@@ -18,7 +18,7 @@ struct BudgetlyApp: App {
 
         let config = ModelConfiguration(
             schema: schema,
-            cloudKitDatabase: .private("iCloud.Korolvoff.Budgetly2")
+            cloudKitDatabase: .automatic
         )
 
         do {
@@ -28,7 +28,7 @@ struct BudgetlyApp: App {
         }
     }()
 
-    @State private var auth = AuthService() // Используем @State вместо @StateObject
+    @State private var ckService = CloudKitService()
 
     init() {
         requestNotificationPermission()
@@ -37,7 +37,7 @@ struct BudgetlyApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environment(\.authService, auth)
+                .environment(\.cloudKitService, ckService)
         }
         .modelContainer(modelContainer)
     }
