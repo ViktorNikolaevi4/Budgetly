@@ -104,65 +104,87 @@ struct AddTransactionView: View {
 
 
     struct FlowLayout: Layout {
-        var spacing: CGFloat = 10
+        let spacing: CGFloat
 
-        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-            let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
-            var totalHeight: CGFloat = 0
-            var totalWidth: CGFloat = 0
-            var lineWidth: CGFloat = 0
-            var lineHeight: CGFloat = 0
-
-            for size in sizes {
-                if lineWidth + size.width > (proposal.width ?? 0) && lineWidth > 0 {
-                    totalWidth = max(totalWidth, lineWidth)
-                    totalHeight += lineHeight + spacing
-                    lineWidth = 0
-                    lineHeight = 0
-                }
-                lineWidth += size.width + spacing
-                lineHeight = max(lineHeight, size.height)
-            }
-
-            totalWidth = max(totalWidth, lineWidth)
-            totalHeight += lineHeight
-
-            return CGSize(width: max(totalWidth - spacing, 0), height: totalHeight)
+        init(spacing: CGFloat = 8) {
+            self.spacing = spacing
         }
 
-        func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-            let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
-            var lineWidth: CGFloat = 0
-            var lineHeight: CGFloat = 0
-            var y: CGFloat = bounds.minY
-            var x: CGFloat = bounds.minX
+        func sizeThatFits(
+            proposal: ProposedViewSize,
+            subviews: Subviews,
+            cache: inout Void
+        ) -> CGSize {
+            let n = subviews.count
+            guard n > 0 else { return .zero }
 
-            for (index, subview) in subviews.enumerated() {
-                let size = sizes[index]
+            // Сколько ячеек на строку (ceil(n/2))
+            let perRow = Int(ceil(Double(n) / 2.0))
 
-                if lineWidth + size.width > bounds.width && lineWidth > 0 {
-                    x = bounds.minX
-                    y += lineHeight + spacing
-                    lineWidth = 0
-                    lineHeight = 0
+            // Посчитаем ширину каждой строки и высоту
+            var maxWidth: CGFloat = 0
+            var rowHeights: [CGFloat] = []
+
+            for row in 0..<2 {
+                let start = row * perRow
+                let end = min(start + perRow, n)
+                guard start < end else { break }
+                let sizes = subviews[start..<end].map { $0.sizeThatFits(.unspecified) }
+                let rowW = sizes.reduce(0) { $0 + $1.width } + CGFloat(sizes.count - 1) * spacing
+                maxWidth = max(maxWidth, rowW)
+                rowHeights.append(sizes.map(\.height).max() ?? 0)
+            }
+
+            let totalHeight = rowHeights.reduce(0, +) + CGFloat(rowHeights.count - 1) * spacing
+            return CGSize(width: maxWidth, height: totalHeight)
+        }
+
+        func placeSubviews(
+            in bounds: CGRect,
+            proposal: ProposedViewSize,
+            subviews: Subviews,
+            cache: inout Void
+        ) {
+            let n = subviews.count
+            guard n > 0 else { return }
+
+            let perRow = Int(ceil(Double(n) / 2.0))
+
+            // Вычислим высоты строк, чтобы центровать элементы по вертикали
+            let rowHeights: [CGFloat] = (0..<2).compactMap { row in
+                let start = row * perRow, end = min(start + perRow, n)
+                guard start < end else { return nil }
+                return subviews[start..<end]
+                    .map { $0.sizeThatFits(.unspecified).height }
+                    .max()
+            }
+
+            var y = bounds.minY
+            for row in 0..<rowHeights.count {
+                let start = row * perRow
+                let end = min(start + perRow, n)
+                let sizes = subviews[start..<end].map { $0.sizeThatFits(.unspecified) }
+                var x = bounds.minX
+
+                for (i, subview) in subviews[start..<end].enumerated() {
+                    let size = sizes[i]
+                    // центрируем по вертикали в строке
+                    let yOffset = (rowHeights[row] - size.height) / 2
+                    subview.place(
+                        at: CGPoint(x: x, y: y + yOffset),
+                        anchor: .topLeading,
+                        proposal: ProposedViewSize(size)
+                    )
+                    x += size.width + spacing
                 }
-
-                subview.place(
-                    at: CGPoint(x: x, y: y + (size.height / 2)),
-                    anchor: .leading,
-                    proposal: ProposedViewSize(width: size.width, height: size.height)
-                )
-
-                x += size.width + spacing
-                lineWidth += size.width + spacing
-                lineHeight = max(lineHeight, size.height)
+                y += rowHeights[row] + spacing
             }
         }
     }
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 10) {
                 VStack(spacing: 16) {
                     Picker("Тип операции", selection: $selectedType) {
                         Text("Расходы").tag(CategoryType.expenses)
@@ -213,6 +235,7 @@ struct AddTransactionView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
+//                .ignoresSafeArea(.keyboard, edges: .bottom)
 
                 HStack {
                     Button {
