@@ -330,7 +330,6 @@ struct AddTransactionView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Новая операция")
-                        .font(.title3)
                         .fontWeight(.medium)
                         .foregroundStyle(.black)
                 }

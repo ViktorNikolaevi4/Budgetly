@@ -1,5 +1,6 @@
 import CloudKit
 import Observation
+import SwiftData
 
 @Observable
 final class CloudKitService {
@@ -59,3 +60,79 @@ final class CloudKitService {
         }
     }
 }
+extension CloudKitService {
+    func clearCloudKitData(completion: @escaping (Result<Void, Error>) -> Void) {
+        let container = CKContainer(identifier: "iCloud.Korolvoff.Budgetly2")
+        let databases = [container.privateCloudDatabase, container.sharedCloudDatabase]
+        let group = DispatchGroup()
+        var deletionError: Error?
+
+        for database in databases {
+            // Получаем все зоны в базе
+            group.enter()
+            database.fetchAllRecordZones { zones, error in
+                if let error = error {
+                    deletionError = error
+                    group.leave()
+                    return
+                }
+
+                guard let zones = zones else {
+                    group.leave()
+                    return
+                }
+
+                // Удаляем каждую зону
+                let zoneGroup = DispatchGroup()
+                for zone in zones {
+                    zoneGroup.enter()
+                    database.delete(withRecordZoneID: zone.zoneID) { _, error in
+                        if let error = error {
+                            deletionError = error
+                        }
+                        zoneGroup.leave()
+                    }
+                }
+
+                zoneGroup.notify(queue: .main) {
+                    group.leave()
+                }
+            }
+        }
+
+        group.notify(queue: .main) {
+            if let error = deletionError {
+                completion(.failure(error))
+            } else {
+                completion(.success(()))
+            }
+        }
+    }
+}
+
+enum CloudKitError: Error {
+    case unknown
+}
+
+// MARK: — Функция очистки всех локальных данных SwiftData
+func clearLocalData(in context: ModelContext) throws {
+    let allAccounts     = try context.fetch(FetchDescriptor<Account>())
+    let allTransactions = try context.fetch(FetchDescriptor<Transaction>())
+    let allCategories   = try context.fetch(FetchDescriptor<Category>())
+    let allPayments     = try context.fetch(FetchDescriptor<RegularPayment>())
+    let allReminders    = try context.fetch(FetchDescriptor<Reminder>())
+    let allAssets       = try context.fetch(FetchDescriptor<Asset>())
+    let allAssetTypes   = try context.fetch(FetchDescriptor<AssetType>())
+
+    // Удаляем по-отдельности
+    allAccounts    .forEach { context.delete($0) }
+    allTransactions.forEach { context.delete($0) }
+    allCategories  .forEach { context.delete($0) }
+    allPayments    .forEach { context.delete($0) }
+    allReminders   .forEach { context.delete($0) }
+    allAssets      .forEach { context.delete($0) }
+    allAssetTypes  .forEach { context.delete($0) }
+
+    try context.save()
+}
+
