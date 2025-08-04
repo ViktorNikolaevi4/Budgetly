@@ -208,6 +208,12 @@ struct AddTransactionView: View {
                         .focused($isAmountFieldFocused)
                         .foregroundColor(.black)
                         .padding(.horizontal)
+                        .task {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                    print("Setting focus at \(Date())")
+                                    isAmountFieldFocused = true
+                                }
+                            }
                 }.padding(.top, 0)
 
                 ScrollView {
@@ -349,26 +355,9 @@ struct AddTransactionView: View {
                     )
                 }
             }
-//            .sheet(isPresented: $showNewCategorySheet) {
-//                NewCategoryView(
-//                    initialType: selectedType,
-//                    onSave: { name, icon, color in // Теперь принимаем цвет
-//                        addNewCategory(name: name, icon: icon, color: color)
-//                        showNewCategorySheet = false
-//                    },
-//                    onCancel: {
-//                        showNewCategorySheet = false
-//                    }
-//                )
-//            }
             .navigationBarTitleDisplayMode(.inline)
         }
         .foregroundStyle(.black)
-        .onAppear {
-            DispatchQueue.main.async {
-                isAmountFieldFocused = true
-            }
-        }
     }
 
     private func addNewCategory(name: String, icon: String?, color: Color?) {
