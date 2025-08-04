@@ -304,17 +304,21 @@ struct AddTransactionView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 10)
 
-                Button("Добавить") {
+                Button(action: {
                     saveTransaction()
+                }) {
+                    Text("Добавить")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(Color.appPurple)
+                        .cornerRadius(16)
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(Color.appPurple)
-                .foregroundStyle(.white)
-                .cornerRadius(16)
+                .contentShape(Rectangle()) // Задаёт область нажатия для всей рамки
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
+        //    .contentShape(Rectangle())
             .background(Color("BackgroundLightGray"))
             .scrollContentBackground(.hidden)
             .toolbar {
