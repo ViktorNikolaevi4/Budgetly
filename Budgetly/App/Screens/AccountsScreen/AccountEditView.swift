@@ -15,18 +15,18 @@ struct AccountEditView: View {
                 ZStack {
                     Circle()
                         .strokeBorder(Color.appPurple, lineWidth: 9)
-                        .background(Circle().foregroundColor(Color.lightPurprApple)) // Предполагаем адаптивный lightPurprApple
+                        .background(Circle().foregroundColor(Color.lightPurprApple))
                         .frame(width: 58, height: 58)
                     Text(currencySymbols[account.currency ?? ""] ?? "")
                         .font(.system(size: 28, weight: .heavy))
-                        .foregroundColor(.white) // Белый для контраста
+                        .foregroundColor(.white)
                 }
                 .padding(.top, 8)
 
                 Form {
                     Section {
                         TextField("Название счета", text: $account.name)
-                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
+                            .foregroundColor(Color(UIColor.label))
                     }
 
                     Section {
@@ -41,14 +41,14 @@ struct AccountEditView: View {
                                 Text(account.currency ?? "—")
                             }
                             .pickerStyle(.menu)
-                            .tint(Color(UIColor.secondaryLabel)) // Адаптивный цвет для Picker (был .gray)
+                            .tint(Color(UIColor.secondaryLabel))
                         }
 
                         HStack {
                             Text("Баланс")
                             Spacer()
                             Text(account.formattedBalance)
-                                .foregroundColor(Color(UIColor.secondaryLabel)) // Адаптивный вторичный цвет
+                                .foregroundColor(Color(UIColor.secondaryLabel))
                         }
                     }
 
@@ -63,7 +63,7 @@ struct AccountEditView: View {
                         }
                     }
                 }
-                .background(Color(UIColor.systemBackground)) // Адаптивный фон для формы
+                .background(Color(UIColor.systemBackground))
             }
             .navigationTitle("Редактировать")
             .navigationBarTitleDisplayMode(.inline)
@@ -81,7 +81,7 @@ struct AccountEditView: View {
                         catch { print("Ошибка при сохранении изменений в счет: \(error)") }
                         dismiss()
                     }
-                    .foregroundColor(account.name.isEmpty ? Color(UIColor.secondaryLabel) : .appPurple) // Адаптивный серый
+                    .foregroundColor(account.name.isEmpty ? Color(UIColor.secondaryLabel) : .appPurple)
                     .disabled(account.name.isEmpty)
                 }
             }
@@ -94,7 +94,7 @@ struct AccountEditView: View {
                 Text("Все связанные транзакции и категории будут удалены без возможности восстановления.")
             }
         }
-        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
+        .foregroundStyle(Color(UIColor.label))
     }
 
     private func deleteSelf() {

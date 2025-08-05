@@ -7,6 +7,7 @@ let supportedCurrencies: [String] = ["RUB","USD","EUR","GBP","JPY","CNY"]
 
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme // Для определения темы
     @State private var editMode: EditMode = .inactive
     @State private var isShowingAddAccountSheet = false
     @State private var pendingDeleteOffsets: IndexSet = []
@@ -46,7 +47,7 @@ struct AccountsScreen: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Color(UIColor.systemBackground)) // Адаптивный фон (был .systemGray6)
+            .background(colorScheme == .dark ? Color(UIColor.systemGray5) : Color(UIColor.systemBackground))
             .environment(\.editMode, $editMode)
             .navigationTitle("Счета")
             .toolbar {
@@ -56,7 +57,7 @@ struct AccountsScreen: View {
                             editMode = editMode.isEditing ? .inactive : .active
                         }
                     }
-                    .foregroundColor(.appPurple) // Предполагаем адаптивный appPurple
+                    .foregroundColor(.appPurple)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { isShowingAddAccountSheet = true } label: {
@@ -111,36 +112,36 @@ struct AccountsScreen: View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
                 .foregroundColor(.clear)
-                .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон карточки (был .white)
+                .background(colorScheme == .dark ? Color(UIColor.secondarySystemBackground) : .white) // Белый в светлой, адаптивный в темной
                 .cornerRadius(20)
-                .shadow(color: Color(UIColor.systemGray).opacity(0.16), radius: 16, x: 3, y: 6) // Адаптивная тень
+                .shadow(color: Color(UIColor.systemGray).opacity(0.16), radius: 16, x: 3, y: 6)
 
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
                         .strokeBorder(Color.appPurple, lineWidth: 7)
-                        .background(Circle().foregroundColor(Color.lightPurprApple)) // Предполагаем адаптивный lightPurprApple
+                        .background(Circle().foregroundColor(Color.lightPurprApple))
                         .frame(width: 44, height: 44)
                     Text(currencySymbols[account.currency ?? ""] ?? "")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white) // Белый для контраста на lightPurprApple
+                        .foregroundColor(.white)
                 }
                 .padding(.leading, 8)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(account.name)
                         .font(.body).fontWeight(.medium)
-                        .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста (был .primary)
+                        .foregroundColor(Color(UIColor.label))
                     Text(account.currency ?? "")
                         .font(.subheadline)
-                        .foregroundColor(Color(UIColor.secondaryLabel)) // Адаптивный вторичный цвет (был .secondary)
+                        .foregroundColor(Color(UIColor.secondaryLabel))
                 }
 
                 Spacer()
 
                 Text(account.formattedBalance)
                     .font(.body).fontWeight(.medium)
-                    .foregroundStyle(account.balance < 0 ? .red : Color(UIColor.label)) // Адаптивный цвет для положительного баланса
+                    .foregroundStyle(account.balance < 0 ? .red : Color(UIColor.label))
                     .padding(.trailing, 12)
             }
         }
@@ -162,11 +163,11 @@ struct AccountCreationView: View {
                     ZStack {
                         Circle()
                             .strokeBorder(Color.appPurple, lineWidth: 9)
-                            .background(Circle().foregroundColor(Color.lightPurprApple)) // Предполагаем адаптивный lightPurprApple
+                            .background(Circle().foregroundColor(Color.lightPurprApple))
                             .frame(width: 58, height: 58)
                         Text(currencySymbols[selectedCurrency] ?? "")
                             .font(.system(size: 28, weight: .heavy))
-                            .foregroundColor(.white) // Белый для контраста
+                            .foregroundColor(.white)
                     }
                 }
                 .padding(.top, 8)
@@ -174,7 +175,7 @@ struct AccountCreationView: View {
                 Form {
                     Section {
                         TextField("Название счета", text: $accountName)
-                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
+                            .foregroundColor(Color(UIColor.label))
                     }
                     Section {
                         HStack {
@@ -187,7 +188,7 @@ struct AccountCreationView: View {
                                 }
                             }
                             .pickerStyle(.menu)
-                            .tint(Color(UIColor.secondaryLabel)) // Адаптивный цвет для Picker
+                            .tint(Color(UIColor.secondaryLabel))
                         }
                         HStack {
                             Text("Начальный баланс")
@@ -196,14 +197,14 @@ struct AccountCreationView: View {
                                 .multilineTextAlignment(.trailing)
                                 .keyboardType(.decimalPad)
                                 .frame(width: 100)
-                                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
+                                .foregroundColor(Color(UIColor.label))
                             Text(currencySymbols[selectedCurrency]!)
                                 .padding(.leading, 4)
-                                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет
+                                .foregroundColor(Color(UIColor.label))
                         }
                     }
                 }
-                .background(Color(UIColor.systemBackground)) // Адаптивный фон для формы
+                .background(Color(UIColor.systemBackground))
             }
             .navigationTitle("Новый счет")
             .navigationBarTitleDisplayMode(.inline)
@@ -218,11 +219,11 @@ struct AccountCreationView: View {
                         dismiss()
                     }
                     .disabled(accountName.isEmpty)
-                    .foregroundColor(accountName.isEmpty ? Color(UIColor.secondaryLabel) : .appPurple) // Адаптивный серый
+                    .foregroundColor(accountName.isEmpty ? Color(UIColor.secondaryLabel) : .appPurple)
                 }
             }
         }
-        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
+        .foregroundStyle(Color(UIColor.label))
     }
 
     private func addAccount() {
