@@ -50,7 +50,7 @@ struct ContentView: View {
         }
         .background(Color(UIColor.systemGray6)) // Фон TabView
         .onAppear {
-            createDefaultAccountIfNeeded()
+        //    createDefaultAccountIfNeeded()
             let appearance = UITabBarAppearance()
             appearance.configureWithOpaqueBackground()
 
@@ -71,18 +71,23 @@ struct ContentView: View {
         }
 
     }
-    private func createDefaultAccountIfNeeded() {
-        guard accounts.isEmpty else { return }
+//    func createDefaultAccountIfNeeded(in context: ModelContext) async {
+//        // ждём CloudKit
+//        try? await Task.sleep(for: .seconds(3))
+//
+//        let desc = FetchDescriptor<Account>(
+//            predicate: #Predicate { $0.name == "Основной счёт" && $0.currency ?? "" == "RUB" }
+//        )
+//
+//        let count = (try? context.fetchCount(desc)) ?? 0   // ⚡️ нет throws
+//        guard count == 0 else { return }
+//
+//        let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
+//        context.insert(acc)
+//        Category.seedDefaults(for: acc, in: context)
+//        try? context.save()
+//    }
 
-        let defaultAccount = Account(name: "Основной счет")
-        modelContext.insert(defaultAccount)
-
-        do {
-            try modelContext.save()
-        } catch {
-            print("Ошибка сохранения Основного счета: \(error.localizedDescription)")
-        }
-    }
 }
 
 

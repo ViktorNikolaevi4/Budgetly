@@ -68,7 +68,3 @@ final class CloudKitService {
       // но с `.automatic` SwiftData синхронизирует сам
     }
 }
-
-
-
-

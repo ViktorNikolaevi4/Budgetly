@@ -101,13 +101,13 @@ struct SettingsScreen: View {
                         }
                     }
                 }
-                Section {
-                    Button(role: .destructive) {
-                        logout()
-                    } label: {
-                        Label("Выйти", systemImage: "arrow.right.circle.fill")
-                    }
-                }
+//                Section {
+//                    Button(role: .destructive) {
+//                        logout()
+//                    } label: {
+//                        Label("Выйти", systemImage: "arrow.right.circle.fill")
+//                    }
+//                }
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("Настройки")
@@ -133,15 +133,15 @@ struct SettingsScreen: View {
         }
     }
 
-    private func logout() {
-        do {
-            // Очищаем только локальное хранилище — SwiftData автоматически подтянет данные из iCloud
-            try clearLocalData(in: modelContext)
-        } catch {
-            clearError = error
-            showClearError = true
-        }
-    }
+//    private func logout() {
+//        do {
+//            // Очищаем только локальное хранилище — SwiftData автоматически подтянет данные из iCloud
+//            try clearLocalData(in: modelContext)
+//        } catch {
+//            clearError = error
+//            showClearError = true
+//        }
+//    }
 
 }
 //struct AuthSheet: View {
