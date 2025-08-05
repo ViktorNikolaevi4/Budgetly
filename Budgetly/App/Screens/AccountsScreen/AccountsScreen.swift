@@ -7,20 +7,12 @@ let supportedCurrencies: [String] = ["RUB","USD","EUR","GBP","JPY","CNY"]
 
 struct AccountsScreen: View {
     @Environment(\.modelContext) private var modelContext
-
-    // Режим редактирования списка
     @State private var editMode: EditMode = .inactive
-    // Для показа sheet
     @State private var isShowingAddAccountSheet = false
-    // Для отложенного удаления
     @State private var pendingDeleteOffsets: IndexSet = []
     @State private var showDeleteAlert = false
-
     @State private var didSeedDefault = false
-
-    // Сортируем по sortOrder
-    @Query(sort: \Account.sortOrder, order: .forward)
-    private var accounts: [Account]
+    @Query(sort: \Account.sortOrder, order: .forward) private var accounts: [Account]
 
     var body: some View {
         NavigationStack {
@@ -39,12 +31,10 @@ struct AccountsScreen: View {
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets())
                 }
-                // вернули минусы
                 .onDelete { offsets in
                     pendingDeleteOffsets = offsets
                     showDeleteAlert = true
                 }
-                // хваталки для перетаскивания
                 .onMove { indices, newOffset in
                     var reordered = accounts
                     reordered.move(fromOffsets: indices, toOffset: newOffset)
@@ -56,23 +46,18 @@ struct AccountsScreen: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .scrollContentBackground(.hidden)
-            .background(Color(.systemGray6))
-            // прокидываем режим редактирования, чтобы List знал о нем
+            .background(Color(UIColor.systemBackground)) // Адаптивный фон (был .systemGray6)
             .environment(\.editMode, $editMode)
-
             .navigationTitle("Счета")
             .toolbar {
-                // левая кнопка: Править<->Готово
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(editMode.isEditing ? "Готово" : "Править") {
                         withAnimation {
                             editMode = editMode.isEditing ? .inactive : .active
                         }
                     }
-                    .foregroundColor(.appPurple)
+                    .foregroundColor(.appPurple) // Предполагаем адаптивный appPurple
                 }
-                // правая кнопка: +
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { isShowingAddAccountSheet = true } label: {
                         Image(systemName: "plus")
@@ -83,7 +68,6 @@ struct AccountsScreen: View {
             .sheet(isPresented: $isShowingAddAccountSheet) {
                 AccountCreationView(modelContext: modelContext)
             }
-            // алерт подтверждения удаления
             .alert("Удалить выбранный счет?", isPresented: $showDeleteAlert) {
                 Button("Удалить", role: .destructive) {
                     performPendingDelete()
@@ -104,27 +88,18 @@ struct AccountsScreen: View {
     private func seedDefaultAccountIfNeeded() {
         guard !didSeedDefault else { return }
         didSeedDefault = true
-
-        // SwiftData автоматически синхронизирует CloudKit,
-        // и @Query уже содержит remote-записи, если они есть.
-        guard accounts.isEmpty else {
-          // В облаке/локально уже есть хотя бы один счёт
-          return
-        }
-
-        // Ничего нет — заводим
+        guard accounts.isEmpty else { return }
         let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
         modelContext.insert(acc)
         Category.seedDefaults(for: acc, in: modelContext)
         try? modelContext.save()
-      }
+    }
 
     private func performPendingDelete() {
         for idx in pendingDeleteOffsets {
             let account = accounts[idx]
-            // удаляем связанные транзакции и категории
             for tx in account.allTransactions { modelContext.delete(tx) }
-            for cat in account.allCategories  { modelContext.delete(cat) }
+            for cat in account.allCategories { modelContext.delete(cat) }
             modelContext.delete(account)
         }
         pendingDeleteOffsets = []
@@ -136,39 +111,36 @@ struct AccountsScreen: View {
         ZStack {
             RoundedRectangle(cornerRadius: 20)
                 .foregroundColor(.clear)
-                .background(Color.white)
+                .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон карточки (был .white)
                 .cornerRadius(20)
-                .shadow(color: .black.opacity(0.16), radius: 16, x: 3, y: 6)
+                .shadow(color: Color(UIColor.systemGray).opacity(0.16), radius: 16, x: 3, y: 6) // Адаптивная тень
 
             HStack(spacing: 12) {
-                // бейдж валюты
                 ZStack {
                     Circle()
                         .strokeBorder(Color.appPurple, lineWidth: 7)
-                        .background(Circle().foregroundColor(Color.lightPurprApple))
+                        .background(Circle().foregroundColor(Color.lightPurprApple)) // Предполагаем адаптивный lightPurprApple
                         .frame(width: 44, height: 44)
                     Text(currencySymbols[account.currency ?? ""] ?? "")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.white) // Белый для контраста на lightPurprApple
                 }
                 .padding(.leading, 8)
 
-                // название и код
                 VStack(alignment: .leading, spacing: 4) {
                     Text(account.name)
                         .font(.body).fontWeight(.medium)
-                        .foregroundColor(.primary)
+                        .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста (был .primary)
                     Text(account.currency ?? "")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color(UIColor.secondaryLabel)) // Адаптивный вторичный цвет (был .secondary)
                 }
 
                 Spacer()
 
-                // баланс
                 Text(account.formattedBalance)
                     .font(.body).fontWeight(.medium)
-                    .foregroundStyle(account.balance < 0 ? .red : .primary)
+                    .foregroundStyle(account.balance < 0 ? .red : Color(UIColor.label)) // Адаптивный цвет для положительного баланса
                     .padding(.trailing, 12)
             }
         }
@@ -186,16 +158,15 @@ struct AccountCreationView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                // бейдж валюты
                 VStack(spacing: 8) {
                     ZStack {
                         Circle()
                             .strokeBorder(Color.appPurple, lineWidth: 9)
-                            .background(Circle().foregroundColor(.lightPurprApple))
+                            .background(Circle().foregroundColor(Color.lightPurprApple)) // Предполагаем адаптивный lightPurprApple
                             .frame(width: 58, height: 58)
                         Text(currencySymbols[selectedCurrency] ?? "")
                             .font(.system(size: 28, weight: .heavy))
-                            .foregroundColor(.white)
+                            .foregroundColor(.white) // Белый для контраста
                     }
                 }
                 .padding(.top, 8)
@@ -203,29 +174,36 @@ struct AccountCreationView: View {
                 Form {
                     Section {
                         TextField("Название счета", text: $accountName)
+                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                     }
                     Section {
                         HStack {
-                            Text("Валюта"); Spacer()
+                            Text("Валюта")
+                            Spacer()
                             Picker("", selection: $selectedCurrency) {
                                 ForEach(supportedCurrencies, id: \.self) { code in
                                     Text("\(currencySymbols[code]!) \(code)")
                                         .tag(code)
                                 }
                             }
-                            .pickerStyle(.menu).tint(.gray)
+                            .pickerStyle(.menu)
+                            .tint(Color(UIColor.secondaryLabel)) // Адаптивный цвет для Picker
                         }
                         HStack {
-                            Text("Начальный баланс"); Spacer()
+                            Text("Начальный баланс")
+                            Spacer()
                             TextField("0", text: $initialBalanceText)
                                 .multilineTextAlignment(.trailing)
                                 .keyboardType(.decimalPad)
                                 .frame(width: 100)
+                                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                             Text(currencySymbols[selectedCurrency]!)
                                 .padding(.leading, 4)
+                                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет
                         }
                     }
                 }
+                .background(Color(UIColor.systemBackground)) // Адаптивный фон для формы
             }
             .navigationTitle("Новый счет")
             .navigationBarTitleDisplayMode(.inline)
@@ -240,10 +218,11 @@ struct AccountCreationView: View {
                         dismiss()
                     }
                     .disabled(accountName.isEmpty)
-                    .foregroundColor(accountName.isEmpty ? .gray : .appPurple)
+                    .foregroundColor(accountName.isEmpty ? Color(UIColor.secondaryLabel) : .appPurple) // Адаптивный серый
                 }
             }
         }
+        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
     }
 
     private func addAccount() {
@@ -251,7 +230,6 @@ struct AccountCreationView: View {
             let norm = initialBalanceText.replacingOccurrences(of: ",", with: ".")
             return Double(norm)
         }()
-        // вставляем новый со вторым параметром sortOrder = текущий count
         let newAcc = Account(
             name: accountName,
             currency: selectedCurrency,
@@ -263,14 +241,13 @@ struct AccountCreationView: View {
         try? modelContext.save()
     }
 
-    // helper
     private func accountsCount() -> Int {
-        // Query недоступен здесь, но можно сделать fetch:
         let fetch = FetchDescriptor<Account>(sortBy: [])
         let all = (try? modelContext.fetch(fetch)) ?? []
         return all.count
     }
 }
+
 func fixNilCurrencies(_ context: ModelContext) {
     let fetch = FetchDescriptor<Account>()
     if let accs = try? context.fetch(fetch) {
