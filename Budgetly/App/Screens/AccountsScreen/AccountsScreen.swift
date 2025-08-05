@@ -35,6 +35,9 @@ struct AccountsScreen: View {
                             .padding(.horizontal)
                             .padding(.vertical, 6)
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
                 }
                 // вернули минусы
                 .onDelete { offsets in
@@ -53,22 +56,10 @@ struct AccountsScreen: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .scrollContentBackground(.hidden)
             .background(Color(.systemGray6))
             // прокидываем режим редактирования, чтобы List знал о нем
             .environment(\.editMode, $editMode)
-
-            // кнопка «Добавить»
-//            Button("Добавить новый счет") {
-//                isShowingAddAccountSheet = true
-//            }
-//            .font(.headline)
-//            .frame(maxWidth: .infinity)
-//            .padding()
-//            .background(Color.appPurple)
-//            .foregroundColor(.white)
-//            .cornerRadius(16)
-//            .padding(.horizontal)
-//            .padding(.bottom, 20)
 
             .navigationTitle("Счета")
             .toolbar {
