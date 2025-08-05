@@ -434,7 +434,7 @@ struct HomeScreen: View {
                 
                 // 6) Убираем ручное добавление знака минус, так как toShortStringWithSuffix уже включает знак
                 Text("\(amountText)\(currencySign)")
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
                     .font(.title.weight(.bold))
             }
 

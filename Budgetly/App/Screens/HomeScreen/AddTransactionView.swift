@@ -48,12 +48,9 @@ struct AddTransactionView: View {
     private var filteredCategories: [Category] {
         guard let acct = account else { return [] }
         let txType: TransactionType = (selectedType == .income) ? .income : .expenses
-        // Сначала фильтруем по совпадению счёта и типа:
         let cats = allCategories.filter {
             $0.account?.id == acct.id && $0.type == selectedType
         }
-
-        // Затем сортируем уже отфильтрованные:
         return cats.sorted { lhs, rhs in
             if lhs.name == Category.uncategorizedName { return true }
             if rhs.name == Category.uncategorizedName { return false }
@@ -71,40 +68,25 @@ struct AddTransactionView: View {
         }
     }
 
-
     private var visibleCategories: [Category?] {
         let cats = filteredCategories
         let maxQuick = 7
-
-        // если категорий мало — возвращаем все
         guard cats.count > maxQuick else {
             return cats.map { Optional($0) }
         }
-
         var quick = Array(cats.prefix(maxQuick))
-
-        // Найдём выбранную категорию (в т.ч. только что созданную)
         if let selected = cats.first(where: { $0.name == selectedCategory }) {
-
-            // Если её нет в первых maxQuick — вставим
             if !quick.contains(where: { $0.id == selected.id }) {
-
-                // 1. Попробуем заменить «Без категории»
                 if let idx = quick.firstIndex(where: { $0.name == Category.uncategorizedName }) {
                     quick[idx] = selected
-
-                // 2. Иначе вытесним последний элемент
                 } else {
                     quick.removeLast()
                     quick.insert(selected, at: 0)
                 }
             }
         }
-
-        // Возвращаем + кнопку «Ещё»
         return quick.map { Optional($0) } + [nil]
     }
-
 
     struct FlowLayout: Layout {
         let spacing: CGFloat
@@ -120,14 +102,9 @@ struct AddTransactionView: View {
         ) -> CGSize {
             let n = subviews.count
             guard n > 0 else { return .zero }
-
-            // Сколько ячеек на строку (ceil(n/2))
             let perRow = Int(ceil(Double(n) / 2.0))
-
-            // Посчитаем ширину каждой строки и высоту
             var maxWidth: CGFloat = 0
             var rowHeights: [CGFloat] = []
-
             for row in 0..<2 {
                 let start = row * perRow
                 let end = min(start + perRow, n)
@@ -137,7 +114,6 @@ struct AddTransactionView: View {
                 maxWidth = max(maxWidth, rowW)
                 rowHeights.append(sizes.map(\.height).max() ?? 0)
             }
-
             let totalHeight = rowHeights.reduce(0, +) + CGFloat(rowHeights.count - 1) * spacing
             return CGSize(width: maxWidth, height: totalHeight)
         }
@@ -150,10 +126,7 @@ struct AddTransactionView: View {
         ) {
             let n = subviews.count
             guard n > 0 else { return }
-
             let perRow = Int(ceil(Double(n) / 2.0))
-
-            // Вычислим высоты строк, чтобы центровать элементы по вертикали
             let rowHeights: [CGFloat] = (0..<2).compactMap { row in
                 let start = row * perRow, end = min(start + perRow, n)
                 guard start < end else { return nil }
@@ -161,17 +134,14 @@ struct AddTransactionView: View {
                     .map { $0.sizeThatFits(.unspecified).height }
                     .max()
             }
-
             var y = bounds.minY
             for row in 0..<rowHeights.count {
                 let start = row * perRow
                 let end = min(start + perRow, n)
                 let sizes = subviews[start..<end].map { $0.sizeThatFits(.unspecified) }
                 var x = bounds.minX
-
                 for (i, subview) in subviews[start..<end].enumerated() {
                     let size = sizes[i]
-                    // центрируем по вертикали в строке
                     let yOffset = (rowHeights[row] - size.height) / 2
                     subview.place(
                         at: CGPoint(x: x, y: y + yOffset),
@@ -194,7 +164,7 @@ struct AddTransactionView: View {
                         Text("Доходы").tag(CategoryType.income)
                     }
                     .pickerStyle(.segmented)
-                    .tint(.appPurple)
+                    .tint(.appPurple) // Предполагаем, что .appPurple адаптирован в Assets.xcassets
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal)
                     .padding(.top, 8)
@@ -202,21 +172,21 @@ struct AddTransactionView: View {
                     TextField("Введите сумму", text: $amount)
                         .keyboardType(.decimalPad)
                         .padding()
-                        .background(Color.white)
+                        .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон для поля ввода
                         .cornerRadius(10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
                         )
                         .focused($isAmountFieldFocused)
-                        .foregroundColor(.black)
+                        .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                         .padding(.horizontal)
                         .task {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                    print("Setting focus at \(Date())")
-                                    isAmountFieldFocused = true
-                                }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                                print("Setting focus at \(Date())")
+                                isAmountFieldFocused = true
                             }
+                        }
                 }.padding(.top, 0)
 
                 ScrollView {
@@ -231,11 +201,13 @@ struct AddTransactionView: View {
                                     VStack {
                                         Image(systemName: "ellipsis.circle")
                                             .font(.title2)
+                                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет иконки
                                         Text("Ещё")
                                             .font(.caption)
+                                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                                     }
                                     .frame(width: 84, height: 68)
-                                    .background(Color.gray.opacity(0.1))
+                                    .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
                                     .cornerRadius(16)
                                 }
                             }
@@ -244,7 +216,6 @@ struct AddTransactionView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
-//                .ignoresSafeArea(.keyboard, edges: .bottom)
 
                 HStack {
                     Button {
@@ -256,17 +227,17 @@ struct AddTransactionView: View {
                                     .font(.subheadline)
                                 Text("Дата")
                                     .font(.subheadline)
-                            } .foregroundStyle(.appPurple)
+                            }.foregroundStyle(.appPurple)
                             Text(dateTimeFormatter.string(from: selectedDate))
                                 .font(.subheadline)
-                                .foregroundColor(.primary)
+                                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                         }
                         .padding(.vertical)
                         .padding(.leading, 10)
                         .frame(width: 176, height: 64, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.white)
+                                .fill(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
                         )
                     }
                     Spacer()
@@ -282,14 +253,14 @@ struct AddTransactionView: View {
                             }.foregroundStyle(.appPurple)
                             Text(repeatRule)
                                 .font(.subheadline)
-                                .foregroundColor(.gray.opacity(0.7))
+                                .foregroundColor(Color(UIColor.secondaryLabel)) // Адаптивный вторичный цвет
                         }
                         .padding(.vertical)
                         .padding(.leading, 10)
                         .frame(width: 176, height: 64, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(Color.white)
+                                .fill(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
                         )
                     }
                 }
@@ -318,23 +289,22 @@ struct AddTransactionView: View {
                 }) {
                     Text("Добавить")
                         .font(.headline)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста
                         .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Color.appPurple)
+                        .background(Color.appPurple) // Предполагаем адаптивный .appPurple
                         .cornerRadius(16)
                 }
-                .contentShape(Rectangle()) // Задаёт область нажатия для всей рамки
+                .contentShape(Rectangle())
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-        //    .contentShape(Rectangle())
-            .background(Color("BackgroundLightGray"))
+            .background(Color(UIColor.systemBackground)) // Адаптивный фон для всей вью
             .scrollContentBackground(.hidden)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Новая операция")
                         .fontWeight(.medium)
-                        .foregroundStyle(.black)
+                        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет заголовка
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Отменить") { dismiss() }
@@ -369,7 +339,7 @@ struct AddTransactionView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .foregroundStyle(.black)
+        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
     }
 
     private func addNewCategory(name: String, icon: String?, color: Color?) {
@@ -378,7 +348,6 @@ struct AddTransactionView: View {
         cat.iconName = icon
         modelContext.insert(cat)
 
-        // Если выбран цвет, сохраняем его в UserDefaults
         if let color = color {
             let type: TransactionType = selectedType == .income ? .income : .expenses
             let key = type == .income ? "AssignedColorsForIncome" : "AssignedColorsForExpenses"
@@ -429,7 +398,6 @@ struct AddTransactionView: View {
         newTx.date = txDate
         modelContext.insert(newTx)
 
-        // регулярка, если нужна…
         if repeatRule != EndOption.never.rawValue {
             let freq = ReminderFrequency(rawValue: repeatRule) ?? .daily
             let template = RegularPayment(
@@ -468,80 +436,69 @@ struct CategoryBadge: View {
     private static let badgeWidth: CGFloat = 84.3
     private static let badgeHeight: CGFloat = 68
 
-  //  static let defaultNames = Category.defaultExpenseNames + Category.defaultIncomeNames + [Category.uncategorizedName]
-
     var body: some View {
-            VStack(spacing: 6) {
-                // цветной кружок + иконка
-                ZStack {
-                    Circle()
-                      .fill(Color.colorForCategoryName(
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(Color.colorForCategoryName(
                         category.name,
                         type: category.type == .income ? .income : .expenses
-                      ))
-                      .frame(width: 32, height: 32)
+                    ))
+                    .frame(width: 32, height: 32)
 
-                    if let custom = category.iconName {
-                      // Пользовательская иконка
-                      Image(systemName: custom)
+                if let custom = category.iconName {
+                    Image(systemName: custom)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white) // Оставляем белый для иконок, так как они на цветном фоне
+                } else if Self.defaultNames.contains(category.name) {
+                    Image(systemName: iconName(for: category.name))
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
-
-                    } else if Self.defaultNames.contains(category.name) {
-                      // Дефолтная SF-иконка
-                      Image(systemName: iconName(for: category.name))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
-                    }
-                  }
-                // название под иконкой
-                Text(category.name)
-                    .font(.caption2)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
+                }
             }
-            .frame(width: Self.badgeWidth,
-                   height: Self.badgeHeight,
-                   alignment: .center)
-            .background(Color.white)
-            .cornerRadius(16)
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.appPurple : .clear, lineWidth: 2)
-            )
+            Text(category.name)
+                .font(.caption2)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
         }
+        .frame(width: Self.badgeWidth, height: Self.badgeHeight, alignment: .center)
+        .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон для бейджа
+        .cornerRadius(16)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isSelected ? Color.appPurple : .clear, lineWidth: 2)
+        )
+    }
+
     func iconName(for categoryName: String) -> String {
         switch categoryName {
         case Category.uncategorizedName: return "circle.slash"
-        case "Еда":           return "fork.knife"
-        case "Транспорт":     return "car.fill"
-        case "Дом":           return "house.fill"
-        case "Одежда":        return "tshirt.fill"
-        case "Здоровье":      return "bandage.fill"
-        case "Питомцы":       return "pawprint.fill"
-        case "Связь":         return "wifi"
-        case "Развлечения":   return "gamecontroller.fill"
-        case "Образование":   return "book.fill"
-        case "Дети":          return "figure.walk"
-
-        case "Зарплата":      return "wallet.bifold.fill"
-        case "Дивиденды":     return "chart.line.uptrend.xyaxis"
-        case "Купоны":        return "banknote"
-        case "Продажи":       return "dollarsign.circle.fill"
-        case "Премия":      return "star.circle.fill"
-        case "Вклады":       return "dollarsign.bank.building.fill"
-        case "Аренда":        return "house.fill"
-        case "Подарки":        return "gift.fill"
-        case "Подработка":        return "hammer.fill"
-
-        default:              return "circle.slash"
+        case "Еда": return "fork.knife"
+        case "Транспорт": return "car.fill"
+        case "Дом": return "house.fill"
+        case "Одежда": return "tshirt.fill"
+        case "Здоровье": return "bandage.fill"
+        case "Питомцы": return "pawprint.fill"
+        case "Связь": return "wifi"
+        case "Развлечения": return "gamecontroller.fill"
+        case "Образование": return "book.fill"
+        case "Дети": return "figure.walk"
+        case "Зарплата": return "wallet.bifold.fill"
+        case "Дивиденды": return "chart.line.uptrend.xyaxis"
+        case "Купоны": return "banknote"
+        case "Продажи": return "dollarsign.circle.fill"
+        case "Премия": return "star.circle.fill"
+        case "Вклады": return "dollarsign.bank.building.fill"
+        case "Аренда": return "house.fill"
+        case "Подарки": return "gift.fill"
+        case "Подработка": return "hammer.fill"
+        default: return "circle.slash"
         }
     }
+}
 
-    }
-
-// Новый вью для показа всех категорий
 struct AllCategoriesView: View {
     static let defaultNames =
         Category.defaultExpenseNames
@@ -554,7 +511,6 @@ struct AllCategoriesView: View {
     let categoryType: CategoryType
 
     @State private var selectedCategory: String = Category.uncategorizedName
-
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
@@ -572,19 +528,18 @@ struct AllCategoriesView: View {
                             Circle()
                                 .fill(Color.colorForCategoryName(cat.name, type: cat.type == .income ? .income : .expenses))
                                 .frame(width: 24, height: 24)
-
                             if let icon = cat.iconName {
                                 Image(systemName: icon)
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.white) // Белый для иконок на цветном фоне
                             } else if CategoryBadge.defaultNames.contains(cat.name) {
                                 Image(systemName: iconName(for: cat.name))
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white)
                             }
                         }
-
                         Text(cat.name)
+                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                         Spacer()
                         if cat.name == selected {
                             Image(systemName: "checkmark")
@@ -606,6 +561,8 @@ struct AllCategoriesView: View {
                 }
             }
             .listStyle(.plain)
+            .background(Color(UIColor.systemBackground)) // Адаптивный фон для списка
+            .scrollContentBackground(.hidden)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button { dismiss() }
@@ -622,6 +579,7 @@ struct AllCategoriesView: View {
                         Text(categoryType.rawValue)
                     }
                     .font(.headline)
+                    .foregroundColor(Color(UIColor.label)) // Адаптивный цвет заголовка
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
@@ -640,7 +598,7 @@ struct AllCategoriesView: View {
             .sheet(isPresented: $showNewCategorySheet) {
                 NewCategoryView(
                     initialType: categoryType,
-                    onSave: { name, icon, color in // Теперь принимаем цвет
+                    onSave: { name, icon, color in
                         addNewCategory(name: name, icon: icon, color: color)
                         showNewCategorySheet = false
                     },
@@ -666,6 +624,7 @@ struct AllCategoriesView: View {
                 Text("При удалении категории все её транзакции тоже будут удалены.")
             }
         }
+        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
     }
 
     private func addNewCategory(name: String, icon: String?, color: Color?) {
@@ -674,7 +633,6 @@ struct AllCategoriesView: View {
         cat.iconName = icon
         modelContext.insert(cat)
 
-        // Если выбран цвет, сохраняем его в UserDefaults
         if let color = color {
             let type: TransactionType = categoryType == .income ? .income : .expenses
             let key = type == .income ? "AssignedColorsForIncome" : "AssignedColorsForExpenses"
@@ -716,7 +674,6 @@ struct AllCategoriesView: View {
         case "Развлечения": return "gamecontroller.fill"
         case "Образование": return "book.fill"
         case "Дети": return "figure.walk"
-
         case "Зарплата": return "wallet.bifold.fill"
         case "Дивиденды": return "chart.line.uptrend.xyaxis"
         case "Купоны": return "banknote"
@@ -726,7 +683,7 @@ struct AllCategoriesView: View {
         case "Аренда": return "house.fill"
         case "Подарки": return "gift.fill"
         case "Подработка": return "hammer.fill"
-        default: return "circle.slash.fill"
+        default: return "circle.slash"
         }
     }
 }
