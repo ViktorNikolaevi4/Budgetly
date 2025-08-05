@@ -28,6 +28,9 @@ struct AddTransactionView: View {
     @State private var selectedDate: Date = Date()
     @State private var repeatRule: String = "Никогда"
 
+    @State private var showSaveErrorAlert = false
+    @State private var saveErrorMessage = ""
+
     private var categoriesForThisAccount: [Category] {
         guard let acct = account else { return [] }
         return allCategories.filter {
@@ -344,6 +347,16 @@ struct AddTransactionView: View {
                         .foregroundStyle(.appPurple)
                 }
             }
+            .alert(
+                "Не удалось сохранить транзакцию",
+                isPresented: $showSaveErrorAlert,
+                actions: {
+                    Button("ОК", role: .cancel) { }
+                },
+                message: {
+                    Text(saveErrorMessage)
+                }
+            )
             .sheet(isPresented: $showAllCategories) {
                 if let acct = account {
                     AllCategoriesView(
@@ -394,51 +407,53 @@ struct AddTransactionView: View {
         }
     }
 
+    @MainActor
     private func saveTransaction() {
-         guard
-             let account = account,
-             let amountValue = Double(amount),
-             !selectedCategory.isEmpty
-         else { return }
+        guard
+            let account = account,
+            let amountValue = Double(amount),
+            !selectedCategory.isEmpty
+        else {
+            print("⚠️ saveTransaction: невалидные входные данные")
+            return
+        }
 
-         let txDate = Date()
-         let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
-         let newTx = Transaction(
-             category: selectedCategory,
-             amount: amountValue,
-             type: transactionType,
-             account: account
-         )
-         newTx.date = txDate
-         modelContext.insert(newTx)
+        let txDate = Date()
+        let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
+        let newTx = Transaction(
+            category: selectedCategory,
+            amount: amountValue,
+            type: transactionType,
+            account: account
+        )
+        newTx.date = txDate
+        modelContext.insert(newTx)
 
-         // Привязываем транзакцию к счету (необязательно, SwiftData сделает это сам)
-      //   account.transactions.append(newTx)
+        // регулярка, если нужна…
+        if repeatRule != EndOption.never.rawValue {
+            let freq = ReminderFrequency(rawValue: repeatRule) ?? .daily
+            let template = RegularPayment(
+                name: selectedCategory,
+                frequency: freq,
+                startDate: txDate,
+                endDate: endOption == .onDate ? endDate : nil,
+                amount: amountValue,
+                comment: repeatComment,
+                isActive: true,
+                account: account
+            )
+            modelContext.insert(template)
+        }
 
-         // Если нужно шаблон регулярного платежа — создаём и привязываем к тому же account
-         if repeatRule != EndOption.never.rawValue {
-             let freq = ReminderFrequency(rawValue: repeatRule) ?? .daily
-             let template = RegularPayment(
-                 name: selectedCategory,
-                 frequency: freq,
-                 startDate: txDate,
-                 endDate: endOption == .onDate ? endDate : nil,
-                 amount: amountValue,
-                 comment: repeatComment,
-                 isActive: true,
-                 account: account      // ← связали шаблон с этим счётом
-             )
-             modelContext.insert(template)
-         }
-
-         do {
-             try modelContext.save()
-             onTransactionAdded?(transactionType)
-             dismiss()
-         } catch {
-             print("Ошибка при сохранении транзакции и шаблона: \(error)")
-         }
-     }
+        do {
+            try modelContext.save()
+            onTransactionAdded?(transactionType)
+            dismiss()
+        } catch {
+            saveErrorMessage = error.localizedDescription
+            showSaveErrorAlert = true
+        }
+    }
 }
 
 struct CategoryBadge: View {
