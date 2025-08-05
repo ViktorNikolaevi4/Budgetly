@@ -8,6 +8,8 @@ struct SettingsScreen: View {
     @State private var showClearAlert = false
     @State private var isClearing = false
     @State private var clearError: Error?
+    @State private var showClearError = false
+
 
     init() {}
 
@@ -32,14 +34,14 @@ struct SettingsScreen: View {
                             .foregroundColor(.red)
                     }
                 }
-
+                
                 // MARK: — Профиль iCloud
                 if let name = ckService.displayName, !name.isEmpty {
                     Section("Профиль iCloud") {
                         Label(name, systemImage: "person.fill")
                     }
                 }
-
+                
                 // MARK: — О приложении
                 Section {
                     Button {
@@ -54,7 +56,7 @@ struct SettingsScreen: View {
                             )
                         }
                     }
-
+                    
                     Button {
                         showRateSheet = true
                     } label: {
@@ -64,7 +66,7 @@ struct SettingsScreen: View {
                             IconBackground(systemName: "star.fill", backgroundColor: .yellow)
                         }
                     }
-
+                    
                     Button {
                         showContactDeveloperSheet = true
                     } label: {
@@ -78,7 +80,7 @@ struct SettingsScreen: View {
                         }
                     }
                 }
-
+                
                 // MARK: — Дополнительно (только Регулярные платежи)
                 Section {
                     if accounts.isEmpty {
@@ -101,38 +103,25 @@ struct SettingsScreen: View {
                 }
                 Section {
                     Button(role: .destructive) {
-                        showClearAlert = true
+                        logout()
                     } label: {
-                        Label("Удалить все данные", systemImage: "trash")
+                        Label("Выйти", systemImage: "arrow.right.circle.fill")
                     }
-                    .disabled(isClearing)
                 }
-
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("Настройки")
             .background(GradientView().ignoresSafeArea())
-            .alert("Удалить все данные?", isPresented: $showClearAlert) {
-                            Button("Удалить", role: .destructive) {
-                                performFullReset()
-                            }
-                            Button("Отмена", role: .cancel) {}
-                        } message: {
-                            Text("Будут удалены все записи локально и в iCloud.")
-                        }
-                        .alert("Ошибка", isPresented: Binding(
-                            get: { clearError != nil },
-                            set: { if !$0 { clearError = nil } }
-                        )) {
-                            Button("OK", role: .cancel) {}
-                        } message: {
-                            Text(clearError?.localizedDescription ?? "")
-                        }
-                    }
+            .alert("Ошибка при выходе", isPresented: $showClearError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(clearError?.localizedDescription ?? "Неизвестная ошибка")
+            }
+        }
         .foregroundStyle(.black)
-//        .sheet(isPresented: $showAuthSheet) {
-//            AuthSheet(showLogin: $showLogin)
-//        }
+        //        .sheet(isPresented: $showAuthSheet) {
+        //            AuthSheet(showLogin: $showLogin)
+        //        }
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(items: ["Проверьте наше приложение! https://apps.apple.com/app/idXXXXXXXXX"])
         }
@@ -143,34 +132,18 @@ struct SettingsScreen: View {
             ContactDeveloperView()
         }
     }
-    private func performFullReset() {
-           isClearing = true
 
-           // 1) удалить локально
-           do {
-               try clearLocalData(in: modelContext)
-           } catch {
-               clearError = error
-               isClearing = false
-               return
-           }
+    private func logout() {
+        do {
+            // Очищаем только локальное хранилище — SwiftData автоматически подтянет данные из iCloud
+            try clearLocalData(in: modelContext)
+        } catch {
+            clearError = error
+            showClearError = true
+        }
+    }
 
-           // 2) удалить из iCloud
-           ckService.clearCloudKitData { result in
-               DispatchQueue.main.async {
-                   isClearing = false
-                   switch result {
-                   case .success:
-                       // возможно, сбросить какие-то флаги в UserDefaults
-                       break
-                   case .failure(let err):
-                       clearError = err
-                   }
-               }
-           }
-       }
 }
-
 //struct AuthSheet: View {
 //    @Binding var showLogin: Bool
 //    var body: some View {
