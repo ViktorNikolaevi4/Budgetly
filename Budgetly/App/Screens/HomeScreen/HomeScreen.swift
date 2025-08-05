@@ -333,7 +333,7 @@ struct HomeScreen: View {
             .navigationTitle("Мой Бюджет")
             .navigationBarTitleDisplayMode(.inline)
             .padding()
-            .background(.backgroundLightGray)
+            .background(.regularMaterial)
         }
         .onAppear {
              generateMissedRecurringTransactions()
@@ -434,10 +434,8 @@ struct HomeScreen: View {
                 
                 // 6) Убираем ручное добавление знака минус, так как toShortStringWithSuffix уже включает знак
                 Text("\(amountText)\(currencySign)")
-                    .foregroundColor(color)
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .fontWeight(.bold)
+                    .foregroundStyle(.primary)
+                    .font(.title.weight(.bold))
             }
 
 
@@ -593,15 +591,15 @@ struct HomeScreen: View {
                 }
                 .padding(.vertical, 8)               // Внешний вертикальный отступ для списка
                 .frame(width: 250)                   // Фиксированная ширина popover
-                .background(Color(uiColor: .systemBackground))
+                .background(.regularMaterial)
                 .cornerRadius(12)
-                .shadow(radius: 5)
+                .shadow(color: Color(.black).opacity(0.1), radius: 5, x: 0, y: 2)
                 .presentationCompactAdaptation(.popover)
             }
             if let caption = periodCaption {
                 Text(caption)
                     .font(.body.weight(.medium))   
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.primary)
             }
         }
         .sheet(isPresented: $isCustomPeriodPickerPresented) {
@@ -701,7 +699,7 @@ struct CustomPeriodPickerView: View {
                         Image(systemName: "xmark.circle.fill")
                             .resizable()
                             .frame(width: 30, height: 30)
-                            .foregroundColor(Color(UIColor.systemGray3))
+                        .foregroundStyle(.tertiary)
                     }
                 }
                 .padding(.horizontal)
@@ -712,7 +710,7 @@ struct CustomPeriodPickerView: View {
                         .datePickerStyle(.compact)
                         .padding()
                         .frame(height: 44)
-                        .background(Color(white: 1.0))
+                        .background(.regularMaterial)
                         .cornerRadius(10)
                         .padding(.horizontal, 16)
                         .tint(.appPurple)
@@ -721,7 +719,7 @@ struct CustomPeriodPickerView: View {
                         .datePickerStyle(.compact)
                         .padding()
                         .frame(height: 44)
-                        .background(Color(white: 1.0))
+                        .background(.regularMaterial)
                         .cornerRadius(10)
                         .padding(.horizontal, 16)
                         .tint(.appPurple)
@@ -745,7 +743,7 @@ struct CustomPeriodPickerView: View {
                 Spacer() // Добавляем Spacer, чтобы растянуть содержимое
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity) // Растягиваем VStack на весь экран
-            .background(Color("BackgroundLightGray")) // Фон применяется ко всему содержимому
+            .background(.regularMaterial)
             .ignoresSafeArea() // Игнорируем безопасную область для всего NavigationStack
             .environment(\.locale, Locale(identifier: "ru_RU"))
         }

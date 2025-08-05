@@ -67,8 +67,8 @@ struct PieChartView: View {
                             Text("\(totalAmount.toShortStringWithSuffix())\(currencySign)")
                                 .font(.title3)
                                 .fontWeight(.bold)
-                                .foregroundColor(.primary)
-                        }
+                                .foregroundStyle(Color(UIColor.label))
+            }
                     }
                 }
             }
