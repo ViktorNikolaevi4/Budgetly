@@ -135,19 +135,24 @@ extension Color {
     }
 
     static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
-      let key = (type == .income ? incomeColorsKey : expensesColorsKey)
-      var assigned = loadAssignedColors(forKey: key)
+        let key = type == .income ? incomeColorsKey : expensesColorsKey
 
-      if let comps = assigned[name], comps.count == 3 {
-        return Color(red: comps[0], green: comps[1], blue: comps[2])
+        // 1) Если у пользователя уже сохранялся кастомный цвет — вернуть его
+        let assigned = loadAssignedColors(forKey: key)
+        if let comps = assigned[name], comps.count == 3 {
+          return Color(red: comps[0], green: comps[1], blue: comps[2])
+        }
+
+        // 2) Если категория есть в вашем списке дефолтных — вернуть фиксированный preset-цвет
+        if let preset = presetColors[name] {
+          return preset
+        }
+
+        // 3) Во всех остальных случаях — стабильно сгенерировать новый, сохранить и вернуть
+        let color = colorFromHash(name)
+        setColor(color, forCategory: name, type: type)
+        return color
       }
-
-      // Генерируем стабильный цвет (см. ниже)
-      let color = colorFromHash(name)
-      // Сохраняем, чтобы больше не менять
-      setColor(color, forCategory: name, type: type)
-      return color
-    }
     static func setColor(_ color: Color, forCategory name: String, type: TransactionType) {
         guard name != Category.uncategorizedName else { return }
         let key = (type == .income) ? incomeColorsKey : expensesColorsKey
