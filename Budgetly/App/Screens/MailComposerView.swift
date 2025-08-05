@@ -2,29 +2,33 @@ import SwiftUI
 import MessageUI
 
 struct MailComposerView: UIViewControllerRepresentable {
-    var subject: String
-    var recipient: String
-    var messageBody: String
-    var senderEmail: String
-
-    @Environment(\.dismiss) var dismiss
+    @Binding var isPresented: Bool  // <-- теперь управляем извне
+    let subject: String
+    let recipient: String
+    let messageBody: String
+    let senderEmail: String
 
     class Coordinator: NSObject, MFMailComposeViewControllerDelegate {
         var parent: MailComposerView
 
-        init(_ parent: MailComposerView) {
+        init(parent: MailComposerView) {
             self.parent = parent
         }
 
-        func mailComposeController(_ controller: MFMailComposeViewController, didFinishWith result: MFMailComposeResult, error: Error?) {
+        func mailComposeController(
+            _ controller: MFMailComposeViewController,
+            didFinishWith result: MFMailComposeResult,
+            error: Error?
+        ) {
             controller.dismiss(animated: true) {
-                self.parent.dismiss()
+                // как только контроллер закрылся, скрываем SwiftUI sheet
+                self.parent.isPresented = false
             }
         }
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        Coordinator(parent: self)
     }
 
     func makeUIViewController(context: Context) -> MFMailComposeViewController {
@@ -38,3 +42,4 @@ struct MailComposerView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {}
 }
+

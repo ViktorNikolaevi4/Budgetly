@@ -2,89 +2,130 @@ import SwiftUI
 import MessageUI
 
 struct ContactDeveloperView: View {
-    // MARK: – State
-    @State private var subject: String = ""
-    @State private var email: String = ""
-    @State private var message: String = ""
+    @State private var subject = ""
+    @State private var email = ""
+    @State private var message = ""
     @State private var showMailComposer = false
     @State private var showMailErrorAlert = false
+
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack {
-            // Общий светло-серый фон
-            Color("BackgroundLightGray")
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Color("BackgroundLightGray")
+                    .ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                // Заголовок
-                Text("Связаться с разработчиком")
-                    .font(.title2).bold()
-                    .padding(.top, 8)
+                VStack(spacing: 24) {
+                    // Заголовок
+                    Text("Связаться с разработчиком")
+                        .font(.title2).bold()
+                        .padding(.top, 8)
 
-                // Поля ввода
-                VStack(spacing: 16) {
-                    StyledTextField(placeholder: "Тема сообщения", text: $subject)
-                    StyledTextField(placeholder: "Электронная почта", text: $email, keyboard: .emailAddress)
-                    StyledTextEditor(placeholder: "Текст сообщения", text: $message)
+                    // Поля
+                    VStack(spacing: 16) {
+                        StyledTextField(
+                            placeholder: "Тема сообщения",
+                            text: $subject
+                        )
+                        StyledTextField(
+                            placeholder: "Электронная почта",
+                            text: $email,
+                            keyboard: .emailAddress
+                        )
+                        StyledTextEditor(
+                            placeholder: "Текст сообщения",
+                            text: $message
+                        )
                         .frame(minHeight: 120)
-                }
-                .padding(.horizontal)
-
-                Spacer()
-
-                // Кнопки Очистить / Отправить
-                HStack(spacing: 16) {
-                    Button("Очистить") {
-                        subject = ""; email = ""; message = ""
                     }
-                    .font(.body.bold())
-                    .foregroundColor(.red)
+                    .padding(.horizontal)
 
-                    Button("Отправить") {
-                        if MFMailComposeViewController.canSendMail() {
-                            showMailComposer = true
-                        } else {
-                            showMailErrorAlert = true
+                    Spacer()
+
+                    // Кнопки
+                    HStack(spacing: 16) {
+                        Button("Очистить") {
+                            subject = ""
+                            email = ""
+                            message = ""
                         }
+                        .font(.body.bold())
+                        .foregroundColor(.red)
+
+                        Button("Отправить") {
+                            if MFMailComposeViewController.canSendMail() {
+                                showMailComposer = true
+                            } else {
+                                showMailErrorAlert = true
+                            }
+                        }
+                        .font(.body.bold())
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                        .background(
+                            (!subject.isEmpty && isValidEmail(email) && !message.isEmpty)
+                            ? Color.appPurple
+                            : Color.gray.opacity(0.5)
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .disabled(subject.isEmpty || !isValidEmail(email) || message.isEmpty)
                     }
-                    .font(.body.bold())
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background((!subject.isEmpty && isValidEmail(email) && !message.isEmpty)
-                                ? Color.appPurple
-                                : Color.gray.opacity(0.5))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .disabled(subject.isEmpty || !isValidEmail(email) || message.isEmpty)
+                    .padding(.horizontal)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 20)
             }
-        }
-        .sheet(isPresented: $showMailComposer) {
-            MailComposerView(
-                subject: subject,
-                recipient: "87v87@mail.ru",
-                messageBody: message,
-                senderEmail: email
-            )
-        }
-        .alert("Ошибка", isPresented: $showMailErrorAlert) {
-            Button("Копировать адрес") {
-                UIPasteboard.general.string = "87v87@mail.ru"
+            // крестик в навигейшн баре
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.title3)
+                            .foregroundColor(.appPurple)
+                    }
+                }
             }
-            Button("Закрыть", role: .cancel) {}
-        } message: {
-            Text("Ваше устройство не настроено для отправки почты. Можно скопировать адрес и отправить вручную.")
-        }
+            // mail composer sheet с onDismiss
+            .sheet(
+                isPresented: $showMailComposer,
+                onDismiss: {
+                    // очищаем поля после закрытия шита
+                    subject = ""
+                    email = ""
+                    message = ""
+                }
+            ) {
+                MailComposerView(
+                    isPresented: $showMailComposer,
+                    subject: subject,
+                    recipient: "87v87@mail.ru",
+                    messageBody: message,
+                    senderEmail: email
+                )
+            }
+            // алерт, если почта не настроена
+            .alert("Ошибка", isPresented: $showMailErrorAlert) {
+                Button("Копировать адрес") {
+                    UIPasteboard.general.string = "87v87@mail.ru"
+                }
+                Button("Закрыть", role: .cancel) {}
+            } message: {
+                Text("Настройте почту на устройстве или скопируйте адрес вручную.")
+            }
+        } // NavigationStack
     }
 
-    // Простая валидация e-mail
     private func isValidEmail(_ email: String) -> Bool {
         let pattern = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        return NSPredicate(format: "SELF MATCHES %@", pattern).evaluate(with: email)
+        return NSPredicate(format: "SELF MATCHES %@", pattern)
+            .evaluate(with: email)
     }
 }
+
+
+
 
 // MARK: – Стили для TextField / TextEditor
 
