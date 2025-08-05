@@ -10,6 +10,8 @@ struct NewCategoryView: View {
     @State private var selectedColor: Color? = .appPurple // Устанавливаем начальный выбранный цвет
     @State private var showIconPicker = false
     @FocusState private var isNameFieldFocused: Bool
+    @State private var showColorPicker = false
+
 
     // Пример набора иконок
     private let icons = [
@@ -100,15 +102,16 @@ struct NewCategoryView: View {
                         .padding(.horizontal, 16)
                 )
 
-//                // MARK: — Переключатель цвета
-//                Section {
-//                    Toggle("Цвет", isOn: $showColorPicker)
-//                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
-//                        .padding(.vertical, 8)
-//                }
-//                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                // MARK: — Переключатель цвета
+                Section {
+                    Toggle("Цвет", isOn: $showColorPicker)
+                        .toggleStyle(SwitchToggleStyle(tint: .appPurple))
+                        .padding(.vertical, 8)
+                }
+                .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
 
                 // MARK: — Цветовая палитра
+                if showColorPicker {
                     Section {
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(Self.predefinedColors, id: \.self) { color in
@@ -118,19 +121,14 @@ struct NewCategoryView: View {
                                     Circle()
                                         .fill(color)
                                         .frame(width: 38, height: 38)
-                                        .overlay(
-                                            ZStack {
-                                                if selectedColor == color {
-                                                    Circle()
-                                                        .stroke(Color.white, lineWidth: 6)
-                                                    Circle()
-                                                        .stroke(Color.gray, lineWidth: 3)
-                                                } else {
-                                                    Circle()
-                                                        .stroke(Color.gray.opacity(0.3), lineWidth: 2)
-                                                }
+                                        .overlay {
+                                            if selectedColor == color {
+                                                Circle().stroke(Color.white, lineWidth: 6)
+                                                Circle().stroke(Color.gray, lineWidth: 3)
+                                            } else {
+                                                Circle().stroke(Color.gray.opacity(0.3), lineWidth: 2)
                                             }
-                                        )
+                                        }
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -138,7 +136,7 @@ struct NewCategoryView: View {
                         .padding(.vertical, 8)
                     }
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-
+                }
 
                 // MARK: — Переключатель иконок
                 Section {
