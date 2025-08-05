@@ -16,6 +16,8 @@ struct AccountsScreen: View {
     @State private var pendingDeleteOffsets: IndexSet = []
     @State private var showDeleteAlert = false
 
+    @State private var didSeedDefault = false
+
     // Сортируем по sortOrder
     @Query(sort: \Account.sortOrder, order: .forward)
     private var accounts: [Account]
@@ -104,8 +106,27 @@ struct AccountsScreen: View {
         }
         .onAppear {
             fixNilCurrencies(modelContext)
+            seedDefaultAccountIfNeeded()
         }
     }
+
+    private func seedDefaultAccountIfNeeded() {
+        guard !didSeedDefault else { return }
+        didSeedDefault = true
+
+        // SwiftData автоматически синхронизирует CloudKit,
+        // и @Query уже содержит remote-записи, если они есть.
+        guard accounts.isEmpty else {
+          // В облаке/локально уже есть хотя бы один счёт
+          return
+        }
+
+        // Ничего нет — заводим
+        let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
+        modelContext.insert(acc)
+        Category.seedDefaults(for: acc, in: modelContext)
+        try? modelContext.save()
+      }
 
     private func performPendingDelete() {
         for idx in pendingDeleteOffsets {

@@ -95,107 +95,113 @@ struct GoldBagView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if assets.isEmpty {
-                    // Пустой стейт
-                    EmptyStateView()
-                } else {
-                    // Диаграмма + список
-                    VStack() {
-                        // 1) Круговая диаграмма
-                        Chart(assetGroups) { item in
-                            SectorMark(
-                                angle: .value("Сумма", item.sum),
-                                innerRadius: .ratio(0.75),
-                                outerRadius: .ratio(1.0),
-                                angularInset: 1
-                            )
-                            .cornerRadius(4)
-                            .foregroundStyle(item.color)
-                        }
-                        .chartLegend(.hidden)
-                        .frame(width: 180, height: 180)
-                        .overlay(
-                            Text("\(totalPrice.toShortStringWithSuffix()) ₽")
-                                .font(.title2).bold()
-                                .foregroundColor(.black)
-                        )
-                        .padding()
-
-                        // 2) Список групп и активов
-                        List {
-                            ForEach(assetGroups) { group in
-                                DisclosureGroup(
-                                    isExpanded: Binding(
-                                        get: { expandedTypes.contains(group.id) },
-                                        set: { newValue in
-                                            if newValue {
-                                                expandedTypes.insert(group.id)
-                                            } else {
-                                                expandedTypes.remove(group.id)
-                                            }
-                                        }
-                                    )
-                                ) {
-                                    ForEach(groupedAssetsByType[group.type] ?? []) { asset in
-                                        Button { selectedAsset = asset } label: {
-                                            HStack {
-                                                Text(asset.name)
-                                                Spacer()
-                                                Text("\(asset.price, specifier: "%.2f") ₽")
-                                            }
-                                            .padding(.vertical, 4)
-                                        }
-                                        .tint(.black)
-                                        .swipeActions(edge: .trailing) {
-                                            Button(role: .destructive) {
-                                                pendingDeleteAsset = asset
-                                                isShowingDeleteAlert = true
-                                            } label: {
-                                                Label("Удалить", systemImage: "trash")
-                                            }
-                                        }
-                                    }
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Circle()
-                                            .fill(group.color)
-                                            .frame(width: 10, height: 10)
-                                        Text(group.type?.name ?? "Без типа")
-                                            .font(.title3).bold()
-                                        Spacer()
-                                        HStack(spacing: 6) {
-                                            Text("\(group.sum.toShortStringWithSuffix()) ₽")
-                                            Circle()
-                                                .frame(width: 4, height: 4)
-                                                .foregroundColor(.gray.opacity(0.6))
-                                            Text(String(format: "%.1f%%", group.sum / totalPrice * 100))
-                                        }
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray.opacity(0.8))
-                                    }
-                                    .padding(.vertical, 4)
-                                }
+        ZStack {
+            // 1) Заливаем всю область серым
+            Color(UIColor.systemGray6)
+                .ignoresSafeArea()
+            NavigationStack {
+                Group {
+                    if assets.isEmpty {
+                        // Пустой стейт
+                        EmptyStateView()
+                    } else {
+                        // Диаграмма + список
+                        VStack() {
+                            // 1) Круговая диаграмма
+                            Chart(assetGroups) { item in
+                                SectorMark(
+                                    angle: .value("Сумма", item.sum),
+                                    innerRadius: .ratio(0.75),
+                                    outerRadius: .ratio(1.0),
+                                    angularInset: 1
+                                )
+                                .cornerRadius(4)
+                                .foregroundStyle(item.color)
                             }
+                            .chartLegend(.hidden)
+                            .frame(width: 180, height: 180)
+                            .overlay(
+                                Text("\(totalPrice.toShortStringWithSuffix()) ₽")
+                                    .font(.title2).bold()
+                                    .foregroundColor(.black)
+                            )
+                            .padding()
+
+                            // 2) Список групп и активов
+                            List {
+                                ForEach(assetGroups) { group in
+                                    DisclosureGroup(
+                                        isExpanded: Binding(
+                                            get: { expandedTypes.contains(group.id) },
+                                            set: { newValue in
+                                                if newValue {
+                                                    expandedTypes.insert(group.id)
+                                                } else {
+                                                    expandedTypes.remove(group.id)
+                                                }
+                                            }
+                                        )
+                                    ) {
+                                        ForEach(groupedAssetsByType[group.type] ?? []) { asset in
+                                            Button { selectedAsset = asset } label: {
+                                                HStack {
+                                                    Text(asset.name)
+                                                    Spacer()
+                                                    Text("\(asset.price, specifier: "%.2f") ₽")
+                                                }
+                                                .padding(.vertical, 4)
+                                            }
+                                            .tint(.black)
+                                            .swipeActions(edge: .trailing) {
+                                                Button(role: .destructive) {
+                                                    pendingDeleteAsset = asset
+                                                    isShowingDeleteAlert = true
+                                                } label: {
+                                                    Label("Удалить", systemImage: "trash")
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            Circle()
+                                                .fill(group.color)
+                                                .frame(width: 10, height: 10)
+                                            Text(group.type?.name ?? "Без типа")
+                                                .font(.title3).bold()
+                                            Spacer()
+                                            HStack(spacing: 6) {
+                                                Text("\(group.sum.toShortStringWithSuffix()) ₽")
+                                                Circle()
+                                                    .frame(width: 4, height: 4)
+                                                    .foregroundColor(.gray.opacity(0.6))
+                                                Text(String(format: "%.1f%%", group.sum / totalPrice * 100))
+                                            }
+                                            .font(.subheadline)
+                                            .foregroundColor(.gray.opacity(0.8))
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                }
+                            }.listRowBackground(Color.white)
+                        }
+                    }
+                }
+                // Навигационная панель (заголовок + кнопка "+")
+                .navigationTitle("Мои Инвестиции")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            isAddAssetPresented = true
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .font(.title)
+                                .foregroundStyle(.appPurple)
                         }
                     }
                 }
             }
-            // Навигационная панель (заголовок + кнопка "+")
-            .navigationTitle("Мои Инвестиции")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isAddAssetPresented = true
-                    } label: {
-                        Image(systemName: "plus.circle")
-                            .font(.title)
-                            .foregroundStyle(.appPurple)
-                    }
-                }
-            }
+            .scrollContentBackground(.hidden)
         }
         // Алерт удаления
         .alert(
