@@ -289,9 +289,9 @@ struct AddTransactionView: View {
                 }) {
                     Text("Добавить")
                         .font(.headline)
-                        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity, minHeight: 52)
-                        .background(Color.appPurple) // Предполагаем адаптивный .appPurple
+                        .background(Color.appPurple)
                         .cornerRadius(16)
                 }
                 .contentShape(Rectangle())
