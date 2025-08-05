@@ -57,6 +57,7 @@ struct ContactDeveloperView: View {
             }
             .padding()
             .navigationTitle("Связаться с разработчиком")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showMailComposer) {
                 MailComposerView(
                     subject: subject,
