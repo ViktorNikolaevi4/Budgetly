@@ -378,6 +378,7 @@ struct AddOrEditAssetView: View {
                                 .padding(.horizontal, 16)
                         }
                     }
+
                     .padding(.horizontal)
                     Spacer()
                     // Кнопки
