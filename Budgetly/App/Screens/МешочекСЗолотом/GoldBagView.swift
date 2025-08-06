@@ -268,6 +268,7 @@ private func createDefaultAssetTypesIfNeeded() {
 struct AddOrEditAssetView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme // Для проверки текущей темы, если нужно
 
     let draftAsset: Asset?
     let assetTypes: [AssetType]
@@ -297,26 +298,28 @@ struct AddOrEditAssetView: View {
 
     var body: some View {
         ZStack {
-            Color(.systemGray6)
+            // Фон всей вью
+            Color(.systemBackground)
                 .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 24) {
-                    // ручка
+                    // Ручка
                     Capsule()
                         .frame(width: 36, height: 5)
-                        .foregroundColor(.gray.opacity(0.3))
+                        .foregroundColor(.secondary.opacity(0.5))
                         .padding(.top, 8)
 
-                    // заголовок
+                    // Заголовок
                     HStack {
                         Text(draftAsset == nil ? "Новый актив" : name)
                             .font(.title).bold()
+                            .foregroundColor(.primary) // Адаптивный цвет текста
                         Spacer()
                         Button { dismiss() } label: {
                             Image(systemName: "xmark")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary) // Серый в обеих темах
                         }
                     }
                     .padding(.horizontal)
@@ -327,13 +330,15 @@ struct AddOrEditAssetView: View {
                             TextField("Введите название", text: $name)
                                 .padding(.vertical, 12)
                                 .padding(.horizontal, 16)
+                                .foregroundColor(.primary)
                         }
-                        .background(Color.white)
+                        .background(Color(.secondarySystemBackground)) // Адаптивный фон поля
                         .cornerRadius(16)
 
                         // Тип
                         HStack {
                             Text("Выберите тип")
+                                .foregroundColor(.primary)
                             Spacer()
                             Picker("", selection: $typeSelection) {
                                 Text("Без типа").tag(TypeSelection.none)
@@ -343,83 +348,86 @@ struct AddOrEditAssetView: View {
                                 Text("Новый тип…").tag(TypeSelection.newType)
                             }
                             .pickerStyle(.menu)
-                            .tint(.appPurple)
+                            .tint(.accentColor) // Заменяем .appPurple на системный акцентный цвет
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
-                        .background(Color.white)
+                        .background(Color(.secondarySystemBackground))
                         .cornerRadius(16)
 
                         // Стоимость
                         HStack {
                             Text("Стоимость")
+                                .foregroundColor(.primary)
                             Spacer()
                             TextField("0", value: $price, format: .number)
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
                                 .frame(maxWidth: 120)
+                                .foregroundColor(.primary)
                         }
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
-                        .background(Color.white)
+                        .background(Color(.secondarySystemBackground))
                         .cornerRadius(16)
 
                         if draftAsset != nil {
                             Text("Если цена изменилась — просто обновите её 📈")
                                 .font(.footnote)
-                                .foregroundColor(.gray)
+                                .foregroundColor(.secondary) // Адаптивный серый цвет
                                 .padding(.horizontal, 16)
                         }
                     }
                     .padding(.horizontal)
                     Spacer()
-                    // Кнопка Сохранить / Добавить
+                    // Кнопки
                     VStack(spacing: 16) {
-                         // Сохранить / Добавить
-                         Button(action: saveAndDismiss) {
-                             Text(draftAsset == nil ? "Добавить" : "Сохранить")
-                                 .frame(maxWidth: .infinity, minHeight: 50)
-                         }
-                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
-                         .foregroundColor(.white)
-                         .background(
-                             name.trimmingCharacters(in: .whitespaces).isEmpty
-                                 ? Color.gray.opacity(0.5)
-                                 : Color.appPurple
-                         )
-                         .cornerRadius(16)
+                        // Сохранить / Добавить
+                        Button(action: saveAndDismiss) {
+                            Text(draftAsset == nil ? "Добавить" : "Сохранить")
+                                .frame(maxWidth: .infinity, minHeight: 50)
+                                .foregroundColor(.white)
+                                .background(
+                                    name.trimmingCharacters(in: .whitespaces).isEmpty
+                                        ? Color.gray.opacity(0.5)
+                                        : .accentColor // Заменяем .appPurple на системный акцент
+                                )
+                                .cornerRadius(16)
+                        }
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
 
-                         // Удалить (показываем только при редактировании)
-                         if draftAsset != nil {
-                             Button(role: .destructive) {
-                                 isShowingDeleteAlert = true
-                             } label: {
-                                 Text("Удалить актив")
-                                     .frame(maxWidth: .infinity, minHeight: 50)
-                             }
-                             .foregroundColor(.red)
-                             .background(Color(.systemGray4))
-                             .cornerRadius(16)
-                         }
-                     }
-                     .padding(.horizontal)
-                     .padding(.bottom, 16)
-                 }
-                .alert(
-                    "Подтвердить удаление",
-                    isPresented: $isShowingDeleteAlert
-                ) {
-                    Button("Удалить", role: .destructive) {
-                        deleteAsset()
+                        // Удалить (показываем только при редактировании)
+                        if draftAsset != nil {
+                            Button(role: .destructive) {
+                                isShowingDeleteAlert = true
+                            } label: {
+                                Text("Удалить актив")
+                                    .frame(maxWidth: .infinity, minHeight: 50)
+                                    .foregroundColor(.red)
+                                    .background(Color(.secondarySystemBackground))
+                                    .cornerRadius(16)
+                            }
+                        }
                     }
-                    Button("Отмена", role: .cancel) {
-                        // просто закроет алерт
-                    }
-                } message: {
-                    Text("Вы уверены, что хотите удалить этот актив?")
+                    .padding(.horizontal)
+                    .padding(.bottom, 16)
                 }
             }
-        }.onChange(of: typeSelection) { newValue in
+            .alert(
+                "Подтвердить удаление",
+                isPresented: $isShowingDeleteAlert
+            ) {
+                Button("Удалить", role: .destructive) {
+                    deleteAsset()
+                }
+                Button("Отмена", role: .cancel) {
+                    // Просто закроет алерт
+                }
+            } message: {
+                Text("Вы уверены, что хотите удалить этот актив?")
+            }
+        }
+        .onChange(of: typeSelection) { newValue in
             if case .newType = newValue {
                 isShowingNewTypeAlert = true
             }
