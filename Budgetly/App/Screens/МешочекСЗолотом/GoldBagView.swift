@@ -409,7 +409,6 @@ struct AddOrEditAssetView: View {
                             }
                         }
                     }
-
                     .padding(.horizontal)
                     .padding(.bottom, 16)
                 }
