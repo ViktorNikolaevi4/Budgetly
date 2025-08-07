@@ -13,13 +13,13 @@ class Account: Identifiable {
     @Attribute var sortOrder: Int = 0
 
     @Relationship(deleteRule: .cascade)
-    var transactions: [Transaction]? // Опциональный массив
+    var transactions: [Transaction]? = [] // Опциональный массив
 
     @Relationship(deleteRule: .cascade)
-    var categories: [Category]? // Опциональный массив
+    var categories: [Category]? = [] // Опциональный массив
 
     @Relationship(deleteRule: .cascade)
-    var regularPayments: [RegularPayment]? // Опциональный массив
+    var regularPayments: [RegularPayment]? = [] // Опциональный массив
 
     var allTransactions: [Transaction] {
         transactions ?? []
