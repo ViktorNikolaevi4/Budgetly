@@ -36,11 +36,12 @@ struct RepeatPickerSheet: View {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.down")
                         .font(.title2)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
                 Spacer()
                 Text("Повтор")
                     .font(.headline)
+                    .foregroundColor(.primary)
                 Spacer()
                 Color.clear.frame(width: 24, height: 24)
             }
@@ -53,16 +54,19 @@ struct RepeatPickerSheet: View {
                         ForEach(allRules, id: \.self) { rule in
                             HStack {
                                 Text(rule)
+                                    .foregroundStyle(.primary)
                                 Spacer()
                                 if rule == selectedRule {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(.appPurple)
+                                        .foregroundColor(.accentColor)
                                 }
                             }
                             .contentShape(Rectangle())
                             .onTapGesture { selectedRule = rule }
+                            .listRowBackground(Color(UIColor.secondarySystemBackground))
                         }
                     }
+                    .listRowSeparator(.hidden)
 
                     // MARK: – Секция «Конец повтора»
                     if selectedRule != "Никогда" {
@@ -96,6 +100,7 @@ struct RepeatPickerSheet: View {
                             }
                             .padding(.vertical, 8)
                             .tint(.appPurple)
+                            .listRowBackground(Color(UIColor.secondarySystemBackground))
 
                             if endOption == .onDate {
                                 DatePicker("Окончание", selection: $endDate, displayedComponents: .date)
@@ -103,8 +108,10 @@ struct RepeatPickerSheet: View {
                                     .tint(.appPurple)
                                     .environment(\.locale, Locale(identifier: "ru_RU"))
                                     .padding(.vertical, 4)
+                                    .listRowBackground(Color(UIColor.secondarySystemBackground))
                             }
                         }
+                        .listRowSeparator(.hidden)
                     }
 
                     // Добавляем отступ перед комментарием
@@ -118,20 +125,21 @@ struct RepeatPickerSheet: View {
                         ZStack(alignment: .topLeading) {
                             if comment.isEmpty {
                                 Text("Комментарий")
-                                    .foregroundColor(.gray.opacity(0.6))
+                                    .foregroundColor(.secondary)
                                     .padding(.horizontal, 16)
                                     .padding(.vertical, 12)
                             }
                             TextEditor(text: $comment)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
+                                .foregroundStyle(.primary)
                         }
                         .frame(minHeight: 80)
-                        .background(Color.white)
+                        .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(8)
-                        .listRowInsets(EdgeInsets())               // растянуть
-                        .background(Color("BackgroundLightGray"))   // фон под полем
+                        .listRowBackground(Color(UIColor.secondarySystemBackground))
                     }
+                    .listRowSeparator(.hidden)
                 }
                 .listStyle(.insetGrouped)
 
@@ -148,7 +156,7 @@ struct RepeatPickerSheet: View {
             .cornerRadius(16)
             .padding()
         }
-        .background(Color("BackgroundLightGray"))
+        .background(Color(UIColor.systemBackground).ignoresSafeArea())
         .presentationDragIndicator(.visible)
         .environment(\.locale, Locale(identifier: "ru_RU"))
         .accentColor(.appPurple)
