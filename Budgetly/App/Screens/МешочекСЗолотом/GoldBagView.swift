@@ -97,7 +97,7 @@ struct GoldBagView: View {
     var body: some View {
         ZStack {
             // 1) Заливаем всю область серым
-            Color(UIColor.systemGray6)
+            Color(UIColor.systemBackground)
                 .ignoresSafeArea()
             NavigationStack {
                 Group {
@@ -123,7 +123,7 @@ struct GoldBagView: View {
                             .overlay(
                                 Text("\(totalPrice.toShortStringWithSuffix()) ₽")
                                     .font(.title2).bold()
-                                    .foregroundColor(.black)
+                                    .foregroundColor(.primary)
                             )
                             .padding()
 
