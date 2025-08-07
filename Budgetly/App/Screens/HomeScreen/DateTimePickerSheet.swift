@@ -4,6 +4,7 @@ struct DateTimePickerSheet: View {
     @Binding var date: Date
     @Binding var repeatRule: String
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     // Отформатируем под ваш дизайн
     private let monthYearFormatter: DateFormatter = {
@@ -26,13 +27,14 @@ struct DateTimePickerSheet: View {
             HStack {
                 Text("Дата")
                     .font(.headline)
+                    .foregroundColor(.primary)
                 Spacer()
                 Button {
                     dismiss()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.secondary)
                 }
             }
             .padding()
@@ -47,7 +49,10 @@ struct DateTimePickerSheet: View {
             )
             .datePickerStyle(.graphical)
             .padding(.horizontal)
-            .foregroundStyle(.appPurple)
+            .accentColor(.appPurple)
+            .background(Color(UIColor.secondarySystemBackground))
+            .cornerRadius(12)
+            .padding(.horizontal)
 
             Divider().padding(.vertical, 8)
 
@@ -55,6 +60,7 @@ struct DateTimePickerSheet: View {
             HStack {
                 Text("Время")
                     .font(.subheadline)
+                    .foregroundColor(.primary)
                 Spacer()
                 DatePicker(
                     "",
@@ -79,7 +85,7 @@ struct DateTimePickerSheet: View {
             .cornerRadius(16)
             .padding()
         }
-        .background(Color("BackgroundLightGray"))
+        .background(Color(UIColor.systemBackground).ignoresSafeArea())
         .environment(\.locale, Locale(identifier: "ru_RU"))
         .accentColor(.appPurple)
     }
