@@ -146,12 +146,14 @@ struct GoldBagView: View {
                                             Button { selectedAsset = asset } label: {
                                                 HStack {
                                                     Text(asset.name)
+                                                        .foregroundColor(.primary)
                                                     Spacer()
                                                     Text("\(asset.price, specifier: "%.2f") ₽")
+                                                        .foregroundColor(.secondary)
                                                 }
                                                 .padding(.vertical, 4)
                                             }
-                                            .tint(.black)
+                                            .tint(.primary)
                                             .swipeActions(edge: .trailing) {
                                                 Button(role: .destructive) {
                                                     pendingDeleteAsset = asset
@@ -168,6 +170,7 @@ struct GoldBagView: View {
                                                 .frame(width: 10, height: 10)
                                             Text(group.type?.name ?? "Без типа")
                                                 .font(.title3).bold()
+                                                .foregroundColor(.primary)
                                             Spacer()
                                             HStack(spacing: 6) {
                                                 Text("\(group.sum.toShortStringWithSuffix()) ₽")
@@ -177,12 +180,12 @@ struct GoldBagView: View {
                                                 Text(String(format: "%.1f%%", group.sum / totalPrice * 100))
                                             }
                                             .font(.subheadline)
-                                            .foregroundColor(.gray.opacity(0.8))
+                                            .foregroundColor(.secondary)
                                         }
                                         .padding(.vertical, 4)
                                     }
                                 }
-                            }.listRowBackground(Color.white)
+                            }.listRowBackground(Color.primary)
                         }
                     }
                 }
