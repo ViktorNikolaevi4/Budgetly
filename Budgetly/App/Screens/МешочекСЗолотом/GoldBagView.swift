@@ -97,8 +97,8 @@ struct GoldBagView: View {
     var body: some View {
         ZStack {
             // 1) Заливаем всю область серым
-            Color(UIColor.systemBackground)
-                .ignoresSafeArea()
+//            Color(UIColor.secondarySystemBackground)
+//                .ignoresSafeArea()
             NavigationStack {
                 Group {
                     if assets.isEmpty {
