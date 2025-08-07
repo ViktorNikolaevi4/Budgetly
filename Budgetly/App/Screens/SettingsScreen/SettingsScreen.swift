@@ -4,14 +4,12 @@ import SwiftData
 struct SettingsScreen: View {
     @Environment(\.cloudKitService) private var ckService: CloudKitService
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme // Для определения текущей темы
 
     @State private var showClearAlert = false
     @State private var isClearing = false
     @State private var clearError: Error?
     @State private var showClearError = false
-
-
-    init() {}
 
     @Query private var accounts: [Account]
 
@@ -29,19 +27,21 @@ struct SettingsScreen: View {
                 Section {
                     if ckService.iCloudAvailable {
                         Label("iCloud доступен", systemImage: "icloud.fill")
+                            .foregroundStyle(.primary) // Адаптивный цвет текста и иконки
                     } else {
                         Text("Пожалуйста, включите iCloud в настройках системы")
-                            .foregroundColor(.red)
+                            .foregroundStyle(.red) // Красный цвет для ошибки остаётся, но можно заменить на пользовательский
                     }
                 }
-                
+
                 // MARK: — Профиль iCloud
                 if let name = ckService.displayName, !name.isEmpty {
                     Section("Профиль iCloud") {
                         Label(name, systemImage: "person.fill")
+                            .foregroundStyle(.primary) // Адаптивный цвет
                     }
                 }
-                
+
                 // MARK: — О приложении
                 Section {
                     Button {
@@ -49,79 +49,80 @@ struct SettingsScreen: View {
                     } label: {
                         Label {
                             Text("Поделиться с друзьями")
+                                .foregroundStyle(.primary)
                         } icon: {
                             IconBackground(
                                 systemName: "square.and.arrow.up",
-                                backgroundColor: Color(red: 194/255, green: 98/255, blue: 228/255)
+                                backgroundColor: Color("purpurApple", bundle: nil) // Пользовательский цвет из Asset Catalog
                             )
                         }
                     }
-                    
+
                     Button {
                         showRateSheet = true
                     } label: {
                         Label {
                             Text("Оценить приложение")
+                                .foregroundStyle(.primary)
                         } icon: {
-                            IconBackground(systemName: "star.fill", backgroundColor: .yellow)
+                            IconBackground(
+                                systemName: "star.fill",
+                                backgroundColor: Color("yel3", bundle: nil) // Пользовательский цвет для жёлтого
+                            )
                         }
                     }
-                    
+
                     Button {
                         showContactDeveloperSheet = true
                     } label: {
                         Label {
                             Text("Написать разработчикам")
+                                .foregroundStyle(.primary)
                         } icon: {
                             IconBackground(
                                 systemName: "envelope.fill",
-                                backgroundColor: Color(red: 0/255, green: 184/255, blue: 148/255)
+                                backgroundColor: Color("boloto2", bundle: nil) // Пользовательский цвет для зелёного
                             )
                         }
                     }
                 }
-                
+
                 // MARK: — Дополнительно (только Регулярные платежи)
                 Section {
                     if accounts.isEmpty {
                         Text("Сначала создайте счет")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary) // Вторичный цвет для текста
                     } else {
                         NavigationLink {
                             RegularPaymentsScreen()
                         } label: {
                             Label {
                                 Text("Регулярные платежи")
+                                    .foregroundStyle(.primary)
                             } icon: {
                                 IconBackground(
                                     systemName: "scroll.fill",
-                                    backgroundColor: Color(red: 80/255, green: 127/255, blue: 252/255)
+                                    backgroundColor: Color("redApple", bundle: nil) // Пользовательский цвет для синего
                                 )
                             }
                         }
                     }
                 }
-//                Section {
-//                    Button(role: .destructive) {
-//                        logout()
-//                    } label: {
-//                        Label("Выйти", systemImage: "arrow.right.circle.fill")
-//                    }
-//                }
             }
             .listStyle(InsetGroupedListStyle())
             .navigationTitle("Настройки")
-            .background(GradientView().ignoresSafeArea())
+            .background(
+                GradientView()
+                    .ignoresSafeArea()
+                    .opacity(colorScheme == .dark ? 0.8 : 1.0) // Лёгкая корректировка прозрачности для тёмной темы
+            )
             .alert("Ошибка при выходе", isPresented: $showClearError) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(clearError?.localizedDescription ?? "Неизвестная ошибка")
             }
         }
-        .foregroundStyle(.black)
-        //        .sheet(isPresented: $showAuthSheet) {
-        //            AuthSheet(showLogin: $showLogin)
-        //        }
+        .foregroundStyle(.primary) // Основной цвет для всей вью
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(items: ["Проверьте наше приложение! https://apps.apple.com/app/idXXXXXXXXX"])
         }
@@ -132,30 +133,7 @@ struct SettingsScreen: View {
             ContactDeveloperView()
         }
     }
-
-//    private func logout() {
-//        do {
-//            // Очищаем только локальное хранилище — SwiftData автоматически подтянет данные из iCloud
-//            try clearLocalData(in: modelContext)
-//        } catch {
-//            clearError = error
-//            showClearError = true
-//        }
-//    }
-
 }
-//struct AuthSheet: View {
-//    @Binding var showLogin: Bool
-//    var body: some View {
-//        NavigationStack {
-//            if showLogin {
-//                LoginView(onSwitchToRegister: { withAnimation { showLogin = false } })
-//            } else {
-//                RegistrationView(onSwitchToLogin: { withAnimation { showLogin = true } })
-//            }
-//        }
-//    }
-//}
 
 /// Вспомогательный view для цветного квадратика под SF Symbol
 struct IconBackground: View {
@@ -170,7 +148,7 @@ struct IconBackground: View {
                 .frame(width: 32, height: 32)
             Image(systemName: systemName)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white)
+                .foregroundStyle(.white) // Белый цвет иконки для контраста с цветным фоном
         }
     }
 }
