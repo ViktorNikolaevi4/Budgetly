@@ -1,30 +1,28 @@
-
 import SwiftUI
 import StoreKit
 
 struct RateAppView: View {
     @Binding var isPresented: Bool // Управление отображением окна
+    @Environment(\.colorScheme) private var colorScheme // Определение текущей темы
 
     var body: some View {
         VStack {
-            // Ваш кастомный заголовок
-            Text("Регистрация")
-                .font(.headline)
-                .padding()
 
             Text("Мы очень стараемся для вас и каждый день улучшаем наше приложение!")
                 .multilineTextAlignment(.center)
-                .padding()
+                .foregroundStyle(.primary)
+                .padding(.bottom)
 
             Text("Пожалуйста, поставьте нам 5 звезд на странице приложения в App Store!")
                 .multilineTextAlignment(.center)
+                .foregroundStyle(.primary)
                 .padding(.bottom)
 
             // Звезды
             HStack(spacing: 5) {
                 ForEach(0..<5) { _ in
                     Image(systemName: "star.fill")
-                        .foregroundColor(.yellow)
+                        .foregroundColor(colorScheme == .dark ? .yellow.opacity(0.9) : .yellow) // Лёгкая корректировка для тёмной темы
                         .font(.largeTitle)
                 }
             }
@@ -32,6 +30,7 @@ struct RateAppView: View {
 
             Text("Спасибо вам большое!")
                 .font(.footnote)
+                .foregroundStyle(.primary)
                 .padding(.bottom)
 
             // Кнопка "5 ЗВЁЗДОЧЕК"
@@ -42,7 +41,7 @@ struct RateAppView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.yellow)
+                    .background(colorScheme == .dark ? Color.yellow.opacity(0.9) : Color.yellow) // Адаптация фона кнопки
                     .foregroundColor(.black)
                     .cornerRadius(8)
             }
@@ -53,12 +52,12 @@ struct RateAppView: View {
                 isPresented = false
             }) {
                 Text("Отмена")
-                    .foregroundColor(.red)
+                    .foregroundColor(colorScheme == .dark ? .red.opacity(0.9) : .red) // Адаптация цвета для тёмной темы
             }
             .padding(.top)
         }
         .padding()
-        .background(Color.white)
+        .background(Color(.systemBackground)) // Исправлено на Color(.systemBackground)
         .cornerRadius(12)
         .shadow(radius: 10)
         .frame(maxWidth: 300) // Размер окна
@@ -72,5 +71,3 @@ struct RateAppView: View {
         }
     }
 }
-
-
