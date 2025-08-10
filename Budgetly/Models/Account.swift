@@ -180,6 +180,7 @@ extension Category {
         try? context.save()
     }
 }
+
 extension Account {
     var currencyCode: String { currency ?? "RUB" }
 }

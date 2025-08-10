@@ -10,7 +10,7 @@ struct AccountEditView: View {
     @State private var showDeleteAlert = false
 
     var body: some View {
-        NavigationStack {
+  //      NavigationStack {
             VStack(spacing: 16) {
                 ZStack {
                     Circle()
@@ -67,6 +67,7 @@ struct AccountEditView: View {
             }
             .navigationTitle("Редактировать")
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Отменить") {
@@ -93,7 +94,7 @@ struct AccountEditView: View {
             } message: {
                 Text("Все связанные транзакции и категории будут удалены без возможности восстановления.")
             }
-        }
+  //      }
         .foregroundStyle(Color(UIColor.label))
     }
 

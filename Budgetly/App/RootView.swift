@@ -1,4 +1,5 @@
 import SwiftUI
+import CloudKit
 
 private struct CloudKitServiceKey: EnvironmentKey {
     static let defaultValue: CloudKitService = CloudKitService()
@@ -13,33 +14,59 @@ extension EnvironmentValues {
 }
 
 struct RootView: View {
-    // Берём ваш CloudKitService из environmentObject
-    @Environment(\.cloudKitService) private var ckService: CloudKitService
-
-    init() {}
-
+    @Environment(\.cloudKitService) private var ckService
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var hideICloudBanner = false   // было @AppStorage
 
     var body: some View {
-        Group {
-            if ckService.iCloudAvailable {
-                // Если iCloud доступен — основной TabView
-                ContentView()
-            } else {
-                // Иначе просим включить iCloud
-                VStack(spacing: 16) {
-                    Image(systemName: "icloud.slash")
-                        .font(.system(size: 64))
-                        .foregroundColor(.red)
-                    Text("Пожалуйста, войдите в iCloud\nв настройках системы")
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemGray6).ignoresSafeArea())
+        ZStack(alignment: .top) {
+            ContentView()
+
+            if ckService.lastStatus != .available && !hideICloudBanner {
+                banner
             }
         }
-        .animation(.easeInOut, value: ckService.iCloudAvailable)
+        // каждый раз, когда приложение становится активным — снова показываем
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                hideICloudBanner = false
+            }
+        }
+        .animation(.easeInOut, value: ckService.lastStatus)
     }
-}
+
+    private var banner: some View {
+        VStack(spacing: 8) {
+            Text(message(for: ckService.lastStatus)).font(.subheadline)
+            HStack {
+                Button("Повторить") { ckService.refresh() }
+                Button("Настройки iCloud") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+            }
+            .buttonStyle(.borderedProminent)
+
+            Button("Отмена") { hideICloudBanner = true }
+                .buttonStyle(.bordered)                      // не «prominent»
+                .tint(Color.primary)
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+        .padding()
+        .transition(.move(edge: .top).combined(with: .opacity))
+    }
+
+        private func message(for s: CKAccountStatus) -> String {
+            switch s {
+            case .noAccount: return "На устройстве не выполнен вход в iCloud."
+            case .restricted: return "Доступ к iCloud ограничен (тумблер приложения/ограничения)."
+            case .temporarilyUnavailable: return "iCloud временно недоступен. Работаем офлайн."
+            case .couldNotDetermine: return "Не удалось определить статус iCloud. Проверьте сеть."
+            default: return ""
+            }
+        }
+    }
 
