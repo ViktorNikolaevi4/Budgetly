@@ -190,32 +190,49 @@ struct AddTransactionView: View {
                 }.padding(.top, 0)
 
                 ScrollView {
-                    FlowLayout(spacing: 8) {
-                        ForEach(Array(visibleCategories.enumerated()), id: \.offset) { idx, catOpt in
-                            if let cat = catOpt {
-                                Button { selectedCategory = cat.name } label: {
-                                    CategoryBadge(category: cat, isSelected: selectedCategory == cat.name)
-                                }
-                            } else {
-                                Button { showAllCategories = true } label: {
-                                    VStack {
-                                        Image(systemName: "ellipsis.circle")
-                                            .font(.title2)
-                                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет иконки
-                                        Text("Ещё")
-                                            .font(.caption)
-                                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
+                    GeometryReader { geo in
+                        // Параметры
+                        let inset: CGFloat = 16
+                        let maxGap: CGFloat = 12        // обычный зазор
+                        let minGap: CGFloat = 4         // минимальный, если экран узкий
+                        let minCellW: CGFloat = 80      // можно 76–82 по вкусу
+                        let cols = 4
+
+                        let contentW = geo.size.width - inset * 2
+
+                        // если места мало — уменьшаем gap, чтобы ячейка была >= minCellW
+                        let gapThatFits = (contentW - minCellW * CGFloat(cols)) / CGFloat(cols - 1)
+                        let gap = max(minGap, min(maxGap, gapThatFits))
+
+                        // итоговая ширина ячейки при 4 колонках
+                        let cellW = (contentW - gap * CGFloat(cols - 1)) / CGFloat(cols)
+
+                        FlowLayout(spacing: gap) {
+                            ForEach(Array(visibleCategories.enumerated()), id: \.offset) { _, catOpt in
+                                if let cat = catOpt {
+                                    Button { selectedCategory = cat.name } label: {
+                                        CategoryBadge(category: cat, isSelected: selectedCategory == cat.name)
+                                            .frame(width: cellW, height: 68)  // всегда 4 колонки
                                     }
-                                    .frame(width: 84, height: 68)
-                                    .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
-                                    .cornerRadius(16)
+                                } else {
+                                    Button { showAllCategories = true } label: {
+                                        VStack {
+                                            Image(systemName: "ellipsis.circle").font(.title2)
+                                            Text("Ещё").font(.caption)
+                                        }
+                                        .frame(width: cellW, height: 68)
+                                        .background(Color(UIColor.secondarySystemBackground))
+                                        .cornerRadius(16)
+                                    }
                                 }
                             }
                         }
+                        .padding(.horizontal, inset)
+                        .padding(.vertical, 10)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .frame(minHeight: 0)
                 }
+
 
                 HStack {
                     Button {
