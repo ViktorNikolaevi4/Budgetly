@@ -5,19 +5,18 @@ import UIKit
 @MainActor
 @Observable
 final class CloudKitService {
-    // базовые состояния
+    // Состояние
     var lastStatus: CKAccountStatus = .couldNotDetermine
     var lastError: Error?
     var isChecking = false
 
-    // ✅ алиас под старый API: то, что ждут экраны
+    /// Удобный алиас
     var iCloudAvailable: Bool { lastStatus == .available }
 
-    // ✅ если экраны показывают имя профиля
-    var displayName: String?
+    /// 🔹 Имя пользователя из приватной БД (наш «профиль»)
+    var displayName: String?     // ← добавили
 
     init() {
-        // лёгкий старт, без UI
         Task { await refresh() }
         NotificationCenter.default.addObserver(
             forName: UIApplication.didBecomeActiveNotification,
@@ -27,22 +26,61 @@ final class CloudKitService {
         }
     }
 
+    /// Проверить статус iCloud
     func refresh() async {
         guard !isChecking else { return }
         isChecking = true
         defer { isChecking = false }
+
         do {
-            let status = try await CKContainer.default().accountStatus()
-            lastStatus = status
+            lastStatus = try await CKContainer.default().accountStatus()
             lastError = nil
+
+            if lastStatus == .available {
+                await ensureProfileRecord()    // ← тянем/создаём профиль
+            } else {
+                displayName = nil
+            }
         } catch {
             lastStatus = .couldNotDetermine
             lastError  = error
+            displayName = nil
         }
     }
-    
+
     func refreshNow() { Task { await refresh() } }
+
+    // MARK: - Профиль iCloud в приватной БД
+    private func ensureProfileRecord() async {
+        let container = CKContainer.default()
+        let db = container.privateCloudDatabase
+
+        // Получаем userRecordID (через continuation, чтобы остаться на async/await)
+        let rid: CKRecord.ID? = await withCheckedContinuation { cont in
+            container.fetchUserRecordID { rid, _ in cont.resume(returning: rid) }
+        }
+        guard let rid else { return }
+
+        let recID = CKRecord.ID(recordName: "Profile-\(rid.recordName)")
+
+        // Пробуем найти запись
+        let record: CKRecord? = await withCheckedContinuation { cont in
+            db.fetch(withRecordID: recID) { record, _ in cont.resume(returning: record) }
+        }
+
+        if let record, let name = record["displayName"] as? String {
+            displayName = name
+            return
+        }
+
+        // Если записи нет — создаём пустую
+        let newRec = CKRecord(recordType: "Profile", recordID: recID)
+        newRec["displayName"] = "" as NSString
+        db.save(newRec) { _, _ in }   // без ожидания ок
+        displayName = nil
+    }
 }
+
 
 
 // MARK: - CloudKit error helpers

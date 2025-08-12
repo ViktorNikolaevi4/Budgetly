@@ -36,48 +36,44 @@ struct BudgetlyApp: App {
             RootView()
                 .environment(\.cloudKitService, ckService)
                 .modelContainer(modelContainer)
-                .task {
-                    await createDefaultAccountIfNeeded(in: modelContainer.mainContext)
+                .task { await trySeed() }
+                .onChange(of: ckService.lastStatus) { _, s in
+                    if s == .available {
+                        Task { await trySeed() }
+                    }
                 }
         }
-        
     }
+
+    private func trySeed() async {
+        await createDefaultAccountIfNeeded(in: modelContainer.mainContext)
+    }
+
     func createDefaultAccountIfNeeded(in context: ModelContext) async {
-        // 1) Формируем query ко всем Account-записям в приватной базе
-        let predicate = NSPredicate(value: true)
-        let query = CKQuery(recordType: "Account", predicate: predicate)
-        let database = CKContainer.default().privateCloudDatabase
+        // 0) Если локально уже есть счет — ничего не делаем (идемпотентность)
+        if (try? context.fetchCount(FetchDescriptor<Account>())) ?? 0 > 0 { return }
 
+        // 1) Ждём доступности iCloud; если его нет — просто выйдем,
+        // onChange(ckService.lastStatus) вызовет нас снова
+        let status = (try? await CKContainer.default().accountStatus()) ?? .couldNotDetermine
+        guard status == .available else { return }
+
+        // 2) Проверяем, нет ли УЖЕ счетов в приватной БД CloudKit
         do {
-            // 2) Выполняем запрос
-            let (matchingResults, _) = try await database.records(matching: query)
-
-            // 3) Считаем сколько реально удалённых записей
-            let remoteCount = matchingResults.count
-
-            guard remoteCount == 0 else {
-                // в iCloud уже есть счёта — нам ничего не нужно заводить
-                return
-            }
-
-            // 4) Проверяем, что локально тоже нет дублей
-            let desc = FetchDescriptor<Account>(
-                predicate: #Predicate {
-                    $0.name == "Основной счёт" && ($0.currency ?? "") == "RUB"
-                }
-            )
-            let localCount = try context.fetchCount(desc)
-            guard localCount == 0 else { return }
-
-            // 5) Создаём «Основной счёт» и seed‐категории
-            let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
-            context.insert(acc)
-            Category.seedDefaults(for: acc, in: context)
-            try context.save()
-
+            let db = CKContainer.default().privateCloudDatabase
+            let query = CKQuery(recordType: "Account", predicate: NSPredicate(value: true))
+            let (results, _) = try await db.records(matching: query)
+            guard results.isEmpty else { return } // в облаке уже есть — не сидируем
         } catch {
-            print("Ошибка при проверке удалённых счётов: \(error)")
+            // если тут снова упало (редко), просто выйдем — нас ещё раз дернут при активизации/повторе
+            return
         }
+
+        // 3) Создаём локально «Основной счет» и дефолтные категории — это синканется
+        let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
+        context.insert(acc)
+        Category.seedDefaults(for: acc, in: context)
+        try? context.save()
     }
 }
 
