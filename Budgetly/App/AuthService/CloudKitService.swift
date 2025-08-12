@@ -52,33 +52,28 @@ final class CloudKitService {
 
     // MARK: - Профиль iCloud в приватной БД
     private func ensureProfileRecord() async {
-        let container = CKContainer.default()
-        let db = container.privateCloudDatabase
+           let container = CKContainer.default()
+           let db = container.privateCloudDatabase
 
-        // Получаем userRecordID (через continuation, чтобы остаться на async/await)
-        let rid: CKRecord.ID? = await withCheckedContinuation { cont in
-            container.fetchUserRecordID { rid, _ in cont.resume(returning: rid) }
-        }
-        guard let rid else { return }
+           do {
+               let rid = try await container.userRecordID()
+               let recID = CKRecord.ID(recordName: "Profile-\(rid.recordName)")
 
-        let recID = CKRecord.ID(recordName: "Profile-\(rid.recordName)")
+               if let record = try? await db.record(for: recID),
+                  let name = record["displayName"] as? String {
+                   displayName = name
+                   return
+               }
 
-        // Пробуем найти запись
-        let record: CKRecord? = await withCheckedContinuation { cont in
-            db.fetch(withRecordID: recID) { record, _ in cont.resume(returning: record) }
-        }
-
-        if let record, let name = record["displayName"] as? String {
-            displayName = name
-            return
-        }
-
-        // Если записи нет — создаём пустую
-        let newRec = CKRecord(recordType: "Profile", recordID: recID)
-        newRec["displayName"] = "" as NSString
-        db.save(newRec) { _, _ in }   // без ожидания ок
-        displayName = nil
-    }
+               let newRec = CKRecord(recordType: "Profile", recordID: recID)
+               newRec["displayName"] = "" as NSString
+               _ = try? await db.save(newRec)          // нам не важен результат
+               displayName = nil
+           } catch {
+               // Ничего критичного: просто не показываем имя
+               displayName = nil
+           }
+       }
 }
 
 
