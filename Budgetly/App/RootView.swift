@@ -2,8 +2,12 @@ import SwiftUI
 import CloudKit
 
 private struct CloudKitServiceKey: EnvironmentKey {
-    static let defaultValue: CloudKitService = CloudKitService()
+    @MainActor
+    static var defaultValue: CloudKitService {
+        CloudKitService() // сюда попадём только если забыли .environment(...)
+    }
 }
+
 
 extension EnvironmentValues {
     /// Здесь: ключ для вашего сервиса
@@ -38,8 +42,11 @@ struct RootView: View {
     private var banner: some View {
         VStack(spacing: 8) {
             Text(message(for: ckService.lastStatus)).font(.subheadline)
+
             HStack {
-                Button("Повторить") { ckService.refresh() }
+                Button("Повторить") {
+                    Task { await ckService.refresh() }   // ← обёртка
+                }
                 Button("Настройки iCloud") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
@@ -49,15 +56,11 @@ struct RootView: View {
             .buttonStyle(.borderedProminent)
 
             Button("Отмена") { hideICloudBanner = true }
-                .buttonStyle(.bordered)                      // не «prominent»
-                .tint(Color.primary)
+                .buttonStyle(.bordered)
+                .tint(.primary)
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
-        .padding()
-        .transition(.move(edge: .top).combined(with: .opacity))
     }
+
 
         private func message(for s: CKAccountStatus) -> String {
             switch s {

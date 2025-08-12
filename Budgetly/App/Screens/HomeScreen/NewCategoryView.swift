@@ -14,31 +14,31 @@ struct NewCategoryView: View {
 
 
     // Пример набора иконок
-    private let icons = [
-        "fork.knife", "car.fill", "house.fill",
-        "tshirt.fill", "bandage.fill", "pawprint.fill",
-        "wifi", "gamecontroller.fill", "book.fill", "figure.walk", "stethoscope",
-        "pills.fill", "hands.and.sparkles.fill", "gift.fill", "airplane",
-        "hammer.fill", "paintbrush.fill", "creditcard.fill", "takeoutbag.and.cup.and.straw.fill",
-        "drop.fill", "scissors", "leaf.fill", "bicycle", "scooter", "bus", "tram",
-        "fuelpump.fill", "play.tv.fill", "beats.headphones", "dumbbell.fill", "bolt.heart.fill",
-        "music.note.list", "film.fill", "figure.strengthtraining.traditional",
-        "antenna.radiowaves.left.and.right", "paintpalette.fill", "giftcard.fill", "star.fill",
-        "basketball.fill", "puzzlepiece.fill", "tent.fill", "tree.fill", "shoe.fill",
-        "comb.fill", "balloon.2.fill", "popcorn.fill", "graduationcap.fill", "lanyardcard.fill", "figure.run.treadmill",
-        "figure.stand.dress.line.vertical.figure"
-    ]
-    private let incomeIcons = [
-        "wallet.bifold.fill", "creditcard.fill", "car.front.waves.up.fill", "house.fill", "figure.hiking", "star.circle.fill", "chart.line.uptrend.xyaxis", "wifi", "briefcase.fill", "graduationcap.fill", "hands.clap.fill", "gift.fill",
-        "airplane", "hammer.fill", "paintbrush.fill", "banknote.fill",
-         "wallet.pass.fill", "dollarsign.circle.fill", "person.2.fill", "scissors", "sparkles", "leaf.fill", "person.crop.square.filled.and.at.rectangle.fill", "trophy.fill", "medal.fill", "chart.pie.fill",
-        "play.tv.fill", "chart.bar.xaxis", "bitcoinsign.gauge.chart.lefthalf.righthalf", "dollarsign.bank.building.fill",
-        "music.note.list", "film.fill", "book.fill", "building.columns.fill", "antenna.radiowaves.left.and.right",
-        "paintpalette.fill", "giftcard.fill", "hand.thumbsup.fill", "star.fill", "camera.fill", "text.below.photo.fill",
-        "figure.wave", "bookmark.fill", "rosette", "flag.pattern.checkered", "die.face.6.fill",
-        "scroll.fill", "circle.slash", "rublesign.gauge.chart.lefthalf.righthalf",
-        "s.square.fill", "a.circle.fill", "pencil.circle.fill", "brain.filled.head.profile", "figure", "microphone.fill", "singaporedollarsign.arrow.trianglehead.counterclockwise.rotate.90"
-    ]
+        private let icons = [
+            "fork.knife", "car.fill", "house.fill",
+            "tshirt.fill", "bandage.fill", "pawprint.fill",
+            "wifi", "gamecontroller.fill", "book.fill", "figure.walk", "stethoscope",
+            "pills.fill", "hands.and.sparkles.fill", "gift.fill", "airplane",
+            "hammer.fill", "paintbrush.fill", "creditcard.fill", "takeoutbag.and.cup.and.straw.fill",
+            "drop.fill", "scissors", "leaf.fill", "bicycle", "scooter", "bus", "tram",
+            "fuelpump.fill", "play.tv.fill", "beats.headphones", "dumbbell.fill", "bolt.heart.fill",
+            "music.note.list", "film.fill", "figure.strengthtraining.traditional",
+            "antenna.radiowaves.left.and.right", "paintpalette.fill", "giftcard.fill", "star.fill",
+            "basketball.fill", "puzzlepiece.fill", "tent.fill", "tree.fill", "shoe.fill",
+            "comb.fill", "balloon.2.fill", "popcorn.fill", "graduationcap.fill", "lanyardcard.fill", "figure.run.treadmill",
+            "figure.stand.dress.line.vertical.figure"
+        ]
+        private let incomeIcons = [
+            "wallet.bifold.fill", "creditcard.fill", "car.front.waves.up.fill", "house.fill", "figure.hiking", "star.circle.fill", "chart.line.uptrend.xyaxis", "wifi", "briefcase.fill", "graduationcap.fill", "hands.clap.fill", "gift.fill",
+            "airplane", "hammer.fill", "paintbrush.fill", "banknote.fill",
+             "wallet.pass.fill", "dollarsign.circle.fill", "person.2.fill", "scissors", "sparkles", "leaf.fill", "person.crop.square.filled.and.at.rectangle.fill", "trophy.fill", "medal.fill", "chart.pie.fill",
+            "play.tv.fill", "chart.bar.xaxis", "bitcoinsign.gauge.chart.lefthalf.righthalf", "dollarsign.bank.building.fill",
+            "music.note.list", "film.fill", "book.fill", "building.columns.fill", "antenna.radiowaves.left.and.right",
+            "paintpalette.fill", "giftcard.fill", "hand.thumbsup.fill", "star.fill", "camera.fill", "text.below.photo.fill",
+            "figure.wave", "bookmark.fill", "rosette", "flag.pattern.checkered", "die.face.6.fill",
+            "scroll.fill", "circle.slash", "rublesign.gauge.chart.lefthalf.righthalf",
+            "s.square.fill", "a.circle.fill", "pencil.circle.fill", "brain.filled.head.profile", "figure", "microphone.fill", "singaporedollarsign.arrow.trianglehead.counterclockwise.rotate.90"
+        ]
     private var iconsToShow: [String] {
         initialType == .expenses ? icons : incomeIcons
     }
@@ -85,14 +85,16 @@ struct NewCategoryView: View {
                             .padding(.horizontal, 16)
                             .background(
                                 RoundedRectangle(cornerRadius: 10) // Закругление углов на радиус 10
-                                    .fill(Color.gray.opacity(0.2))
+                                    .fill(Color(UIColor.secondarySystemBackground))
                             )
                             .foregroundColor(.primary)
+                            .tint(.appPurple)
                             .focused($isNameFieldFocused)
                             .padding(.horizontal, 24)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
+                    .environment(\.colorScheme, .light)
                 }
                 .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                 .listRowBackground(
