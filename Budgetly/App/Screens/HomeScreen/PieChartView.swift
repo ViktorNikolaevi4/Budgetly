@@ -61,7 +61,7 @@ struct PieChartView: View {
                             let title = transactionType == .income ? "Доходы" : "Расходы"
                             Text(title)
                                 .font(.custom("SFPro-Regular", size: 15.0))
-                                .foregroundColor(Color(white: 0.0, opacity: 0.5))
+                                .foregroundStyle(Color(UIColor.secondaryLabel))
                                 .multilineTextAlignment(.center)
                                 .frame(height: 20.0, alignment: .center)
                             Text("\(totalAmount.toShortStringWithSuffix())\(currencySign)")
