@@ -153,6 +153,7 @@ struct HomeScreen: View {
     @State private var selectedTimePeriod: TimePeriod = .currentMonth
     @State private var isCustomPeriodPickerPresented = false
     @State private var isShowingPeriodMenu = false
+ //   @State private var isLoading = true
 
     @State private var appliedStartDate: Date?
     @State private var appliedEndDate: Date?
@@ -299,54 +300,59 @@ struct HomeScreen: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                VStack(spacing: 32) {
-                    accountView
-                    transactionTypeControl
-                }
+//            if isLoading {
+//                ProgressView("Загрузка...")
+//            } else {
+                VStack(spacing: 24) {
+                    VStack(spacing: 32) {
+                        accountView
+                        transactionTypeControl
+                    }
 
-                ScrollView {
-                    VStack(spacing: 20) {
-                        timePeriodPicker
-                        let emptyTexts: EmptyChartText = (selectedTransactionType == .expenses) ? .expenses : .income
+                    ScrollView {
+                        VStack(spacing: 20) {
+                            timePeriodPicker
+                            let emptyTexts: EmptyChartText = (selectedTransactionType == .expenses) ? .expenses : .income
 
-                        Group {
-                            if filteredTransactions.isEmpty {
-                                EmptyPiePlaceholderView(
-                                    texts: emptyTexts,
-                                    amountText: "0,00\(currencySign)"
-                                )
-                            } else {
-                                PieChartView(
-                                    transactions: filteredTransactions,
-                                    transactionType: selectedTransactionType,
-                                    currencySign: currencySign
-                                )
-                                .transition(.opacity)   // появление диаграммы
+                            Group {
+                                if filteredTransactions.isEmpty {
+                                    EmptyPiePlaceholderView(
+                                        texts: emptyTexts,
+                                        amountText: "0,00\(currencySign)"
+                                    )
+                                } else {
+                                    PieChartView(
+                                        transactions: filteredTransactions,
+                                        transactionType: selectedTransactionType,
+                                        currencySign: currencySign
+                                    )
+                                    .transition(.opacity)   // появление диаграммы
+                                }
                             }
+                            .animation(.easeInOut, value: filteredTransactions.count)
+                            categoryTags
                         }
-                        .animation(.easeInOut, value: filteredTransactions.count)
-                        categoryTags
                     }
                 }
-            }
-            .navigationTitle("Мой Бюджет")
-            .navigationBarTitleDisplayMode(.inline)
-            .padding()
-            .background(.regularMaterial)
+                .navigationTitle("Мой Бюджет")
+                .navigationBarTitleDisplayMode(.inline)
+                .padding()
+                .background(.regularMaterial)
         }
+//        .onAppear {
+//                Task {
+//                    await loadData()
+//                }
+//            }
         .onAppear {
-             generateMissedRecurringTransactions()
-
-             // Если пока нет выбранного — ставим первый из списка
-            if selectedAccountID.isEmpty {
+            generateMissedRecurringTransactions()
+            if selectedAccountID.isEmpty || selectedAccount == nil {
                 selectedAccountID = accounts.first?.id.uuidString ?? ""
             }
-             // Сразу заливаем дефолтные категории
-             if let acc = selectedAccount {
-                 Category.seedDefaults(for: acc, in: modelContext)
-             }
-         }
+            if let acc = selectedAccount {
+                Category.seedDefaults(for: acc, in: modelContext)
+            }
+        }
         .onChange(of: selectedAccountID) { newID in
             if let acc = selectedAccount {
                 Category.seedDefaults(for: acc, in: modelContext)
@@ -366,6 +372,13 @@ struct HomeScreen: View {
             }
 
     }
+    
+//    private func loadData() async {
+//        // Ждем загрузки данных или создания счета
+//        await createDefaultAccountIfNeeded(in: modelContext)
+//        isLoading = false
+//    }
+
     private var currencySign: String {
         // 1) Берём код валюты из выбранного счёта, или "RUB" по умолчанию
         let code = selectedAccount?.currency ?? "RUB"

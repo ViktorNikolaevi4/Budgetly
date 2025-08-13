@@ -82,19 +82,19 @@ struct AccountsScreen: View {
         }
         .onAppear {
             fixNilCurrencies(modelContext)
-            seedDefaultAccountIfNeeded()
+       //     seedDefaultAccountIfNeeded()
         }
     }
 
-    private func seedDefaultAccountIfNeeded() {
-        guard !didSeedDefault else { return }
-        didSeedDefault = true
-        guard accounts.isEmpty else { return }
-        let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
-        modelContext.insert(acc)
-        Category.seedDefaults(for: acc, in: modelContext)
-        try? modelContext.save()
-    }
+//    private func seedDefaultAccountIfNeeded() {
+//        guard !didSeedDefault else { return }
+//        didSeedDefault = true
+//        guard accounts.isEmpty else { return }
+//        let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
+//        modelContext.insert(acc)
+//        Category.seedDefaults(for: acc, in: modelContext)
+//        try? modelContext.save()
+//    }
 
     private func performPendingDelete() {
         for idx in pendingDeleteOffsets {

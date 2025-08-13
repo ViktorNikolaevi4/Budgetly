@@ -20,20 +20,18 @@ struct RootView: View {
     @Environment(\.cloudKitService) private var ckService
     @Environment(\.scenePhase) private var scenePhase
     @State private var hideICloudBanner = false
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         ZStack(alignment: .top) {
-            ContentView() // твой основной контент
-
+            ContentView()
+                .task { await ckService.refresh() }
             if ckService.lastStatus != .available && !hideICloudBanner {
                 banner
                     .padding()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        // авто-проверка при запуске
-        .task { await ckService.refresh() }
-        // и при возврате в foreground
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 hideICloudBanner = false
