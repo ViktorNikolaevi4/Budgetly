@@ -13,26 +13,40 @@ func createDefaultAccountIfNeeded(in context: ModelContext) async {
     isSeedingRunning = true
     defer { isSeedingRunning = false }
 
-    // уже есть счета?
-    if (try? context.fetchCount(FetchDescriptor<Account>())) ?? 0 > 0 { return }
+    // 0) Уже есть локально? выходим
+    if ((try? context.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
 
-    // (опционально) проверка облака, как у вас
-    if (try? await CKContainer.default().accountStatus()) == .available {
+    // 1) Дадим миррорингу шанс что-то импортировать
+    try? await Task.sleep(nanoseconds: 700_000_000)
+    if ((try? context.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
+
+    let status = try? await CKContainer.default().accountStatus()
+
+    // 2) Если iCloud доступен — сидим ТОЛЬКО если смогли убедиться, что облако пусто
+    if status == .available {
         do {
             let db = CKContainer.default().privateCloudDatabase
             let q = CKQuery(recordType: "Account", predicate: NSPredicate(value: true))
             let (results, _) = try await db.records(matching: q)
-            if !results.isEmpty { return } // ждём синк, локально не сидим
-        } catch { /* игнорируем и сидим локально */ }
+            guard results.isEmpty else { return }   // в облаке уже есть счета → не сидим
+        } catch {
+            // Не смогли проверить облако (сеть, схема и т.п.) → чтобы не получить дубликаты, НЕ сидим
+            return
+        }
     }
+    // 3) Если iCloud не доступен — сидим локально (офлайн-first)
 
-    // сид локально
+    // На всякий случай проверим ещё раз, вдруг что-то успело импортироваться за время запроса
+    if ((try? context.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
+
+    // 4) Сид локально (однократно)
     let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
     context.insert(acc)
     Category.seedDefaults(for: acc, in: context)
     try? context.save()
     UserDefaults.standard.set(acc.id.uuidString, forKey: "selectedAccountID")
 }
+
 
 
 
