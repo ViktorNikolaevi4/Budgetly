@@ -158,16 +158,16 @@ struct CreateReminderView: View {
                             .tint(.appPurple)
                         }
 
-                        if includeEndDate, let end = endDate {
-                            DatePicker("Окончание", selection:
-                                Binding(
-                                    get: { endDate! },
-                                    set: { endDate = $0 }
-                                ),
-                                displayedComponents: [.date, .hourAndMinute]
+                        if includeEndDate, let _ = endDate {
+                            DatePicker("Окончание", selection: Binding(
+                                get: { endDate ?? Date() }, // если nil — подставит текущую дату
+                                set: { endDate = $0 }
+                            ),
+                            displayedComponents: [.date, .hourAndMinute]
                             )
                             .tint(.appPurple)
                         }
+
                     }
 
                     // MARK: Напоминание
