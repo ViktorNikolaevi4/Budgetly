@@ -2,7 +2,7 @@ import SwiftUI
 import CloudKit
 import SwiftData
 
-private struct CloudKitServiceKey: EnvironmentKey {
+private struct CloudKitServiceKey: @preconcurrency EnvironmentKey {
     @MainActor
     static let defaultValue: CloudKitService = CloudKitService()
 }
