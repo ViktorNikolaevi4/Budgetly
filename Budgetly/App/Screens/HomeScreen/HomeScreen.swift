@@ -298,6 +298,23 @@ struct HomeScreen: View {
         }
     }
 
+    private var accountSelection: Binding<String> {
+        Binding(
+            get: {
+                // если текущее значение пустое или больше не существует — вернём первый счёт
+                if selectedAccountID.isEmpty ||
+                   !accounts.contains(where: { $0.id.uuidString == selectedAccountID }) {
+                    return accounts.first?.id.uuidString ?? ""
+                }
+                return selectedAccountID
+            },
+            set: { newValue in
+                selectedAccountID = newValue
+            }
+        )
+    }
+
+
     var body: some View {
         NavigationStack {
 //            if isLoading {
@@ -418,12 +435,14 @@ struct HomeScreen: View {
 
                 Spacer()
 
-                Picker("Выберите счет", selection: $selectedAccountID) {
-                    ForEach(accounts, id: \.id) { acc in
-                        Text(acc.name).tag(acc.id.uuidString)
+                if !accounts.isEmpty {
+                    Picker("Выберите счет", selection: accountSelection) {
+                        ForEach(accounts, id: \.id) { acc in
+                            Text(acc.name).tag(acc.id.uuidString)
+                        }
                     }
+                    .tint(.white).opacity(0.85)
                 }
-                .tint(.white).opacity(0.85) // Изменяет цвет выделенного текста на белый
             }
 
             VStack(spacing: 8) {
