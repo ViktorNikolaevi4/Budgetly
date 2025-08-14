@@ -59,7 +59,7 @@ struct AccountEditView: View {
                             HStack {
                                 Image(systemName: "trash")
                                 Text("Удалить счет")
-                            }
+                            }.foregroundStyle(.red)
                         }
                     }
                 }
