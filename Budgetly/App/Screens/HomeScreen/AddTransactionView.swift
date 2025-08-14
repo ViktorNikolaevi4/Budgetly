@@ -515,12 +515,14 @@ struct CategoryBadge: View {
                 .minimumScaleFactor(0.7)
                 .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
         }
-        .frame(width: Self.badgeWidth, height: Self.badgeHeight, alignment: .center)
-        .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон для бейджа
-        .cornerRadius(16)
+        .frame(width: Self.badgeWidth, height: Self.badgeHeight)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.secondarySystemBackground))
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(isSelected ? Color.appPurple : .clear, lineWidth: 2)
+                .strokeBorder(isSelected ? Color.appPurple : .clear, lineWidth: 2) // рисует строго внутри
         )
     }
 
