@@ -258,6 +258,7 @@ struct AddTransactionView: View {
 
                         .padding(.horizontal, inset)
                         .padding(.vertical, 10)
+                        .padding(.bottom, 8)
                     }
                     .frame(minHeight: 0)
                 }
@@ -278,9 +279,9 @@ struct AddTransactionView: View {
                                 .font(.subheadline)
                                 .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                         }
-                        .padding(.vertical)
+                        .padding(.vertical,6)
                         .padding(.leading, 10)
-                        .frame(width: 176, height: 64, alignment: .leading)
+                        .frame(width: 176, height: 62, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
@@ -301,9 +302,9 @@ struct AddTransactionView: View {
                                 .font(.subheadline)
                                 .foregroundColor(Color(UIColor.secondaryLabel)) // Адаптивный вторичный цвет
                         }
-                        .padding(.vertical)
+                        .padding(.vertical, 6)
                         .padding(.leading, 10)
-                        .frame(width: 176, height: 64, alignment: .leading)
+                        .frame(width: 176, height: 62, alignment: .leading)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
@@ -328,7 +329,7 @@ struct AddTransactionView: View {
                     .presentationDragIndicator(.visible)
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 10)
+                .padding(.vertical, 6)
 
                 Button(action: {
                     saveTransaction()
