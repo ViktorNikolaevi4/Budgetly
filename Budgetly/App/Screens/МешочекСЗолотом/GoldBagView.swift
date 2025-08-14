@@ -11,7 +11,6 @@ class AssetType: Identifiable {
         var assets: [Asset]?
 
     init(name: String = "") {
-        self.id = id
         self.name = name
     }
 }
@@ -250,21 +249,57 @@ struct GoldBagView: View {
         }
     }
 
-
+    private func norm(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespacesAndNewlines)
+         .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+         .lowercased()
+    }
 
 private func delete(asset: Asset) {
     modelContext.delete(asset)
     try? modelContext.save()
 }
 
-private func createDefaultAssetTypesIfNeeded() {
-    let defaultNames = ["Акции", "Облигации", "Недвижимость"]
-    let existing = Set(assetTypes.map(\.name))
-    for name in defaultNames where !existing.contains(name) {
-        modelContext.insert(AssetType(name: name))
+    private func createDefaultAssetTypesIfNeeded() {
+        // чтобы не сидить каждый раз
+        let flagKey = "seededAssetTypes_v1"
+        if !UserDefaults.standard.bool(forKey: flagKey) {
+            dedupeAssetTypes() // сначала подчистим
+
+            let defaultNames = ["Акции", "Облигации", "Недвижимость"]
+            let existingKeys = Set(assetTypes.map { norm($0.name) })
+
+            var inserted = false
+            for name in defaultNames where !existingKeys.contains(norm(name)) {
+                modelContext.insert(AssetType(name: name))
+                inserted = true
+            }
+            if inserted { try? modelContext.save() }
+
+            UserDefaults.standard.set(true, forKey: flagKey)
+        } else {
+            // даже если сид уже был, иногда полезно раз в запуск подчистить дубли
+            dedupeAssetTypes()
+        }
     }
-    try? modelContext.save()
-  }
+    private func dedupeAssetTypes() {
+        var keeperByKey: [String: AssetType] = [:]
+
+        for type in assetTypes {
+            let key = norm(type.name)
+            if let keeper = keeperByKey[key] {
+                // переносим активы со «второго» типа на основной
+                if let arr = type.assets {
+                    for a in arr { a.assetType = keeper }
+                }
+                modelContext.delete(type)
+            } else {
+                keeperByKey[key] = type
+            }
+        }
+        try? modelContext.save()
+    }
+
 }
 
 // AddOrEditAssetView остаётся без изменений
