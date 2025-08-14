@@ -31,6 +31,8 @@ struct AddTransactionView: View {
     @State private var showSaveErrorAlert = false
     @State private var saveErrorMessage = ""
 
+    @State private var isSaving = false
+
     private var categoriesForThisAccount: [Category] {
         guard let acct = account else { return [] }
         return allCategories.filter {
@@ -155,6 +157,32 @@ struct AddTransactionView: View {
         }
     }
 
+    private struct CatItem: Identifiable, Equatable {
+        let id: String         // стабильный ID
+        let category: Category?
+    }
+
+    private var visibleItems: [CatItem] {
+        let cats = filteredCategories
+        let maxQuick = 7
+        var quick = Array(cats.prefix(maxQuick))
+
+        // гарантируем, что выбранная категория в быстром наборе
+        if let selected = cats.first(where: { $0.name == selectedCategory }),
+           !quick.contains(where: { $0.id == selected.id }) {
+            if let i = quick.firstIndex(where: { $0.name == Category.uncategorizedName }) {
+                quick[i] = selected
+            } else {
+                quick.removeLast()
+                quick.insert(selected, at: 0)
+            }
+        }
+
+        var items = quick.map { CatItem(id: $0.id.uuidString, category: $0) }
+        items.append(CatItem(id: "more-\(account?.id.uuidString ?? "none")", category: nil)) // стабильный id для «Ещё»
+        return items
+    }
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 10) {
@@ -208,11 +236,11 @@ struct AddTransactionView: View {
                         let cellW = (contentW - gap * CGFloat(cols - 1)) / CGFloat(cols)
 
                         FlowLayout(spacing: gap) {
-                            ForEach(Array(visibleCategories.enumerated()), id: \.offset) { _, catOpt in
-                                if let cat = catOpt {
+                            ForEach(visibleItems) { item in
+                                if let cat = item.category {
                                     Button { selectedCategory = cat.name } label: {
                                         CategoryBadge(category: cat, isSelected: selectedCategory == cat.name)
-                                            .frame(width: cellW, height: 68)  // всегда 4 колонки
+                                            .frame(width: cellW, height: 68)
                                     }
                                 } else {
                                     Button { showAllCategories = true } label: {
@@ -227,6 +255,7 @@ struct AddTransactionView: View {
                                 }
                             }
                         }
+
                         .padding(.horizontal, inset)
                         .padding(.vertical, 10)
                     }
@@ -311,6 +340,7 @@ struct AddTransactionView: View {
                         .background(Color.appPurple)
                         .cornerRadius(16)
                 }
+                .disabled(isSaving)
                 .contentShape(Rectangle())
                 .padding(.horizontal)
                 .padding(.bottom, 8)
@@ -330,6 +360,7 @@ struct AddTransactionView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Добавить") { saveTransaction() }
+                        .disabled(isSaving)
                         .font(.title3)
                         .foregroundStyle(.appPurple)
                 }
@@ -395,6 +426,10 @@ struct AddTransactionView: View {
 
     @MainActor
     private func saveTransaction() {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+
         guard
             let account = account,
             let amountValue = Double(amount),
@@ -404,7 +439,7 @@ struct AddTransactionView: View {
             return
         }
 
-        let txDate = Date()
+        let txDate = selectedDate
         let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
         let newTx = Transaction(
             category: selectedCategory,

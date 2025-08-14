@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 struct AggregatedData: Identifiable {
-    let id = UUID()
+    let id: String
     let category: String
     let totalAmount: Double
     let type: TransactionType
@@ -28,12 +28,13 @@ struct PieChartView: View {
 
     private var aggregatedData: [AggregatedData] {
         Dictionary(grouping: transactions, by: \.category)
-            .map { category, txs in
-                AggregatedData(
-                    category: category,
-                    totalAmount: txs.reduce(0) { $0 + $1.amount },
-                    type: transactionType
-                )
+            .compactMap { category, txs in
+                let sum = txs.reduce(0.0) { $0 + max(0, $1.amount) }
+                guard sum.isFinite, sum > 0 else { return nil }
+                return AggregatedData(id: category,
+                                      category: category,
+                                      totalAmount: sum,
+                                      type: transactionType)
             }
             .sorted { $0.totalAmount > $1.totalAmount } // вот тут по убыванию
     }
@@ -54,6 +55,7 @@ struct PieChartView: View {
                 )
             }
             .chartLegend(.hidden)
+            .transaction { $0.disablesAnimations = true }
             .frame(width: 165, height: 165) // Размер диаграммы при желании
 
             // Текст в центре
