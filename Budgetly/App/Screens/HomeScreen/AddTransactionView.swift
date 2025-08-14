@@ -433,10 +433,11 @@ struct AddTransactionView: View {
 
         guard
             let account = account,
-            let amountValue = Double(amount),
+            let amountValue = amount.moneyValue(),
             !selectedCategory.isEmpty
         else {
-            print("⚠️ saveTransaction: невалидные входные данные")
+            saveErrorMessage = "Введите сумму вида 128,80"
+            showSaveErrorAlert = true
             return
         }
 

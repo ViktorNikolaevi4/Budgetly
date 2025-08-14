@@ -449,11 +449,11 @@ struct HomeScreen: View {
                 Text("Баланс")
                     .foregroundStyle(.white.opacity(0.7))
                     .font(.subheadline)
-                // 1) Получаем числовое значение баланса
-                let value = saldo
-                
-                // 2) Преобразуем его в сокращённую строку (например "10 000", "1.2 млн")
-                let amountText = value.toShortStringWithSuffix()
+//                // 1) Получаем числовое значение баланса
+//                let value = saldo
+//                
+//                // 2) Преобразуем его в сокращённую строку (например "10 000", "1.2 млн")
+//                let amountText = value.toShortStringWithSuffix()
                 
                 // 3) Берём код валюты, если он есть, иначе "RUB"
                 let currencyCode = selectedAccount?.currency ?? "RUB"
@@ -465,7 +465,8 @@ struct HomeScreen: View {
                 let color: Color = .white
                 
                 // 6) Убираем ручное добавление знака минус, так как toShortStringWithSuffix уже включает знак
-                Text("\(amountText)\(currencySign)")
+                Text(saldo.money(.short, symbol: currencySign))
+                    .monospacedDigit()
                     .foregroundStyle(.white)
                     .font(.title.weight(.bold))
             }
@@ -527,7 +528,7 @@ struct HomeScreen: View {
                         .font(.body)
                         .lineLimit(1)
 
-                    Text("\(agg.totalAmount.toShortStringWithSuffix())\(currencySign)")
+                    Text(agg.totalAmount.money(.short, symbol: currencySign))
                         .font(.headline)
                         .lineLimit(1)
                 }
@@ -887,11 +888,11 @@ extension NumberFormatter {
     }()
 }
 
-extension Double {
-    func asMoney2() -> String {
-        NumberFormatter.currencyRu.string(from: NSNumber(value: self)) ?? "\(self)"
-    }
-}
+//extension Double {
+//    func asMoney2() -> String {
+//        NumberFormatter.currencyRu.string(from: NSNumber(value: self)) ?? "\(self)"
+//    }
+//}
 enum EmptyChartText {
     case expenses
     case income
@@ -906,4 +907,76 @@ enum EmptyChartText {
                           : "Добавьте первую операцию — и пусть ваш бюджет растёт 📈"
     }
 }
+extension NumberFormatter {
+    /// ru_RU, пробелы как разделители тысяч
+    static let ru0: NumberFormatter = {
+        let f = NumberFormatter()
+        f.locale = Locale(identifier: "ru_RU")
+        f.numberStyle = .decimal
+        f.groupingSeparator = " "
+        f.minimumFractionDigits = 0
+        f.maximumFractionDigits = 0
+        return f
+    }()
+    static let ru2: NumberFormatter = {
+        let f = NumberFormatter()
+        f.locale = Locale(identifier: "ru_RU")
+        f.numberStyle = .decimal
+        f.groupingSeparator = " "
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        return f
+    }()
+    /// Для сокращённой записи (2 знака после запятой)
+    static let ru2short: NumberFormatter = {
+        let f = NumberFormatter()
+        f.locale = Locale(identifier: "ru_RU")
+        f.numberStyle = .decimal
+        f.groupingSeparator = " "
+        f.minimumFractionDigits = 2
+        f.maximumFractionDigits = 2
+        return f
+    }()
+}
 
+extension Double {
+    enum MoneyStyle {
+        case noCents            // 0 знаков
+        case cents2             // 2 знака
+        case short              // 1_000_000+ → «Х,XX млн/млрд», иначе как .cents2
+    }
+
+    /// Универсальный вывод денег. По умолчанию — 2 знака.
+    func money(_ style: MoneyStyle = .cents2,
+               symbol: String? = nil,
+               nbspBetweenNumberAndSymbol: Bool = true) -> String {
+        let signSpace = nbspBetweenNumberAndSymbol ? "\u{00A0}" : " "
+        let numberStr: String
+
+        switch style {
+        case .noCents:
+            numberStr = NumberFormatter.ru0.string(from: NSNumber(value: self)) ?? "\(self)"
+        case .cents2:
+            numberStr = NumberFormatter.ru2.string(from: NSNumber(value: self)) ?? "\(self)"
+        case .short:
+            let v = abs(self)
+            if v >= 1_000_000_000 {
+                let val = self / 1_000_000_000
+                let s = NumberFormatter.ru2short.string(from: NSNumber(value: val)) ?? "\(val)"
+                return s + " млрд" + (symbol.map { signSpace + $0 } ?? "")
+            } else if v >= 1_000_000 {
+                let val = self / 1_000_000
+                let s = NumberFormatter.ru2short.string(from: NSNumber(value: val)) ?? "\(val)"
+                return s + " млн" + (symbol.map { signSpace + $0 } ?? "")
+            } else {
+                numberStr = NumberFormatter.ru2.string(from: NSNumber(value: self)) ?? "\(self)"
+            }
+        }
+
+        return numberStr + (symbol.map { signSpace + $0 } ?? "")
+    }
+
+    // Удобные алиасы — замена твоих старых экстеншенов
+    var money0: String { money(.noCents) }   // вместо formattedWithSeparator
+    var money2: String { money(.cents2) }    // вместо asMoney2()
+}

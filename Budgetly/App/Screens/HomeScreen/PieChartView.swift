@@ -66,7 +66,7 @@ struct PieChartView: View {
                                 .foregroundStyle(Color(UIColor.secondaryLabel))
                                 .multilineTextAlignment(.center)
                                 .frame(height: 20.0, alignment: .center)
-                            Text("\(totalAmount.toShortStringWithSuffix())\(currencySign)")
+                Text(totalAmount.money(.short, symbol: currencySign))
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundStyle(Color(UIColor.label))
@@ -186,3 +186,26 @@ extension Color {
             return components.allSatisfy { $0 >= 0 && $0 <= 1 }
         }
     }
+extension String {
+    /// Парсит деньги из строки с запятой/точкой, пробелами и без них: "128,80", "12 345,67", "99.5"
+    func moneyValue(locale: Locale = .current) -> Double? {
+        // убираем пробелы (включая неразрывные)
+        var s = self.replacingOccurrences(of: "\u{00A0}", with: "")
+                    .replacingOccurrences(of: " ", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 1) Пытаемся через NumberFormatter c локалью (для "128,80" в ru_RU сработает)
+        let f = NumberFormatter()
+        f.locale = locale
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 2
+        f.minimumFractionDigits = 0
+        if let n = f.number(from: s) {
+            return n.doubleValue
+        }
+
+        // 2) Фолбэк: приводим всё к точке и пробуем Double
+        s = s.replacingOccurrences(of: ",", with: ".")
+        return Double(s)
+    }
+}

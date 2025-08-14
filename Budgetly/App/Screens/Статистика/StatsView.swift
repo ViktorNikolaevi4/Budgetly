@@ -42,7 +42,7 @@ struct StatsView: View {
                         (
                             Text("За \(selectedPeriodTitle) вы ")
                             + Text(selectedSegment == .income ? "получили " : "потратили ")
-                            + Text("\(sumForPeriod, specifier: "%.2f")  \(currencySign)").bold().foregroundStyle(.primary)
+                            + Text(sumForPeriod.money(.short, symbol: currencySign)).bold().foregroundStyle(.primary)
                         )
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -243,7 +243,7 @@ struct StatsView: View {
                         Text("Общая стоимость активов:")
                             .font(.subheadline).foregroundColor(.gray)
                         Spacer()
-                        Text("\(totalAssets, specifier: "%.2f") \(currencySign)")
+                        Text(totalAssets.money(.short, symbol: currencySign))
                             .font(.subheadline).bold()
                     }
                     .padding(.horizontal, 16)
@@ -314,10 +314,7 @@ struct StatsView: View {
                     Text(group.category).font(.body).foregroundColor(.primary)
                     Spacer()
                     HStack(spacing: 0) {
-                        Text("\(group.total, specifier: "%.2f")")
-                            .font(.body)
-                            .foregroundColor(.primary)
-                        Text(currencySign)
+                        Text(group.total.money(.short, symbol: currencySign))
                             .font(.body)
                             .foregroundColor(.primary)
                             .padding(.leading, 4) // вот отступ перед знаком
@@ -364,13 +361,9 @@ struct StatsView: View {
                             .foregroundColor(.gray)
                         Spacer()
                         HStack(spacing: 0) {
-                            Text("\(tx.amount, specifier: "%.2f")")
+                            Text(tx.amount.money(.short, symbol: currencySign))
                                 .font(.subheadline)
                                 .foregroundColor(.gray)
-                            Text(currencySign)
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                                .padding(.leading, 4)
                         }
                     }
                     .padding(.vertical, 8)
@@ -405,13 +398,9 @@ struct StatsView: View {
                     .foregroundColor(.primary)
                 Spacer()
                 HStack(spacing: 0) {
-                    Text("\(group.total, specifier: "%.2f")")
+                    Text(group.total.money(.short, symbol: currencySign))
                         .font(.body)
                         .foregroundColor(.primary)
-                    Text(currencySign)
-                        .font(.body)
-                        .foregroundColor(.primary)
-                        .padding(.leading, 4)
                 }
             }
             // Вот здесь используем переданный цвет
