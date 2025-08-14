@@ -8,46 +8,50 @@ import Observation
 private var isSeedingRunning = false
 
 @MainActor
-func createDefaultAccountIfNeeded(in context: ModelContext) async {
-    guard !isSeedingRunning else { return }
-    isSeedingRunning = true
-    defer { isSeedingRunning = false }
+func createDefaultAccountIfNeeded(in ctx: ModelContext) async {
+    // уже есть локально? выходим
+    if ((try? ctx.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
 
-    // 0) Уже есть локально? выходим
-    if ((try? context.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
-
-    // 1) Дадим миррорингу шанс что-то импортировать
-    try? await Task.sleep(nanoseconds: 700_000_000)
-    if ((try? context.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
-
-    let status = try? await CKContainer.default().accountStatus()
-
-    // 2) Если iCloud доступен — сидим ТОЛЬКО если смогли убедиться, что облако пусто
-    if status == .available {
-        do {
-            let db = CKContainer.default().privateCloudDatabase
-            let q = CKQuery(recordType: "Account", predicate: NSPredicate(value: true))
-            let (results, _) = try await db.records(matching: q)
-            guard results.isEmpty else { return }   // в облаке уже есть счета → не сидим
-        } catch {
-            // Не смогли проверить облако (сеть, схема и т.п.) → чтобы не получить дубликаты, НЕ сидим
-            return
-        }
+    // ждём импорт из iCloud до ~5 c
+    for _ in 0..<15 {
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        if ((try? ctx.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
     }
-    // 3) Если iCloud не доступен — сидим локально (офлайн-first)
 
-    // На всякий случай проверим ещё раз, вдруг что-то успело импортироваться за время запроса
-    if ((try? context.fetchCount(FetchDescriptor<Account>())) ?? 0) > 0 { return }
-
-    // 4) Сид локально (однократно)
-    let acc = Account(name: "Основной счёт", currency: "RUB", sortOrder: 0)
-    context.insert(acc)
-    Category.seedDefaults(for: acc, in: context)
-    try? context.save()
-    UserDefaults.standard.set(acc.id.uuidString, forKey: "selectedAccountID")
+    // ничего не пришло — сидим офлайн
+    let acc = Account(name: "Основной счёт", currency: "RUB", initialBalance: 0, sortOrder: 0)
+    ctx.insert(acc)
+    Category.seedDefaults(for: acc, in: ctx)
+    try? ctx.save()
 }
 
+@MainActor
+func dedupeAccounts(in ctx: ModelContext) {
+    let all = (try? ctx.fetch(FetchDescriptor<Account>())) ?? []
+    func key(_ a: Account) -> String {
+        let name = a.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                          .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+                          .lowercased()
+        return "\(a.currency ?? "RUB")|\(name)"
+    }
 
+    var keeperByKey: [String: Account] = [:]
+
+    for acc in all {
+        let k = key(acc)
+        if let keep = keeperByKey[k] {
+            // переносим детей к «основному»
+            for t in acc.allTransactions { t.account = keep }
+            for c in acc.allCategories  { c.account = keep }
+            // если есть регулярки — тоже перенесите
+            // for r in acc.regularPayments { r.account = keep }
+            ctx.delete(acc)
+        } else {
+            keeperByKey[k] = acc
+        }
+    }
+    try? ctx.save()
+}
 
 
 @main
@@ -83,8 +87,10 @@ struct BudgetlyApp: App {
                 .environment(\.cloudKitService, ckService)
                 .modelContainer(modelContainer)
             // 👇 единственная точка входа
-                .task { await createDefaultAccountIfNeeded(in: modelContainer.mainContext) }
-        }
+                .task {
+                    await createDefaultAccountIfNeeded(in: modelContainer.mainContext)
+                    dedupeAccounts(in: modelContainer.mainContext)   // на всякий
+                }        }
     }
 
 
