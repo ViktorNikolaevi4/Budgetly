@@ -108,3 +108,21 @@ enum Bootstrap {
     }
 }
 
+@MainActor
+extension ModelContext {
+    private static let saveQueue = DispatchQueue(
+        label: "com.yourapp.swiftdata.save",
+        qos: .userInitiated
+    )
+
+    func serialSave() throws {
+        var caughtError: Error?
+
+        ModelContext.saveQueue.sync {
+            do { try self.save() }
+            catch { caughtError = error }   // захватили, но не бросаем здесь
+        }
+
+        if let err = caughtError { throw err } // бросаем уже вне closure
+    }
+}

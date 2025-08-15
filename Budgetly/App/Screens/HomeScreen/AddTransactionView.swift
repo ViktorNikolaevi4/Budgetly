@@ -408,7 +408,7 @@ struct AddTransactionView: View {
         }
 
         selectedCategory = name
-        try? modelContext.save()
+        try? modelContext.serialSave()
     }
 
     private func removeCategory(_ category: Category) {
@@ -419,7 +419,7 @@ struct AddTransactionView: View {
         }
         modelContext.delete(category)
         do {
-            try modelContext.save()
+            try modelContext.serialSave()
         } catch {
             print("Ошибка при удалении категории: \(error)")
         }
@@ -468,10 +468,13 @@ struct AddTransactionView: View {
         }
 
         do {
-            try modelContext.save()
-            onTransactionAdded?(transactionType)
-            dismiss()
+            try modelContext.serialSave()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {  // Задержка для sync
+                onTransactionAdded?(transactionType)
+                dismiss()
+            }
         } catch {
+            print("Save error: \(error.localizedDescription)")
             saveErrorMessage = error.localizedDescription
             showSaveErrorAlert = true
         }
@@ -699,8 +702,13 @@ struct AllCategoriesView: View {
             UserDefaults.standard.set(assignedColors, forKey: key)
         }
 
-        selectedCategory = name
-        try? modelContext.save()
+        do {
+                try modelContext.serialSave()  // Используйте сериализованный save
+                selectedCategory = name
+                // Не держите cat — перезагрузите filteredCategories если нужно
+            } catch {
+                print("Ошибка сохранения категории: \(error)")
+            }
     }
 
     private func deleteCategory(_ cat: Category) {
@@ -711,7 +719,7 @@ struct AllCategoriesView: View {
             selected = Category.uncategorizedName
         }
         do {
-            try modelContext.save()
+            try modelContext.serialSave()
         } catch {
             print("Ошибка при удалении категории и транзакций:", error)
         }

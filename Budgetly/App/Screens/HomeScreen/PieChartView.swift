@@ -116,6 +116,7 @@ extension Color {
         return result
     }()
 
+    @MainActor
     private static func loadAssignedColors(forKey key: String) -> [String:[Double]] {
         guard let raw = UserDefaults.standard.object(forKey: key) as? [String:Any] else {
             return [:]
@@ -136,6 +137,7 @@ extension Color {
         return out
     }
 
+    @MainActor
     static func colorForCategoryName(_ name: String, type: TransactionType) -> Color {
         let key = type == .income ? incomeColorsKey : expensesColorsKey
 
@@ -155,7 +157,8 @@ extension Color {
         setColor(color, forCategory: name, type: type)
         return color
       }
-    static func setColor(_ color: Color, forCategory name: String, type: TransactionType) {
+
+    @MainActor static func setColor(_ color: Color, forCategory name: String, type: TransactionType) {
         guard name != Category.uncategorizedName else { return }
         let key = (type == .income) ? incomeColorsKey : expensesColorsKey
         var assigned = loadAssignedColors(forKey: key)
@@ -165,7 +168,8 @@ extension Color {
         assigned[name] = [Double(red), Double(green), Double(blue)]
         UserDefaults.standard.set(assigned, forKey: key)
     }
-
+    
+    @MainActor
         static func removeColor(forCategory name: String, type: TransactionType) {
             let key = type == .income ? incomeColorsKey : expensesColorsKey
             var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
