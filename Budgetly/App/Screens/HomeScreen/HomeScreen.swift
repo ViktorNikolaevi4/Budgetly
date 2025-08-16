@@ -462,8 +462,8 @@ struct HomeScreen: View {
                 let currencySign = currencySymbols[currencyCode] ?? currencyCode
                 
                 // 5) Всегда используем белый цвет, независимо от значения
-                let color: Color = .white
-                
+         //       let color: Color = .white
+
                 // 6) Убираем ручное добавление знака минус, так как toShortStringWithSuffix уже включает знак
                 Text(saldo.money(.short, symbol: currencySign))
                     .monospacedDigit()
