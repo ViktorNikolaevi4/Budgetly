@@ -62,12 +62,12 @@ struct RootView: View {
     @MainActor
     private func reevaluateGate() {
         Task { await storeService.refreshPremiumStatus() }
-#if DEBUG
-if debugForcePaywall {          // ← временно для теста
-    showPaywall = true
-    return
-}
-#endif
+//#if DEBUG
+//if debugForcePaywall {          // ← временно для теста
+//    showPaywall = true
+//    return
+//}
+//#endif
         let trialOver = !storeService.trialManager.isInTrial
         showPaywall = trialOver && !storeService.isPremium
     }

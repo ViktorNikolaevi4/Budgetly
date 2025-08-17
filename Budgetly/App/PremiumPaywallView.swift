@@ -37,22 +37,3 @@ struct PremiumPaywallView: View {
     }
 }
 
-
-
-// StoreServiceKey.swift
-//import SwiftUI
-//
-//private struct StoreServiceKey: EnvironmentKey {
-//    // НИЧЕГО не создаём здесь
-//    static var defaultValue: StoreService {
-//        fatalError("StoreService is not injected. Provide it via .environment(\\.storeService, …)")
-//    }
-//}
-//
-//extension EnvironmentValues {
-//    var storeService: StoreService {
-//        get { self[StoreServiceKey.self] }
-//        set { self[StoreServiceKey.self] = newValue }
-//    }
-//}
-

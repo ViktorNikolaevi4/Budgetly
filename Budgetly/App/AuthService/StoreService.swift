@@ -90,10 +90,6 @@ final class StoreService {
         if isPremium { trialManager.markAsSubscribed() }
     }
 
-
-
-
-
     // Слушаем поток и при любом апдейте — обновляем флаг
     private func observeTransactionUpdates() async {
         for await result in StoreKit.Transaction.updates {
@@ -102,7 +98,6 @@ final class StoreService {
             await refreshPremiumStatus()
         }
     }
-
 
     func restorePurchases() async {
         do { try await AppStore.sync() } catch { print("restore error:", error) }
