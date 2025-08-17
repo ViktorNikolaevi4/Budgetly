@@ -25,10 +25,6 @@ struct RootView: View {
     @State private var hideICloudBanner = false
     @State private var showPaywall = false
 
-#if DEBUG
-@State private var debugForcePaywall = true   // ← только для отладки
-#endif
-
     var body: some View {
         ZStack(alignment: .top) {
             ContentView()

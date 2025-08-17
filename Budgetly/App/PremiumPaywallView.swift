@@ -26,9 +26,9 @@ struct PremiumPaywallView: View {
             .subscriptionStoreButtonLabel(.multiline)
             .storeButton(.visible, for: .restorePurchases)
             .subscriptionStorePolicyDestination(
-                url: URL(string:"https://your-site/terms")!, for: .termsOfService)
+                url: URL(string:"http://project14182049.tilda.ws")!, for: .termsOfService)
             .subscriptionStorePolicyDestination(
-                url: URL(string:"https://your-site/privacy")!, for: .privacyPolicy)
+                url: URL(string:"https://github.com/ViktorNikolaevi4/Budgetly/blob/main/PRIVACY_POLICY.md")!, for: .privacyPolicy)
             .onInAppPurchaseCompletion { _, _ in
                 Task { await storeService.refreshPremiumStatus() } // ← без dismiss
             }
