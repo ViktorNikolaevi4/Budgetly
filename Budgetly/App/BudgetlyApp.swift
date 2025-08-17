@@ -57,6 +57,8 @@ func dedupeAccounts(in ctx: ModelContext) {
 @main
 struct BudgetlyApp: App {
     @State private var ckService = CloudKitService()
+    @State private var storeService = StoreService()
+    
     private let modelContainer: ModelContainer = {
         let schema = Schema([
             Transaction.self,
@@ -85,6 +87,7 @@ struct BudgetlyApp: App {
         WindowGroup {
             RootView()
                 .environment(\.cloudKitService, ckService)
+                .environment(storeService)
                 .modelContainer(modelContainer)
             // 👇 единственная точка входа
                 .task {

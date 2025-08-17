@@ -18,9 +18,13 @@ extension EnvironmentValues {
 
 struct RootView: View {
     @Environment(\.cloudKitService) private var ckService
+    @Environment(StoreService.self) private var storeService
     @Environment(\.scenePhase) private var scenePhase
-    @State private var hideICloudBanner = false
     @Environment(\.modelContext) private var modelContext
+
+    @State private var hideICloudBanner = false
+    @State private var showPaywall = false
+
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -36,9 +40,16 @@ struct RootView: View {
             if phase == .active {
                 hideICloudBanner = false
                 Task { await ckService.refresh() }
+                if storeService.trialManager.shouldShowPaywall {
+                                    showPaywall = true
+                                }
             }
         }
         .animation(.easeInOut, value: ckService.lastStatus)
+        .sheet(isPresented: $showPaywall) {
+            PremiumPaywallView()
+               // .environment(\.storeService, storeService) // 👈 явная переинъекция
+        }
     }
 
     private var banner: some View {
