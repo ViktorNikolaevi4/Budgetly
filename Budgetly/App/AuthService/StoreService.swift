@@ -12,30 +12,22 @@ final class StoreService {
     let trialManager = AppTrialManager()
 
     init() {
-        // Слушаем обновления транзакций (контекст MainActor)
+        // Слушатель апдейтов транзакций
         updatesTask = Task { @MainActor [weak self] in
             guard let self else { return }
             await withTaskCancellationHandler {
                 await self.observeTransactionUpdates()
             } onCancel: { [weak self] in
-                // onCancel nonisolated -> переходим на MainActor отдельной задачей
-                Task { @MainActor in
-                    self?.updatesTask = nil
-                }
+                Task { @MainActor in self?.updatesTask = nil }
             }
         }
 
-        // Первая загрузка продуктов и проверка статуса
+        // Первая загрузка + первичная проверка статуса
         Task { @MainActor [weak self] in
             await self?.loadProductsAndCheckStatus()
+            await self?.refreshPremiumStatus()   // ← важный вызов
         }
     }
-
-//
-//    deinit {
-//        updatesTask?.cancel()
-//        updatesTask = nil
-//    }
 
     func cancelTasks() {
         updatesTask?.cancel()
@@ -46,41 +38,74 @@ final class StoreService {
         do {
             let ids = ["com.budgetly.premium.monthly", "com.budgetly.premium.yearly"]
             let products = try await Product.products(for: ids)
-            monthlyProduct = products.first { $0.id == "com.budgetly.premium.monthly" }
-            yearlyProduct = products.first { $0.id == "com.budgetly.premium.yearly" }
-            await updatePremiumStatus()
+            monthlyProduct = products.first { $0.id == ids[0] }
+            yearlyProduct  = products.first { $0.id == ids[1] }
         } catch {
             print("Ошибка загрузки продуктов: \(error)")
         }
     }
 
+    // Публичная проверка — вызывать отовсюду
     func refreshPremiumStatus() async {
-            await updatePremiumStatus()
+        var active  = false
+        var inGrace = false
+
+        // 1) Проверка по текущим энтайтлментам (без привязки к продуктам)
+        for await ent in StoreKit.Transaction.currentEntitlements {
+            guard case .verified(let tx) = ent, tx.productType == .autoRenewable else { continue }
+            let notRevoked = (tx.revocationDate == nil)
+            let notExpired = (tx.expirationDate?.timeIntervalSinceNow ?? Double.infinity) > 0
+            if notRevoked && notExpired { active = true }
         }
 
-    private func updatePremiumStatus() async {
-        isPremium = false
-        for await result in StoreKit.Transaction.updates {
-            switch result {
-            case .verified(let transaction):
-                if transaction.productType == .autoRenewable && transaction.revocationDate == nil {
-                    isPremium = true
-                    trialManager.markAsSubscribed()
-                    break
+        // 2) Статусы подписки у самих продуктов (даёт .inGracePeriod / .inBillingRetryPeriod)
+        let products = [monthlyProduct, yearlyProduct].compactMap { $0 }   // что успели загрузить
+        for p in products {
+            guard let sub = p.subscription else { continue }
+            do {
+                let statuses = try await sub.status
+                for status in statuses {
+                    switch status.state {
+                    case .subscribed:
+                        active = true
+                    case .inGracePeriod, .inBillingRetryPeriod:
+                        inGrace = true
+                    default:
+                        break
+                    }
+
+                    // Дополнительная проверка транзакции (на всякий)
+                    if case .verified(let tx) = status.transaction,
+                       tx.revocationDate == nil,
+                       (tx.expirationDate?.timeIntervalSinceNow ?? Double.infinity) > 0 {
+                        active = true
+                    }
                 }
-            case .unverified(_, _):
-                continue
+            } catch {
+                print("status error:", error)
             }
         }
+
+        isPremium = active || inGrace
+        if isPremium { trialManager.markAsSubscribed() }
     }
 
+
+
+
+
+    // Слушаем поток и при любом апдейте — обновляем флаг
     private func observeTransactionUpdates() async {
         for await result in StoreKit.Transaction.updates {
-            await updatePremiumStatus()
+            guard case .verified(let tx) = result else { continue }
+            await tx.finish()
+            await refreshPremiumStatus()
         }
     }
 
+
     func restorePurchases() async {
-        await updatePremiumStatus()
+        do { try await AppStore.sync() } catch { print("restore error:", error) }
+        await refreshPremiumStatus()
     }
 }

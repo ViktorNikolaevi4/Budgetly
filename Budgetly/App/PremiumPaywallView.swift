@@ -2,33 +2,41 @@ import SwiftUI
 import StoreKit
 
 struct PremiumPaywallView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(StoreService.self) private var storeService
 
     var body: some View {
-        SubscriptionStoreView(productIDs: [
-            "com.budgetly.premium.monthly",
-            "com.budgetly.premium.yearly"
-        ]) {
-            VStack(spacing: 16) {
-                Text("Поддержите разработку с премиум-подпиской").font(.title.bold())
-                Text("3 дня бесплатно, затем авто-возобновление…").multilineTextAlignment(.center)
-                Text("Отмена в любое время…").font(.footnote).foregroundStyle(.secondary)
+        NavigationStack {
+            SubscriptionStoreView(productIDs: [
+                "com.budgetly.premium.monthly",
+                "com.budgetly.premium.yearly"
+            ]) {
+                // Лёгкая шапка без обещаний по триалу
+                VStack(spacing: 12) {
+                    Text("Поддержите разработку с премиум-подпиской")
+                        .font(.title.bold())
+                        .multilineTextAlignment(.center)
+                    Text("Доступ ко всем функциям без ограничений.")
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding()
+                .background(.blue.gradient)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .padding()
-            .background(.blue.gradient)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-        .storeButton(.visible, for: .restorePurchases)
-        .subscriptionStoreButtonLabel(.multiline)
-        .subscriptionStorePolicyDestination(url: URL(string:"https://your-site/terms")!, for: .termsOfService)
-        .subscriptionStorePolicyDestination(url: URL(string:"https://your-site/privacy")!, for: .privacyPolicy)
-        .onInAppPurchaseCompletion { _, _ in
-            dismiss()
-            Task { await storeService.refreshPremiumStatus() }
+            .subscriptionStoreButtonLabel(.multiline)
+            .storeButton(.visible, for: .restorePurchases)
+            .subscriptionStorePolicyDestination(
+                url: URL(string:"https://your-site/terms")!, for: .termsOfService)
+            .subscriptionStorePolicyDestination(
+                url: URL(string:"https://your-site/privacy")!, for: .privacyPolicy)
+            .onInAppPurchaseCompletion { _, _ in
+                Task { await storeService.refreshPremiumStatus() } // ← без dismiss
+            }
+            .padding(.horizontal)
         }
     }
 }
+
 
 
 // StoreServiceKey.swift

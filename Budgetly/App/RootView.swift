@@ -25,31 +25,51 @@ struct RootView: View {
     @State private var hideICloudBanner = false
     @State private var showPaywall = false
 
+#if DEBUG
+@State private var debugForcePaywall = true   // ← только для отладки
+#endif
 
     var body: some View {
         ZStack(alignment: .top) {
             ContentView()
                 .task { await ckService.refresh() }
+
             if ckService.lastStatus != .available && !hideICloudBanner {
                 banner
                     .padding()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        .onAppear { reevaluateGate() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 hideICloudBanner = false
                 Task { await ckService.refresh() }
-                if storeService.trialManager.shouldShowPaywall {
-                                    showPaywall = true
-                                }
+                reevaluateGate()
             }
         }
-        .animation(.easeInOut, value: ckService.lastStatus)
-        .sheet(isPresented: $showPaywall) {
-            PremiumPaywallView()
-               // .environment(\.storeService, storeService) // 👈 явная переинъекция
+        .onChange(of: storeService.isPremium) { _, _ in
+            reevaluateGate()
         }
+        .animation(.easeInOut, value: ckService.lastStatus)
+        .fullScreenCover(isPresented: $showPaywall) {
+            PremiumPaywallView()
+                .interactiveDismissDisabled(true) // 🚫 без свайпа вниз
+        }
+       // .task { showPaywall = true }   // временно: всегда открывай пейвол при запуске
+    }
+
+    @MainActor
+    private func reevaluateGate() {
+        Task { await storeService.refreshPremiumStatus() }
+#if DEBUG
+if debugForcePaywall {          // ← временно для теста
+    showPaywall = true
+    return
+}
+#endif
+        let trialOver = !storeService.trialManager.isInTrial
+        showPaywall = trialOver && !storeService.isPremium
     }
 
     private var banner: some View {
@@ -137,3 +157,4 @@ extension ModelContext {
         if let err = caughtError { throw err } // бросаем уже вне closure
     }
 }
+//.task { showPaywall = true }
