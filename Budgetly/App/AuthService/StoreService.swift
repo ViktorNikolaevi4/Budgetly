@@ -9,7 +9,7 @@ final class StoreService {
     private(set) var monthlyProduct: Product?
     private(set) var yearlyProduct: Product?
     private var updatesTask: Task<Void, Never>?
-    let trialManager = AppTrialManager()
+ //   let trialManager = AppTrialManager()
 
     init() {
         // Слушатель апдейтов транзакций
@@ -87,7 +87,7 @@ final class StoreService {
         }
 
         isPremium = active || inGrace
-        if isPremium { trialManager.markAsSubscribed() }
+    //    if isPremium { trialManager.markAsSubscribed() }
     }
 
     // Слушаем поток и при любом апдейте — обновляем флаг

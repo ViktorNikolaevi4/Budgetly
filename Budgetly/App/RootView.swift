@@ -3,14 +3,12 @@ import StoreKit
 import CloudKit
 import SwiftData
 
+
+// DI для CloudKitService
 private struct CloudKitServiceKey: @preconcurrency EnvironmentKey {
-    @MainActor
-    static let defaultValue: CloudKitService = CloudKitService()
+    @MainActor static let defaultValue: CloudKitService = CloudKitService()
 }
-
-
 extension EnvironmentValues {
-    /// Здесь: ключ для вашего сервиса
     var cloudKitService: CloudKitService {
         get { self[CloudKitServiceKey.self] }
         set { self[CloudKitServiceKey.self] = newValue }
@@ -37,7 +35,7 @@ struct RootView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-     //   .onAppear { reevaluateGate() }
+        .onAppear { reevaluateGate() } // ← вернули
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 hideICloudBanner = false
@@ -51,39 +49,19 @@ struct RootView: View {
         .animation(.easeInOut, value: ckService.lastStatus)
         .fullScreenCover(isPresented: $showPaywall) {
             PremiumPaywallView()
-                .interactiveDismissDisabled(true) // 🚫 без свайпа вниз
-        }
-        .task {
-            // … твой код …
-            do {
-                let ids = ["com.budgetly.premium.monthly","com.budgetly.premium.yearly"]
-                let products = try await Product.products(for: ids)
-                print("Fetched products:", products.map { "\($0.id) \($0.type)" })
-            } catch {
-                print("Product fetch error:", error)
-            }
+                .interactiveDismissDisabled(true)
         }
     }
 
     @MainActor
     private func reevaluateGate() {
         Task { await storeService.refreshPremiumStatus() }
-
-        #if FORCE_PAYWALL
-        showPaywall = true
-        return
-        #endif
-
-        let trialOver = !storeService.trialManager.isInTrial
-        showPaywall = trialOver && !storeService.isPremium
+        showPaywall = !storeService.isPremium // ← без собственного триала
     }
-
 
     private var banner: some View {
         VStack(spacing: 8) {
-            Text(message(for: ckService.lastStatus))
-                .font(.subheadline)
-
+            Text(message(for: ckService.lastStatus)).font(.subheadline)
             HStack {
                 Button("Повторить") { Task { await ckService.refresh() } }
                 Button("Настройки iCloud") {
@@ -93,7 +71,6 @@ struct RootView: View {
                 }
             }
             .buttonStyle(.borderedProminent)
-
             Button("Отмена") { hideICloudBanner = true }
                 .buttonStyle(.bordered)
                 .tint(.primary)
@@ -105,14 +82,15 @@ struct RootView: View {
 
     private func message(for s: CKAccountStatus) -> String {
         switch s {
-        case .noAccount:              return "На устройстве не выполнен вход в iCloud."
-        case .restricted:             return "Доступ к iCloud ограничен."
+        case .noAccount: return "На устройстве не выполнен вход в iCloud."
+        case .restricted: return "Доступ к iCloud ограничен."
         case .temporarilyUnavailable: return "iCloud временно недоступен. Работаем офлайн."
-        case .couldNotDetermine:      return "Не удалось определить статус iCloud. Проверьте сеть."
-        default:                      return ""
+        case .couldNotDetermine: return "Не удалось определить статус iCloud. Проверьте сеть."
+        default: return ""
         }
     }
 }
+
 
 enum Bootstrap {
     @AppStorage("didSeed_v1") private static var didSeed = false

@@ -10,7 +10,6 @@ struct PremiumPaywallView: View {
                 "com.budgetly.premium.monthly",
                 "com.budgetly.premium.yearly"
             ]) {
-                // Лёгкая шапка без обещаний по триалу
                 VStack(spacing: 12) {
                     Text("Поддержите разработку с премиум-подпиской")
                         .font(.title.bold())
@@ -26,14 +25,15 @@ struct PremiumPaywallView: View {
             .subscriptionStoreButtonLabel(.multiline)
             .storeButton(.visible, for: .restorePurchases)
             .subscriptionStorePolicyDestination(
-                url: URL(string:"http://project14182049.tilda.ws")!, for: .termsOfService)
+                url: URL(string: "http://project14182049.tilda.ws")!, for: .termsOfService)
             .subscriptionStorePolicyDestination(
-                url: URL(string:"https://github.com/ViktorNikolaevi4/Budgetly/blob/main/PRIVACY_POLICY.md")!, for: .privacyPolicy)
+                url: URL(string: "https://github.com/ViktorNikolaevi4/Budgetly/blob/main/PRIVACY_POLICY.md")!, for: .privacyPolicy)
             .onInAppPurchaseCompletion { _, _ in
-                Task { await storeService.refreshPremiumStatus() } // ← без dismiss
+                Task { await storeService.refreshPremiumStatus() }
             }
             .padding(.horizontal)
         }
     }
 }
+
 
