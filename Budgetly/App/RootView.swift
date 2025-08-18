@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 import CloudKit
 import SwiftData
 
@@ -36,7 +37,7 @@ struct RootView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
-        .onAppear { reevaluateGate() }
+     //   .onAppear { reevaluateGate() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 hideICloudBanner = false
@@ -52,21 +53,31 @@ struct RootView: View {
             PremiumPaywallView()
                 .interactiveDismissDisabled(true) // 🚫 без свайпа вниз
         }
-       // .task { showPaywall = true }   // временно: всегда открывай пейвол при запуске
+        .task {
+            // … твой код …
+            do {
+                let ids = ["com.budgetly.premium.monthly","com.budgetly.premium.yearly"]
+                let products = try await Product.products(for: ids)
+                print("Fetched products:", products.map { "\($0.id) \($0.type)" })
+            } catch {
+                print("Product fetch error:", error)
+            }
+        }
     }
 
     @MainActor
     private func reevaluateGate() {
         Task { await storeService.refreshPremiumStatus() }
-//#if DEBUG
-//if debugForcePaywall {          // ← временно для теста
-//    showPaywall = true
-//    return
-//}
-//#endif
+
+        #if FORCE_PAYWALL
+        showPaywall = true
+        return
+        #endif
+
         let trialOver = !storeService.trialManager.isInTrial
         showPaywall = trialOver && !storeService.isPremium
     }
+
 
     private var banner: some View {
         VStack(spacing: 8) {
