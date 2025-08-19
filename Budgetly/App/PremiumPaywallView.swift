@@ -43,6 +43,9 @@ struct PremiumPaywallView: View {
             }
             .padding(.horizontal)
         }
+        .task {                       // выполнится при показе paywall на устройстве
+            await storeService.debugLogProductsAndStatus()
+        }
     }
 }
 
@@ -69,6 +72,39 @@ struct FeatureItem: View {
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+}
+import StoreKit
+
+extension StoreService {
+    /// Логи: какие продукты видим и какие у них статусы в текущей витрине
+    func debugLogProductsAndStatus() async {
+        do {
+            let ids = ["com.budgetly.premium.monthly", "com.budgetly.premium.yearly"]
+            let prods = try await Product.products(for: ids)
+            print("Loaded products:", prods.map(\.id))
+
+            for p in prods {
+                if let sub = p.subscription {
+                    do {
+                        let statuses = try await sub.status
+                        print("Status for \(p.id):", statuses.map(\.state))
+                        for s in statuses {
+                            if case .verified(let tx) = s.transaction {
+                                print(" • expires:", tx.expirationDate as Any,
+                                      "revoked:", tx.revocationDate as Any)
+                            }
+                        }
+                    } catch {
+                        print("Status error for \(p.id):", error)
+                    }
+                } else {
+                    print("Product \(p.id) has no subscription payload")
+                }
+            }
+        } catch {
+            print("Product load error:", error)
         }
     }
 }
