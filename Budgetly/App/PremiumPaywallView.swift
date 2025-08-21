@@ -4,12 +4,11 @@ import StoreKit
 struct PremiumPaywallView: View {
     @Environment(StoreService.self) private var storeService
 
+    private let groupID = "21756955"
+
     var body: some View {
         NavigationStack {
-            SubscriptionStoreView(productIDs: [
-                "com.budgetly.premium.monthly",
-                "com.budgetly.premium.yearly"
-            ]) {
+            SubscriptionStoreView(groupID: groupID) {
                 VStack(spacing: 20) {
                     VStack(spacing: 12) {
                         Text("Премиум-подписка")
@@ -77,34 +76,66 @@ struct FeatureItem: View {
 }
 import StoreKit
 
-extension StoreService {
-    /// Логи: какие продукты видим и какие у них статусы в текущей витрине
-    func debugLogProductsAndStatus() async {
-        do {
-            let ids = ["com.budgetly.premium.monthly", "com.budgetly.premium.yearly"]
-            let prods = try await Product.products(for: ids)
-            print("Loaded products:", prods.map(\.id))
 
-            for p in prods {
+extension StoreService {
+    /// Универсальный отладочный лог StoreKit: витрина + продукты (SK2 и SK1)
+    func debugLogProductsAndStatus() async {
+        // 1) Витрина (SK1 — работает на всех)
+        if let sf = SKPaymentQueue.default().storefront {
+            print("Storefront(SK1):", sf.identifier, sf.countryCode) // например "USA US"
+        } else {
+            print("Storefront(SK1): nil")
+        }
+
+        let ids = ["com.budgetly.premium.monthly", "com.budgetly.premium.yearly"]
+
+        // 2) Попытка через StoreKit 2
+        do {
+            let sk2 = try await Product.products(for: ids)
+            print("SK2 Loaded products:", sk2.map(\.id))
+            for p in sk2 {
                 if let sub = p.subscription {
-                    do {
-                        let statuses = try await sub.status
-                        print("Status for \(p.id):", statuses.map(\.state))
-                        for s in statuses {
-                            if case .verified(let tx) = s.transaction {
-                                print(" • expires:", tx.expirationDate as Any,
-                                      "revoked:", tx.revocationDate as Any)
-                            }
-                        }
-                    } catch {
-                        print("Status error for \(p.id):", error)
-                    }
-                } else {
-                    print("Product \(p.id) has no subscription payload")
+                    let statuses = try? await sub.status
+                    print("SK2 Status for \(p.id):", statuses?.map(\.state) ?? [])
                 }
             }
+            if !sk2.isEmpty { return } // если нашли хотя бы что-то — SK1 не нужен
         } catch {
-            print("Product load error:", error)
+            print("SK2 Product load error:", error)
+        }
+
+        // 3) Fallback: запрос через StoreKit 1 — покажет invalid IDs и подскажет проблему
+        await SK1Debugger.fetch(ids: ids)
+    }
+}
+
+/// Вспомогательный дебаггер для SK1
+private enum SK1Debugger {
+    private final class Delegate: NSObject, SKProductsRequestDelegate {
+        let onFinish: (SKProductsResponse) -> Void
+        init(onFinish: @escaping (SKProductsResponse) -> Void) { self.onFinish = onFinish }
+        func productsRequest(_ request: SKProductsRequest, didReceive response: SKProductsResponse) {
+            onFinish(response)
+        }
+        func request(_ request: SKRequest, didFailWithError error: Error) {
+            print("SK1 request error:", error)
+        }
+    }
+
+    static func fetch(ids: [String]) async {
+        await withCheckedContinuation { cont in
+            let req = SKProductsRequest(productIdentifiers: Set(ids))
+            let delegate = Delegate { response in
+                let ok = response.products.map { $0.productIdentifier }
+                print("SK1 Loaded products:", ok)
+                print("SK1 Invalid IDs:", response.invalidProductIdentifiers)
+                cont.resume()
+            }
+            // держим делегата живым до окончания запроса
+            objc_setAssociatedObject(req, Unmanaged.passUnretained(req).toOpaque(), delegate, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            req.delegate = delegate
+            req.start()
         }
     }
 }
+

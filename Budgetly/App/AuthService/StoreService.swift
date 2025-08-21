@@ -38,10 +38,11 @@ final class StoreService {
         do {
             let ids = ["com.budgetly.premium.monthly", "com.budgetly.premium.yearly"]
             let products = try await Product.products(for: ids)
+            print("Загруженные продукты SK2: \(products.map(\.id))")
             monthlyProduct = products.first { $0.id == ids[0] }
             yearlyProduct  = products.first { $0.id == ids[1] }
         } catch {
-            print("Ошибка загрузки продуктов: \(error)")
+            print("Ошибка загрузки продуктов SK2: \(error)")
         }
     }
 
