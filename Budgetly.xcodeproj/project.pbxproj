@@ -267,7 +267,7 @@
 				CODE_SIGN_ENTITLEMENTS = Budgetly/Budgetly.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_ASSET_PATHS = "\"Budgetly/Preview Content\"";
 				DEVELOPMENT_TEAM = YTD6823PRA;
 				ENABLE_PREVIEWS = YES;
@@ -304,7 +304,7 @@
 				CODE_SIGN_ENTITLEMENTS = Budgetly/Budgetly.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEVELOPMENT_ASSET_PATHS = "\"Budgetly/Preview Content\"";
 				DEVELOPMENT_TEAM = YTD6823PRA;
 				ENABLE_PREVIEWS = YES;

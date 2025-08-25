@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import StoreKit
 
 struct AddTransactionView: View {
     var account: Account?
@@ -9,9 +8,9 @@ struct AddTransactionView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allCategories: [Category]
     @Environment(\.dismiss) var dismiss
-    @Environment(StoreService.self) private var storeService
+ //   @Environment(StoreService.self) private var storeService
 
-    @State private var showPaywall = false
+  //  @State private var showPaywall = false
     @State private var showAllCategories = false
     @State private var showRepeatSheet = false
     @State private var showDateTimeSheet = false
@@ -392,9 +391,9 @@ struct AddTransactionView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .fullScreenCover(isPresented: $showPaywall) {
-            PremiumPaywallView()
-        }
+//        .fullScreenCover(isPresented: $showPaywall) {
+//            PremiumPaywallView()
+//        }
         .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
     }
 
@@ -435,15 +434,15 @@ struct AddTransactionView: View {
     @MainActor
     private func saveTransaction() {
 
-        if !storeService.isPremium {
-            let countToday = (account?.allTransactions ?? []).filter {
-                Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
-            }.count
-            if countToday >= 2 {
-                showPaywall = true
-                return
-            }
-        }
+//        if !storeService.isPremium {
+//            let countToday = (account?.allTransactions ?? []).filter {
+//                Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
+//            }.count
+//            if countToday >= 2 {
+//                showPaywall = true
+//                return
+//            }
+//        }
 
         guard !isSaving else { return }
         isSaving = true
@@ -596,8 +595,8 @@ struct AllCategoriesView: View {
     @State private var isShowingDeleteAlert = false
     @State private var showNewCategorySheet = false
 
-    @Environment(StoreService.self) private var storeService
-    @State private var showPaywall = false
+//    @Environment(StoreService.self) private var storeService
+//    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -663,11 +662,7 @@ struct AllCategoriesView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
-                        if storeService.isPremium {
-                            showNewCategorySheet = true
-                        } else {
-                            showPaywall = true
-                        }
+                        showNewCategorySheet = true
                     } label: {
                         HStack {
                             VStack { Text("Новая"); Text("Категория") }
@@ -706,9 +701,9 @@ struct AllCategoriesView: View {
                 Text("При удалении категории все её транзакции тоже будут удалены.")
             }
         }
-        .fullScreenCover(isPresented: $showPaywall) {
-            PremiumPaywallView()
-        }
+//        .fullScreenCover(isPresented: $showPaywall) {
+//            PremiumPaywallView()
+//        }
         .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
     }
 

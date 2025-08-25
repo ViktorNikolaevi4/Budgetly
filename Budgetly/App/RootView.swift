@@ -1,5 +1,4 @@
 import SwiftUI
-import StoreKit
 import CloudKit
 import SwiftData
 
@@ -47,16 +46,15 @@ struct RootView: View {
             reevaluateGate()
         }
         .animation(.easeInOut, value: ckService.lastStatus)
-        .fullScreenCover(isPresented: $showPaywall) {
-            PremiumPaywallView()
-                .interactiveDismissDisabled(true)
-        }
+//        .fullScreenCover(isPresented: $showPaywall) {
+//            PremiumPaywallView()
+//                .interactiveDismissDisabled(true)
+//        }
     }
 
     @MainActor
     private func reevaluateGate() {
-        Task { await storeService.refreshPremiumStatus() }
-        showPaywall = !storeService.isPremium // ← без собственного триала
+        showPaywall = false
     }
 
     private var banner: some View {
