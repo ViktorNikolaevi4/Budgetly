@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Budgetly — Поддержка / Support</title>
+<style>
+  body{font-family:-apple-system,system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;line-height:1.5;color:#222}
+  .wrap{max-width:860px;margin:0 auto}
+  h1,h2{margin:.6em 0 .3em}
+  .lang{margin-bottom:16px}
+  .card{background:#f7f7f9;padding:16px 18px;border-radius:12px;margin:12px 0}
+  a.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:#1f6fff;color:#fff;text-decoration:none}
+  .muted{color:#666} hr{border:none;height:1px;background:#e8e8ee;margin:20px 0}
+</style>
+<script>
+  function setLang(l){document.querySelectorAll('[data-lang]').forEach(n=>n.style.display=n.dataset.lang===l?'block':'none')}
+  document.addEventListener('DOMContentLoaded',()=>setLang('ru'));
+</script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="lang">
+    <strong>Language:</strong>
+    <button onclick="setLang('en')">English</button> ·
+    <button onclick="setLang('ru')">Русский</button>
+  </div>
+
+  <!-- RU -->
+  <section data-lang="ru">
+    <h1>Поддержка Budgetly</h1>
+    <p class="muted">Контакты, ответы на частые вопросы и документы.</p>
+
+    <h2>Связаться с нами</h2>
+    <div class="card">
+      <p>Почта: <a href="mailto:87v87@mail.ru?subject=Budgetly%20—%20Поддержка">87v87@mail.ru</a></p>
+      <p><a class="btn" href="mailto:87v87@mail.ru?subject=Budgetly%20—%20Поддержка">Написать в поддержку</a></p>
+    </div>
+
+    <h2>Частые вопросы</h2>
+    <div class="card">
+      <p><strong>Синхронизация iCloud не работает</strong><br>Убедитесь, что выполнен вход в iCloud и включён iCloud Drive. Перезапустите приложение.</p>
+      <p><strong>Нет синхронизации между устройствами</strong><br>Проверьте одинаковый Apple ID и стабильный интернет.</p>
+      <p><strong>Сообщить об ошибке</strong><br>Опишите шаги воспроизведения и приложите скриншоты — используйте кнопку выше.</p>
+    </div>
+
+    <h2>Документы</h2>
+    <ul>
+      <li><a href="https://github.com/ViktorNikolaevi4/Budgetly/blob/main/PRIVACY_POLICY.md" target="_blank" rel="noopener">Политика конфиденциальности</a></li>
+      <li><a href="https://project14182049.tilda.ws" target="_blank" rel="noopener">Условия использования</a></li>
+    </ul>
+
+    <hr>
+    <p class="muted">Если кнопка не открывает почтовый клиент, напишите напрямую на <a href="mailto:87v87@mail.ru">87v87@mail.ru</a>.</p>
+  </section>
+
+  <!-- EN -->
+  <section data-lang="en" style="display:none">
+    <h1>Budgetly Support</h1>
+    <p class="muted">Contact details, FAQs and policy links.</p>
+
+    <h2>Contact</h2>
+    <div class="card">
+      <p>Email: <a href="mailto:87v87@mail.ru?subject=Budgetly%20Support">87v87@mail.ru</a></p>
+      <p><a class="btn" href="mailto:87v87@mail.ru?subject=Budgetly%20Support">Email Support</a></p>
+    </div>
+
+    <h2>FAQ</h2>
+    <div class="card">
+      <p><strong>iCloud sync not working</strong><br>Make sure you’re signed into iCloud and iCloud Drive is enabled. Relaunch the app.</p>
+      <p><strong>No sync across devices</strong><br>Check you use the same Apple ID and have a stable connection.</p>
+      <p><strong>Report a bug</strong><br>Please include steps to reproduce and screenshots.</p>
+    </div>
+
+    <h2>Policies</h2>
+    <ul>
+      <li><a href="https://github.com/ViktorNikolaevi4/Budgetly/blob/main/PRIVACY_POLICY.md" target="_blank" rel="noopener">Privacy Policy</a></li>
+      <li><a href="https://project14182049.tilda.ws" target="_blank" rel="noopener">Terms of Use</a></li>
+    </ul>
+
+    <hr>
+    <p class="muted">If the button doesn’t open your mail app, email us at <a href="mailto:87v87@mail.ru">87v87@mail.ru</a>.</p>
+  </section>
+
+</div>
+</body>
+</html>
