@@ -433,17 +433,6 @@ struct AddTransactionView: View {
 
     @MainActor
     private func saveTransaction() {
-
-//        if !storeService.isPremium {
-//            let countToday = (account?.allTransactions ?? []).filter {
-//                Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
-//            }.count
-//            if countToday >= 2 {
-//                showPaywall = true
-//                return
-//            }
-//        }
-
         guard !isSaving else { return }
         isSaving = true
         defer { isSaving = false }
@@ -459,23 +448,24 @@ struct AddTransactionView: View {
         }
 
         let txDate = selectedDate
-        let transactionType: TransactionType = (selectedType == .income) ? .income : .expenses
+        let txType: TransactionType = (selectedType == .income) ? .income : .expenses
+
         let newTx = Transaction(
             category: selectedCategory,
             amount: amountValue,
-            type: transactionType,
+            type: txType,
             account: account
         )
         newTx.date = txDate
         modelContext.insert(newTx)
 
-        if repeatRule != EndOption.never.rawValue {
-            let freq = ReminderFrequency(rawValue: repeatRule) ?? .daily
+        // Больше никаких сравнений со строкой EndOption:
+        if let freq = ReminderFrequency(rawValue: repeatRule), freq != .never {
             let template = RegularPayment(
                 name: selectedCategory,
                 frequency: freq,
                 startDate: txDate,
-                endDate: endOption == .onDate ? endDate : nil,
+                endDate: (endOption == .onDate ? endDate : nil),
                 amount: amountValue,
                 comment: repeatComment,
                 isActive: true,
@@ -485,17 +475,15 @@ struct AddTransactionView: View {
         }
 
         do {
-            try modelContext.serialSave()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {  // Задержка для sync
-                onTransactionAdded?(transactionType)
-                dismiss()
-            }
+            try modelContext.serialSave()     // единый сериализованный save
+            onTransactionAdded?(txType)       // сообщаем родителю
+            dismiss()                         // закрываем БЕЗ задержки
         } catch {
-            print("Save error: \(error.localizedDescription)")
             saveErrorMessage = error.localizedDescription
             showSaveErrorAlert = true
         }
     }
+
 }
 
 struct CategoryBadge: View {

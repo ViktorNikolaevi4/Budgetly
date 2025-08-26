@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 enum ReminderFrequency: String, CaseIterable, Identifiable {
+    case never        = "Никогда"
     case daily         = "Каждый день"
     case weekly        = "Каждую неделю"
     case biWeekly      = "Каждые 2 недели"

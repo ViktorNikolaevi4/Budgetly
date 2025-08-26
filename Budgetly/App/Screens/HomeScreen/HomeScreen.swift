@@ -185,12 +185,10 @@ struct HomeScreen: View {
     /// Все транзакции выбранного счёта за выбранный период (без учёта типа)
     private var allPeriodTransactions: [Transaction] {
         guard let account = selectedAccount else { return [] }
-
         guard let (start, end) = periodRange(for: selectedTimePeriod) else {
-            return account.allTransactions
+            return Array(account.allTransactions)   // ← снимок
         }
-
-        return account.allTransactions.filter { tx in
+        return Array(account.allTransactions).filter { tx in
             (tx.date >= start) && (tx.date <= end)
         }
     }
@@ -280,8 +278,9 @@ struct HomeScreen: View {
     }
 
     private var aggregatedTransactions: [AggregatedTransaction] {
+        let txs = filteredTransactions
         // 1. Сгруппировать по названию категории (Dictionary<GroupKey, [Transaction]>)
-        let groupedByCategory = Dictionary(grouping: filteredTransactions, by: { $0.category })
+        let groupedByCategory = Dictionary(grouping: txs, by: { $0.category })
 
         // 2. Преобразовать каждую группу в AggregatedTransaction
         //    Ключ — категория, значение — массив транзакций
