@@ -10,6 +10,7 @@ class Account: Identifiable {
     var hasSeededCategories: Bool = false
     var isHidden: Bool = false
 
+
     @Attribute var sortOrder: Int = 0
 
     @Relationship(deleteRule: .cascade)
