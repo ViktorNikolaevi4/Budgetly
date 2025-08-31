@@ -211,11 +211,11 @@ struct AddTransactionView: View {
                         .focused($isAmountFieldFocused)
                         .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
                         .padding(.horizontal)
-                        .task {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                print("Setting focus at \(Date())")
-                                isAmountFieldFocused = true
-                            }
+                        .onAppear {
+                            DispatchQueue.main.async { isAmountFieldFocused = true }
+                        }
+                        .onDisappear {
+                            isAmountFieldFocused = false
                         }
                 }.padding(.top, 0)
 
@@ -436,7 +436,6 @@ struct AddTransactionView: View {
         guard !isSaving else { return }
         isSaving = true
         defer { isSaving = false }
-
         guard
             let account = account,
             let amountValue = amount.moneyValue(),
@@ -446,20 +445,13 @@ struct AddTransactionView: View {
             showSaveErrorAlert = true
             return
         }
-
         let txDate = selectedDate
         let txType: TransactionType = (selectedType == .income) ? .income : .expenses
 
-        let newTx = Transaction(
-            category: selectedCategory,
-            amount: amountValue,
-            type: txType,
-            account: account
-        )
+        let newTx = Transaction(category: selectedCategory, amount: amountValue, type: txType, account: account)
         newTx.date = txDate
         modelContext.insert(newTx)
 
-        // Больше никаких сравнений со строкой EndOption:
         if let freq = ReminderFrequency(rawValue: repeatRule), freq != .never {
             let template = RegularPayment(
                 name: selectedCategory,
@@ -473,17 +465,19 @@ struct AddTransactionView: View {
             )
             modelContext.insert(template)
         }
-
         do {
-            try modelContext.serialSave()     // единый сериализованный save
-            onTransactionAdded?(txType)       // сообщаем родителю
-            dismiss()                         // закрываем БЕЗ задержки
+            try modelContext.serialSave()
+            Task { @MainActor in
+                onTransactionAdded?(txType)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    dismiss()
+                }
+            }
         } catch {
             saveErrorMessage = error.localizedDescription
             showSaveErrorAlert = true
         }
     }
-
 }
 
 struct CategoryBadge: View {
