@@ -8,9 +8,9 @@ struct AddTransactionView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allCategories: [Category]
     @Environment(\.dismiss) var dismiss
- //   @Environment(StoreService.self) private var storeService
+    //   @Environment(StoreService.self) private var storeService
 
-  //  @State private var showPaywall = false
+    //  @State private var showPaywall = false
     @State private var showAllCategories = false
     @State private var showRepeatSheet = false
     @State private var showDateTimeSheet = false
@@ -221,28 +221,35 @@ struct AddTransactionView: View {
 
                 ScrollView {
                     GeometryReader { geo in
-                        // Параметры
                         let inset: CGFloat = 16
-                        let maxGap: CGFloat = 12        // обычный зазор
-                        let minGap: CGFloat = 4         // минимальный, если экран узкий
-                        let minCellW: CGFloat = 80      // можно 76–82 по вкусу
-                        let cols = 4
-
-                        let contentW = geo.size.width - inset * 2
-
-                        // если места мало — уменьшаем gap, чтобы ячейка была >= minCellW
-                        let gapThatFits = (contentW - minCellW * CGFloat(cols)) / CGFloat(cols - 1)
-                        let gap = max(minGap, min(maxGap, gapThatFits))
-
-                        // итоговая ширина ячейки при 4 колонках
-                        let cellW = (contentW - gap * CGFloat(cols - 1)) / CGFloat(cols)
-
+                        let minCellW: CGFloat = 80
+                        let minGap: CGFloat = 4
+                        let maxGap: CGFloat = 12
+                        
+                        // 1) Безопасная ширина даже во время анимаций
+                        let safeWidth = max(geo.size.width, 1)
+                        let contentW = max(safeWidth - inset * 2, 1)
+                        
+                        // 2) Сколько колонок реально влезает (не больше 4)
+                        let colsThatFit = max(1, Int( floor( (contentW + minGap) / (minCellW + minGap) ) ))
+                        let cols = min(4, colsThatFit)
+                        
+                        // 3) Безопасный gap
+                        let rawGap = (contentW - minCellW * CGFloat(cols)) / CGFloat(max(cols - 1, 1))
+                        let gap = max(minGap, min(maxGap, rawGap.isFinite ? rawGap : minGap))
+                        
+                        // 4) Безопасная ширина ячейки
+                        let rawCellW = (contentW - gap * CGFloat(cols - 1)) / CGFloat(cols)
+                        let cellW = max(1, rawCellW.isFinite ? rawCellW : minCellW)
+                        
+                        let safeCellW = (cellW.isFinite && cellW > 0) ? cellW : minCellW
+                        
                         FlowLayout(spacing: gap) {
                             ForEach(visibleItems) { item in
                                 if let cat = item.category {
                                     Button { selectedCategory = cat.name } label: {
                                         CategoryBadge(category: cat, isSelected: selectedCategory == cat.name)
-                                            .frame(width: cellW, height: 68)
+                                            .frame(width: cellW, height: 68)   // ← уже безопасно
                                     }
                                 } else {
                                     Button { showAllCategories = true } label: {
@@ -257,15 +264,12 @@ struct AddTransactionView: View {
                                 }
                             }
                         }
-
                         .padding(.horizontal, inset)
                         .padding(.vertical, 10)
                         .padding(.bottom, 8)
                     }
                     .frame(minHeight: 0)
                 }
-
-
                 HStack {
                     Button {
                         showDateTimeSheet = true
@@ -391,9 +395,9 @@ struct AddTransactionView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-//        .fullScreenCover(isPresented: $showPaywall) {
-//            PremiumPaywallView()
-//        }
+        //        .fullScreenCover(isPresented: $showPaywall) {
+        //            PremiumPaywallView()
+        //        }
         .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
     }
 
@@ -435,23 +439,31 @@ struct AddTransactionView: View {
     private func saveTransaction() {
         guard !isSaving else { return }
         isSaving = true
-        defer { isSaving = false }
+
         guard
             let account = account,
             let amountValue = amount.moneyValue(),
             !selectedCategory.isEmpty
         else {
+            isSaving = false
             saveErrorMessage = "Введите сумму вида 128,80"
             showSaveErrorAlert = true
             return
         }
+
         let txDate = selectedDate
         let txType: TransactionType = (selectedType == .income) ? .income : .expenses
 
-        let newTx = Transaction(category: selectedCategory, amount: amountValue, type: txType, account: account)
+        let newTx = Transaction(
+            category: selectedCategory,
+            amount: amountValue,
+            type: txType,
+            account: account
+        )
         newTx.date = txDate
         modelContext.insert(newTx)
 
+        // Добавляем шаблон только если нужно
         if let freq = ReminderFrequency(rawValue: repeatRule), freq != .never {
             let template = RegularPayment(
                 name: selectedCategory,
@@ -465,19 +477,30 @@ struct AddTransactionView: View {
             )
             modelContext.insert(template)
         }
+
         do {
             try modelContext.serialSave()
+
+            // Санитарная пауза: успокоить экран перед закрытием
+            isAmountFieldFocused = false
+            showAllCategories = false
+            showRepeatSheet = false
+            showDateTimeSheet = false
+
             Task { @MainActor in
+                await Task.yield()      // даём SwiftUI/SwiftData применить апдейты
+                dismiss()               // закрываем экран всегда
+                await Task.yield()
                 onTransactionAdded?(txType)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    dismiss()
-                }
+                // isSaving можно не сбрасывать — экран уже закрыт
             }
         } catch {
+            isSaving = false
             saveErrorMessage = error.localizedDescription
             showSaveErrorAlert = true
         }
     }
+
 }
 
 struct CategoryBadge: View {
@@ -754,3 +777,4 @@ struct AllCategoriesView: View {
         }
     }
 }
+
