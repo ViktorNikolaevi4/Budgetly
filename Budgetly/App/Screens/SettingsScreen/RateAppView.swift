@@ -62,12 +62,13 @@ struct RateAppView: View {
         .shadow(radius: 10)
         .frame(maxWidth: 300) // Размер окна
     }
-
+    private let appStoreID = "6749693267"
     // Функция для перенаправления в App Store
     private func rateApp() {
-        let appStoreLink = "https://apps.apple.com/app/idXXXXXXXXX" // Укажите ID приложения
-        if let url = URL(string: appStoreLink), UIApplication.shared.canOpenURL(url) {
-            UIApplication.shared.open(url)
+        // Откроет сразу экран «Написать отзыв» в App Store
+        let urlStr = "itms-apps://apps.apple.com/app/id\(appStoreID)?action=write-review"
+        if let url = URL(string: urlStr) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
     }
 }
