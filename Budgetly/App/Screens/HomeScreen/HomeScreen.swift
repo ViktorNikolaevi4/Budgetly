@@ -83,35 +83,36 @@ struct AggregatedTransaction: Identifiable {
 
 /// Простой потоковый (wrap)‑лейаут
 struct FlowLayout: Layout {
-
-    var spacing: CGFloat = 4          // отступы между элементами
+    var spacing: CGFloat = 8
+    var fallbackWidth: CGFloat = UIScreen.main.bounds.width   // finite
 
     func sizeThatFits(proposal: ProposedViewSize,
                       subviews: Subviews,
                       cache: inout ()) -> CGSize {
 
-        // Максимальная ширина, которую нам разрешили
-        let maxWidth = proposal.width ?? .infinity
+        // 1) Берём конечную ширину: либо из proposal, либо экран
+        let available = (proposal.width?.isFinite == true && proposal.width! > 0)
+            ? proposal.width!
+            : fallbackWidth
 
-        var rowWidth:  CGFloat = 0     // ширина текущей строки
-        var rowHeight: CGFloat = 0     // высота текущей строки
-        var totalHeight: CGFloat = 0   // суммарная высота
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var lineH: CGFloat = 0
 
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
+        for v in subviews {
+            var s = v.sizeThatFits(.unspecified)
+            if !s.width.isFinite || s.width < 0 { s.width = 0 }
+            if !s.height.isFinite || s.height < 0 { s.height = 0 }
 
-            // Перепрыгиваем на новую строку?
-            if rowWidth + size.width > maxWidth {
-                totalHeight += rowHeight + spacing
-                rowWidth  = 0
-                rowHeight = 0
+            if x > 0 && x + s.width > available {
+                x = 0
+                y += lineH + spacing
+                lineH = 0
             }
-            rowWidth  += size.width + spacing
-            rowHeight  = max(rowHeight, size.height)
+            x += s.width + spacing
+            lineH = max(lineH, s.height)
         }
-        // прибавляем последнюю строку
-        totalHeight += rowHeight
-        return CGSize(width: maxWidth, height: totalHeight)
+        return CGSize(width: available, height: y + lineH)
     }
 
     func placeSubviews(in bounds: CGRect,
@@ -119,24 +120,26 @@ struct FlowLayout: Layout {
                        subviews: Subviews,
                        cache: inout ()) {
 
+        let minX = bounds.minX
         let maxX = bounds.maxX
-        var x = bounds.minX
+        var x = minX
         var y = bounds.minY
-        var rowHeight: CGFloat = 0
+        var lineH: CGFloat = 0
 
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
+        for v in subviews {
+            var s = v.sizeThatFits(.unspecified)
+            if !s.width.isFinite || s.width < 0 { s.width = 0 }
+            if !s.height.isFinite || s.height < 0 { s.height = 0 }
 
-            if x + size.width > maxX {          // перенос
-                x = bounds.minX
-                y += rowHeight + spacing
-                rowHeight = 0
+            if x > minX && x + s.width > maxX {
+                x = minX
+                y += lineH + spacing
+                lineH = 0
             }
 
-            view.place(at: CGPoint(x: x, y: y),
-                       proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
+            v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
+            x += s.width + spacing
+            lineH = max(lineH, s.height)
         }
     }
 }
@@ -342,10 +345,10 @@ struct HomeScreen: View {
                                         transactionType: selectedTransactionType,
                                         currencySign: currencySign
                                     )
-                                    .transition(.opacity)   // появление диаграммы
+                                 //   .transition(.opacity)   // появление диаграммы
                                 }
                             }
-                            .animation(.easeInOut, value: filteredTransactions.count)
+                        //    .animation(.easeInOut, value: filteredTransactions.count)
                             categoryTags
                         }
                     }
@@ -646,37 +649,51 @@ struct HomeScreen: View {
         }
     }
     private func generateMissedRecurringTransactions() {
-        let now = Date()
         guard let account = selectedAccount else { return }
+        let now = Date()
 
         for template in account.allRegularPayments where template.isActive {
+
+            // 1) Никогда не генерим для .never — иначе будет бесконечный цикл
+            if template.frequency == .never { continue }
+
             var nextDate = template.startDate
+            var guardCounter = 0
 
             while nextDate <= now && (template.endDate == nil || nextDate <= template.endDate!) {
-                // Проверяем, не создана ли уже транзакция за эту дату
-                let alreadyExists = account.allTransactions.contains {
-                    $0.date.isSameDay(as: nextDate) &&
-                    $0.category == template.name &&
-                    $0.amount == template.amount
+
+                // Уже существует транзакция на эту дату?
+                let exists = account.allTransactions.contains {
+                    $0.date.isSameDay(as: nextDate)
+                    && $0.category == template.name
+                    && $0.amount == template.amount
                 }
 
-                if !alreadyExists {
+                if !exists {
                     let tx = Transaction(
                         category: template.name,
                         amount: template.amount,
-                        type: .expenses, // если нужно, храни тип в шаблоне
+                        type: .expenses,   // если тип должен быть разный — храните его в шаблоне
                         account: account
                     )
                     tx.date = nextDate
                     modelContext.insert(tx)
                 }
 
-                nextDate = template.frequency.nextDate(after: nextDate)
+                // 2) Безопасно двигаем дату вперёд
+                let advanced = template.frequency.nextDate(after: nextDate)
+                if advanced <= nextDate { break }          // защита от зацикливания
+                nextDate = advanced
+
+                // 3) Жёсткий лимит на всякий случай
+                guardCounter += 1
+                if guardCounter > 2000 { break }
             }
         }
 
         try? modelContext.save()
     }
+
 
 
     // Удаление транзакции

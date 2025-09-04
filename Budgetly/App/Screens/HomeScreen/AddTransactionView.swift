@@ -1,16 +1,31 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Страховка от NaN/∞ в layout
+private struct SafeFrame: ViewModifier {
+    var width: CGFloat?
+    var height: CGFloat?
+    func body(content: Content) -> some View {
+        let w = width.map { ($0.isFinite && $0 > 0) ? $0 : 80 }
+        let h = height.map { ($0.isFinite && $0 > 0) ? $0 : 68 }
+        return content.frame(width: w, height: h)
+    }
+}
+private extension View {
+    func safeFrame(width: CGFloat?, height: CGFloat?) -> some View {
+        modifier(SafeFrame(width: width, height: height))
+    }
+}
+
+// MARK: - AddTransactionView
 struct AddTransactionView: View {
     var account: Account?
     var onTransactionAdded: ((TransactionType) -> Void)?
 
     @Environment(\.modelContext) private var modelContext
-    @Query private var allCategories: [Category]
-    @Environment(\.dismiss) var dismiss
-    //   @Environment(StoreService.self) private var storeService
+    @Environment(\.dismiss) private var dismiss
 
-    //  @State private var showPaywall = false
+    // UI state
     @State private var showAllCategories = false
     @State private var showRepeatSheet = false
     @State private var showDateTimeSheet = false
@@ -23,22 +38,27 @@ struct AddTransactionView: View {
     @State private var amount: String = ""
     @FocusState private var isAmountFieldFocused: Bool
     @State private var selectedCategory: String = Category.uncategorizedName
-    @State private var newCategory: String = ""
-    @State private var showNewCategorySheet = false
-    @State private var hasEnsuredCategories = false
 
     @State private var selectedDate: Date = Date()
     @State private var repeatRule: String = "Никогда"
 
     @State private var showSaveErrorAlert = false
     @State private var saveErrorMessage = ""
-
     @State private var isSaving = false
 
-    private var categoriesForThisAccount: [Category] {
-        guard let acct = account else { return [] }
-        return allCategories.filter {
-            $0.account?.id == acct.id
+    // локальный снапшот категорий (вместо @Query)
+    @State private var categoriesSnapshot: [Category] = []
+
+    // MARK: Data loading
+    @MainActor
+    private func reloadCategories() {
+        guard let acct = account else { categoriesSnapshot = []; return }
+        // Без предикатов по optional keyPath — грузим всё и фильтруем в памяти
+        let descriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)])
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        categoriesSnapshot = all.filter { cat in
+            cat.type == selectedType &&
+            cat.account?.persistentModelID == acct.persistentModelID
         }
     }
 
@@ -52,58 +72,26 @@ struct AddTransactionView: View {
     private var filteredCategories: [Category] {
         guard let acct = account else { return [] }
         let txType: TransactionType = (selectedType == .income) ? .income : .expenses
-        let cats = allCategories.filter {
-            $0.account?.id == acct.id && $0.type == selectedType
-        }
+        let cats = categoriesSnapshot
         return cats.sorted { lhs, rhs in
             if lhs.name == Category.uncategorizedName { return true }
             if rhs.name == Category.uncategorizedName { return false }
             let lhsTx = acct.allTransactions.filter { $0.type == txType && $0.category == lhs.name }
             let rhsTx = acct.allTransactions.filter { $0.type == txType && $0.category == rhs.name }
-            if lhsTx.count != rhsTx.count {
-                return lhsTx.count > rhsTx.count
-            }
+            if lhsTx.count != rhsTx.count { return lhsTx.count > rhsTx.count }
             let lhsSum = lhsTx.reduce(0) { $0 + $1.amount }
             let rhsSum = rhsTx.reduce(0) { $0 + $1.amount }
-            if lhsSum != rhsSum {
-                return lhsSum > rhsSum
-            }
+            if lhsSum != rhsSum { return lhsSum > rhsSum }
             return lhs.name.localizedCompare(rhs.name) == .orderedAscending
         }
     }
 
-    private var visibleCategories: [Category?] {
-        let cats = filteredCategories
-        let maxQuick = 7
-        guard cats.count > maxQuick else {
-            return cats.map { Optional($0) }
-        }
-        var quick = Array(cats.prefix(maxQuick))
-        if let selected = cats.first(where: { $0.name == selectedCategory }) {
-            if !quick.contains(where: { $0.id == selected.id }) {
-                if let idx = quick.firstIndex(where: { $0.name == Category.uncategorizedName }) {
-                    quick[idx] = selected
-                } else {
-                    quick.removeLast()
-                    quick.insert(selected, at: 0)
-                }
-            }
-        }
-        return quick.map { Optional($0) } + [nil]
-    }
-
+    // MARK: - FlowLayout (две строки, потом «Ещё»)
     struct FlowLayout: Layout {
         let spacing: CGFloat
+        init(spacing: CGFloat = 8) { self.spacing = spacing }
 
-        init(spacing: CGFloat = 8) {
-            self.spacing = spacing
-        }
-
-        func sizeThatFits(
-            proposal: ProposedViewSize,
-            subviews: Subviews,
-            cache: inout Void
-        ) -> CGSize {
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
             let n = subviews.count
             guard n > 0 else { return .zero }
             let perRow = Int(ceil(Double(n) / 2.0))
@@ -114,20 +102,15 @@ struct AddTransactionView: View {
                 let end = min(start + perRow, n)
                 guard start < end else { break }
                 let sizes = subviews[start..<end].map { $0.sizeThatFits(.unspecified) }
-                let rowW = sizes.reduce(0) { $0 + $1.width } + CGFloat(sizes.count - 1) * spacing
-                maxWidth = max(maxWidth, rowW)
+                let rowW = sizes.reduce(0) { $0 + $1.width } + CGFloat(max(sizes.count - 1, 0)) * spacing
+                maxWidth = max(maxWidth, rowW.isFinite ? rowW : 0)
                 rowHeights.append(sizes.map(\.height).max() ?? 0)
             }
-            let totalHeight = rowHeights.reduce(0, +) + CGFloat(rowHeights.count - 1) * spacing
+            let totalHeight = rowHeights.reduce(0, +) + CGFloat(max(rowHeights.count - 1, 0)) * spacing
             return CGSize(width: maxWidth, height: totalHeight)
         }
 
-        func placeSubviews(
-            in bounds: CGRect,
-            proposal: ProposedViewSize,
-            subviews: Subviews,
-            cache: inout Void
-        ) {
+        func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
             let n = subviews.count
             guard n > 0 else { return }
             let perRow = Int(ceil(Double(n) / 2.0))
@@ -160,7 +143,7 @@ struct AddTransactionView: View {
     }
 
     private struct CatItem: Identifiable, Equatable {
-        let id: String         // стабильный ID
+        let id: String
         let category: Category?
     }
 
@@ -168,33 +151,31 @@ struct AddTransactionView: View {
         let cats = filteredCategories
         let maxQuick = 7
         var quick = Array(cats.prefix(maxQuick))
-
-        // гарантируем, что выбранная категория в быстром наборе
         if let selected = cats.first(where: { $0.name == selectedCategory }),
            !quick.contains(where: { $0.id == selected.id }) {
             if let i = quick.firstIndex(where: { $0.name == Category.uncategorizedName }) {
                 quick[i] = selected
             } else {
-                quick.removeLast()
+                _ = quick.popLast()
                 quick.insert(selected, at: 0)
             }
         }
-
         var items = quick.map { CatItem(id: $0.id.uuidString, category: $0) }
-        items.append(CatItem(id: "more-\(account?.id.uuidString ?? "none")", category: nil)) // стабильный id для «Ещё»
+        items.append(CatItem(id: "more-\(account?.id.uuidString ?? "none")", category: nil))
         return items
     }
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 10) {
+                // Верхняя панель
                 VStack(spacing: 16) {
                     Picker("Тип операции", selection: $selectedType) {
                         Text("Расходы").tag(CategoryType.expenses)
                         Text("Доходы").tag(CategoryType.income)
                     }
                     .pickerStyle(.segmented)
-                    .tint(.appPurple) // Предполагаем, что .appPurple адаптирован в Assets.xcassets
+                    .tint(.appPurple)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal)
                     .padding(.top, 8)
@@ -202,54 +183,47 @@ struct AddTransactionView: View {
                     TextField("Введите сумму", text: $amount)
                         .keyboardType(.decimalPad)
                         .padding()
-                        .background(Color(UIColor.secondarySystemBackground)) // Адаптивный фон для поля ввода
+                        .background(Color(UIColor.secondarySystemBackground))
                         .cornerRadius(10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(isAmountFieldFocused ? Color.appPurple : .clear, lineWidth: 2)
                         )
-                        .focused($isAmountFieldFocused)
-                        .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
+                        .focused($isAmountFieldFocused)         // держим фокус
+                        .foregroundColor(Color(UIColor.label))
                         .padding(.horizontal)
                         .onAppear {
                             DispatchQueue.main.async { isAmountFieldFocused = true }
                         }
-                        .onDisappear {
-                            isAmountFieldFocused = false
-                        }
-                }.padding(.top, 0)
+                }
+                .padding(.top, 0)
 
+                // Категории (кастомный FlowLayout)
                 ScrollView {
                     GeometryReader { geo in
                         let inset: CGFloat = 16
                         let minCellW: CGFloat = 80
                         let minGap: CGFloat = 4
                         let maxGap: CGFloat = 12
-                        
-                        // 1) Безопасная ширина даже во время анимаций
+
                         let safeWidth = max(geo.size.width, 1)
                         let contentW = max(safeWidth - inset * 2, 1)
-                        
-                        // 2) Сколько колонок реально влезает (не больше 4)
-                        let colsThatFit = max(1, Int( floor( (contentW + minGap) / (minCellW + minGap) ) ))
+
+                        let colsThatFit = max(1, Int(floor((contentW + minGap) / (minCellW + minGap))))
                         let cols = min(4, colsThatFit)
-                        
-                        // 3) Безопасный gap
+
                         let rawGap = (contentW - minCellW * CGFloat(cols)) / CGFloat(max(cols - 1, 1))
                         let gap = max(minGap, min(maxGap, rawGap.isFinite ? rawGap : minGap))
-                        
-                        // 4) Безопасная ширина ячейки
+
                         let rawCellW = (contentW - gap * CGFloat(cols - 1)) / CGFloat(cols)
-                        let cellW = max(1, rawCellW.isFinite ? rawCellW : minCellW)
-                        
-                        let safeCellW = (cellW.isFinite && cellW > 0) ? cellW : minCellW
-                        
+                        let safeCellW = (rawCellW.isFinite && rawCellW > 0) ? rawCellW : minCellW
+
                         FlowLayout(spacing: gap) {
                             ForEach(visibleItems) { item in
                                 if let cat = item.category {
                                     Button { selectedCategory = cat.name } label: {
                                         CategoryBadge(category: cat, isSelected: selectedCategory == cat.name)
-                                            .frame(width: cellW, height: 68)   // ← уже безопасно
+                                            .safeFrame(width: safeCellW, height: 68)
                                     }
                                 } else {
                                     Button { showAllCategories = true } label: {
@@ -257,67 +231,56 @@ struct AddTransactionView: View {
                                             Image(systemName: "ellipsis.circle").font(.title2)
                                             Text("Ещё").font(.caption)
                                         }
-                                        .frame(width: cellW, height: 68)
                                         .background(Color(UIColor.secondarySystemBackground))
                                         .cornerRadius(16)
+                                        .safeFrame(width: safeCellW, height: 68)
                                     }
                                 }
                             }
                         }
+                        .transaction { $0.animation = nil } // без анимаций в лэйауте
                         .padding(.horizontal, inset)
                         .padding(.vertical, 10)
                         .padding(.bottom, 8)
                     }
                     .frame(minHeight: 0)
                 }
+                .id(selectedType) // пересоздаём сетку при смене типа
+
+                // Дата и повтор
                 HStack {
-                    Button {
-                        showDateTimeSheet = true
-                    } label: {
+                    Button { showDateTimeSheet = true } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(spacing: 4) {
-                                Image(systemName: "calendar")
-                                    .font(.subheadline)
-                                Text("Дата")
-                                    .font(.subheadline)
+                                Image(systemName: "calendar").font(.subheadline)
+                                Text("Дата").font(.subheadline)
                             }.foregroundStyle(.appPurple)
                             Text(dateTimeFormatter.string(from: selectedDate))
                                 .font(.subheadline)
-                                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
-                        }
-                        .padding(.vertical,6)
-                        .padding(.leading, 10)
-                        .frame(width: 176, height: 62, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
-                        )
-                    }
-                    Spacer()
-                    Button {
-                        showRepeatSheet = true
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock.arrow.trianglehead.2.counterclockwise.rotate.90")
-                                    .font(.subheadline)
-                                Text("Повтор")
-                                    .font(.subheadline)
-                            }.foregroundStyle(.appPurple)
-                            Text(repeatRule)
-                                .font(.subheadline)
-                                .foregroundColor(Color(UIColor.secondaryLabel)) // Адаптивный вторичный цвет
+                                .foregroundColor(Color(UIColor.label))
                         }
                         .padding(.vertical, 6)
                         .padding(.leading, 10)
                         .frame(width: 176, height: 62, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(UIColor.secondarySystemBackground)) // Адаптивный фон
-                        )
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.secondarySystemBackground)))
+                    }
+                    Spacer()
+                    Button { showRepeatSheet = true } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.arrow.trianglehead.2.counterclockwise.rotate.90").font(.subheadline)
+                                Text("Повтор").font(.subheadline)
+                            }.foregroundStyle(.appPurple)
+                            Text(repeatRule)
+                                .font(.subheadline)
+                                .foregroundColor(Color(UIColor.secondaryLabel))
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.leading, 10)
+                        .frame(width: 176, height: 62, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.secondarySystemBackground)))
                     }
                 }
-
                 .sheet(isPresented: $showRepeatSheet) {
                     RepeatPickerSheet(
                         selectedRule: $repeatRule,
@@ -338,9 +301,8 @@ struct AddTransactionView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 6)
 
-                Button(action: {
-                    saveTransaction()
-                }) {
+                // Кнопка «Добавить»
+                Button(action: { saveTransaction() }) {
                     Text("Добавить")
                         .font(.headline)
                         .foregroundStyle(.white)
@@ -353,13 +315,13 @@ struct AddTransactionView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
             }
-            .background(Color(UIColor.systemBackground)) // Адаптивный фон для всей вью
+            .background(Color(UIColor.systemBackground))
             .scrollContentBackground(.hidden)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("Новая операция")
                         .fontWeight(.medium)
-                        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет заголовка
+                        .foregroundStyle(Color(UIColor.label))
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Отменить") { dismiss() }
@@ -373,21 +335,13 @@ struct AddTransactionView: View {
                         .foregroundStyle(.appPurple)
                 }
             }
-            .alert(
-                "Не удалось сохранить транзакцию",
-                isPresented: $showSaveErrorAlert,
-                actions: {
-                    Button("ОК", role: .cancel) { }
-                },
-                message: {
-                    Text(saveErrorMessage)
-                }
-            )
-            .sheet(isPresented: $showAllCategories) {
+            .alert("Не удалось сохранить транзакцию", isPresented: $showSaveErrorAlert) {
+                Button("ОК", role: .cancel) { }
+            } message: { Text(saveErrorMessage) }
+            .sheet(isPresented: $showAllCategories, onDismiss: { reloadCategories() }) {
                 if let acct = account {
                     AllCategoriesView(
                         account: acct,
-                        allCats: filteredCategories,
                         selected: $selectedCategory,
                         categoryType: selectedType
                     )
@@ -395,46 +349,13 @@ struct AddTransactionView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        //        .fullScreenCover(isPresented: $showPaywall) {
-        //            PremiumPaywallView()
-        //        }
-        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
+        .onAppear { reloadCategories() }
+        .onChange(of: selectedType) { _ in reloadCategories() }
+        .onChange(of: account?.persistentModelID) { _ in reloadCategories() }
+        .foregroundStyle(Color(UIColor.label))
     }
 
-    private func addNewCategory(name: String, icon: String?, color: Color?) {
-        guard let account = account, !name.isEmpty else { return }
-        let cat = Category(name: name, type: selectedType, account: account)
-        cat.iconName = icon
-        modelContext.insert(cat)
-
-        if let color = color {
-            let type: TransactionType = selectedType == .income ? .income : .expenses
-            let key = type == .income ? "AssignedColorsForIncome" : "AssignedColorsForExpenses"
-            var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
-            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
-            UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: nil)
-            assignedColors[name] = [Double(red), Double(green), Double(blue)]
-            UserDefaults.standard.set(assignedColors, forKey: key)
-        }
-
-        selectedCategory = name
-        try? modelContext.serialSave()
-    }
-
-    private func removeCategory(_ category: Category) {
-        guard let account = account else { return }
-        let transactionsToRemove = account.allTransactions.filter { $0.category == category.name }
-        for transaction in transactionsToRemove {
-            modelContext.delete(transaction)
-        }
-        modelContext.delete(category)
-        do {
-            try modelContext.serialSave()
-        } catch {
-            print("Ошибка при удалении категории: \(error)")
-        }
-    }
-
+    // MARK: Save
     @MainActor
     private func saveTransaction() {
         guard !isSaving else { return }
@@ -454,16 +375,10 @@ struct AddTransactionView: View {
         let txDate = selectedDate
         let txType: TransactionType = (selectedType == .income) ? .income : .expenses
 
-        let newTx = Transaction(
-            category: selectedCategory,
-            amount: amountValue,
-            type: txType,
-            account: account
-        )
+        let newTx = Transaction(category: selectedCategory, amount: amountValue, type: txType, account: account)
         newTx.date = txDate
         modelContext.insert(newTx)
 
-        // Добавляем шаблон только если нужно
         if let freq = ReminderFrequency(rawValue: repeatRule), freq != .never {
             let template = RegularPayment(
                 name: selectedCategory,
@@ -481,18 +396,17 @@ struct AddTransactionView: View {
         do {
             try modelContext.serialSave()
 
-            // Санитарная пауза: успокоить экран перед закрытием
+            // спокойное закрытие
             isAmountFieldFocused = false
             showAllCategories = false
             showRepeatSheet = false
             showDateTimeSheet = false
 
             Task { @MainActor in
-                await Task.yield()      // даём SwiftUI/SwiftData применить апдейты
-                dismiss()               // закрываем экран всегда
+                await Task.yield()
+                dismiss()
                 await Task.yield()
                 onTransactionAdded?(txType)
-                // isSaving можно не сбрасывать — экран уже закрыт
             }
         } catch {
             isSaving = false
@@ -500,9 +414,9 @@ struct AddTransactionView: View {
             showSaveErrorAlert = true
         }
     }
-
 }
 
+// MARK: - CategoryBadge
 struct CategoryBadge: View {
     static let defaultNames =
         Category.defaultExpenseNames
@@ -528,7 +442,7 @@ struct CategoryBadge: View {
                 if let custom = category.iconName {
                     Image(systemName: custom)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white) // Оставляем белый для иконок, так как они на цветном фоне
+                        .foregroundColor(.white)
                 } else if Self.defaultNames.contains(category.name) {
                     Image(systemName: iconName(for: category.name))
                         .font(.system(size: 16, weight: .medium))
@@ -540,7 +454,7 @@ struct CategoryBadge: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.7)
-                .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
+                .foregroundColor(Color(UIColor.label))
         }
         .frame(width: Self.badgeWidth, height: Self.badgeHeight)
         .background(
@@ -549,7 +463,7 @@ struct CategoryBadge: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(isSelected ? Color.appPurple : .clear, lineWidth: 2) // рисует строго внутри
+                .strokeBorder(isSelected ? Color.appPurple : .clear, lineWidth: 2)
         )
     }
 
@@ -580,33 +494,34 @@ struct CategoryBadge: View {
     }
 }
 
+// MARK: - AllCategoriesView (сам грузит категории)
 struct AllCategoriesView: View {
-    static let defaultNames =
-        Category.defaultExpenseNames
-      + Category.defaultIncomeNames
-      + [Category.uncategorizedName]
-
     let account: Account
-    let allCats: [Category]
     @Binding var selected: String
     let categoryType: CategoryType
 
-    @State private var selectedCategory: String = Category.uncategorizedName
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
+    @State private var categories: [Category] = []
     @State private var pendingDeleteIndex: IndexSet?
-    @State private var categoryToDelete: Category?
     @State private var isShowingDeleteAlert = false
     @State private var showNewCategorySheet = false
 
-//    @Environment(StoreService.self) private var storeService
-//    @State private var showPaywall = false
+    @MainActor
+    private func reloadCategories() {
+        let descriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.name)])
+        let all = (try? modelContext.fetch(descriptor)) ?? []
+        categories = all.filter { cat in
+            cat.type == categoryType &&
+            cat.account?.persistentModelID == account.persistentModelID
+        }
+    }
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(allCats, id: \.id) { cat in
+                ForEach(categories, id: \.id) { cat in
                     HStack {
                         ZStack {
                             Circle()
@@ -615,7 +530,7 @@ struct AllCategoriesView: View {
                             if let icon = cat.iconName {
                                 Image(systemName: icon)
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white) // Белый для иконок на цветном фоне
+                                    .foregroundColor(.white)
                             } else if CategoryBadge.defaultNames.contains(cat.name) {
                                 Image(systemName: iconName(for: cat.name))
                                     .font(.system(size: 14, weight: .medium))
@@ -623,7 +538,7 @@ struct AllCategoriesView: View {
                             }
                         }
                         Text(cat.name)
-                            .foregroundColor(Color(UIColor.label)) // Адаптивный цвет текста
+                            .foregroundColor(Color(UIColor.label))
                         Spacer()
                         if cat.name == selected {
                             Image(systemName: "checkmark")
@@ -638,23 +553,17 @@ struct AllCategoriesView: View {
                 }
                 .onDelete { indexSet in
                     pendingDeleteIndex = indexSet
-                    if let first = indexSet.first {
-                        categoryToDelete = allCats[first]
-                    }
                     isShowingDeleteAlert = true
                 }
             }
             .listStyle(.plain)
-            .background(Color(UIColor.systemBackground)) // Адаптивный фон для списка
+            .background(Color(UIColor.systemBackground))
             .scrollContentBackground(.hidden)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button { dismiss() }
-                    label: {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Назад")
-                        }.foregroundStyle(.appPurple)
+                    Button { dismiss() } label: {
+                        HStack { Image(systemName: "chevron.left"); Text("Назад") }
+                            .foregroundStyle(.appPurple)
                     }
                 }
                 ToolbarItem(placement: .principal) {
@@ -663,17 +572,12 @@ struct AllCategoriesView: View {
                         Text(categoryType.rawValue)
                     }
                     .font(.headline)
-                    .foregroundColor(Color(UIColor.label)) // Адаптивный цвет заголовка
+                    .foregroundColor(Color(UIColor.label))
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showNewCategorySheet = true
-                    } label: {
-                        HStack {
-                            VStack { Text("Новая"); Text("Категория") }
-                            Image(systemName: "plus.square")
-                        }
-                        .foregroundStyle(.appPurple)
+                    Button { showNewCategorySheet = true } label: {
+                        HStack { VStack { Text("Новая"); Text("Категория") }; Image(systemName: "plus.square") }
+                            .foregroundStyle(.appPurple)
                     }
                 }
             }
@@ -684,21 +588,13 @@ struct AllCategoriesView: View {
                         addNewCategory(name: name, icon: icon, color: color)
                         showNewCategorySheet = false
                     },
-                    onCancel: {
-                        showNewCategorySheet = false
-                    }
+                    onCancel: { showNewCategorySheet = false }
                 )
             }
             .alert("Удалить категорию?", isPresented: $isShowingDeleteAlert) {
                 Button("Удалить", role: .destructive) {
                     if let indexSet = pendingDeleteIndex {
-                        for idx in indexSet {
-                            let cat = allCats[idx]
-                            let toDelete = account.allTransactions.filter { $0.category == cat.name }
-                            toDelete.forEach { modelContext.delete($0) }
-                            modelContext.delete(cat)
-                        }
-                        try? modelContext.save()
+                        deleteCategories(at: indexSet)
                     }
                 }
                 Button("Отмена", role: .cancel) { }
@@ -706,12 +602,11 @@ struct AllCategoriesView: View {
                 Text("При удалении категории все её транзакции тоже будут удалены.")
             }
         }
-//        .fullScreenCover(isPresented: $showPaywall) {
-//            PremiumPaywallView()
-//        }
-        .foregroundStyle(Color(UIColor.label)) // Адаптивный цвет текста для всей вью
+        .onAppear { reloadCategories() }
+        .foregroundStyle(Color(UIColor.label))
     }
 
+    // MARK: Actions
     private func addNewCategory(name: String, icon: String?, color: Color?) {
         guard !name.isEmpty else { return }
         let cat = Category(name: name, type: categoryType, account: account)
@@ -722,36 +617,40 @@ struct AllCategoriesView: View {
             let type: TransactionType = categoryType == .income ? .income : .expenses
             let key = type == .income ? "AssignedColorsForIncome" : "AssignedColorsForExpenses"
             var assignedColors = (UserDefaults.standard.dictionary(forKey: key) as? [String: [Double]]) ?? [:]
-            var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0
-            UIColor(color).getRed(&red, green: &green, blue: &blue, alpha: nil)
-            assignedColors[name] = [Double(red), Double(green), Double(blue)]
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0
+            UIColor(color).getRed(&r, green: &g, blue: &b, alpha: nil)
+            assignedColors[name] = [Double(r), Double(g), Double(b)]
             UserDefaults.standard.set(assignedColors, forKey: key)
         }
 
         do {
-                try modelContext.serialSave()  // Используйте сериализованный save
-                selectedCategory = name
-                // Не держите cat — перезагрузите filteredCategories если нужно
-            } catch {
-                print("Ошибка сохранения категории: \(error)")
-            }
+            try modelContext.serialSave()
+            selected = name
+            reloadCategories()
+        } catch {
+            print("Ошибка сохранения категории: \(error)")
+        }
     }
 
-    private func deleteCategory(_ cat: Category) {
-        let txToDelete = account.allTransactions.filter { $0.category == cat.name }
-        txToDelete.forEach { modelContext.delete($0) }
-        modelContext.delete(cat)
-        if selected == cat.name {
-            selected = Category.uncategorizedName
+    private func deleteCategories(at indexSet: IndexSet) {
+        for idx in indexSet {
+            let cat = categories[idx]
+            let toDelete = account.allTransactions.filter { $0.category == cat.name }
+            toDelete.forEach { modelContext.delete($0) }
+            modelContext.delete(cat)
+            if selected == cat.name {
+                selected = Category.uncategorizedName
+            }
         }
         do {
             try modelContext.serialSave()
+            reloadCategories()
         } catch {
             print("Ошибка при удалении категории и транзакций:", error)
         }
     }
 
-    func iconName(for categoryName: String) -> String {
+    private func iconName(for categoryName: String) -> String {
         switch categoryName {
         case Category.uncategorizedName: return "circle.slash"
         case "Еда": return "fork.knife"
@@ -777,4 +676,5 @@ struct AllCategoriesView: View {
         }
     }
 }
+
 

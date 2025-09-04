@@ -9,71 +9,73 @@ struct AggregatedData: Identifiable {
 }
 
 struct PieChartView: View {
-
     var transactions: [Transaction]
     let transactionType: TransactionType
-
     let currencySign: String
 
-    /// Общая сумма всех транзакций, которые приходят в этот PieChartView
-    private var totalAmount: Double {
-        aggregatedData.reduce(0) { $0 + $1.totalAmount }
-    }
-
-    @State private var selectedTimePeriod: String = "День"
-
-    private var currentType: TransactionType {
-        transactions.first?.type ?? .income
-    }
-
+    // агрегируем и отфильтровываем только валидные, положительные суммы
     private var aggregatedData: [AggregatedData] {
         Dictionary(grouping: transactions, by: \.category)
             .compactMap { category, txs in
                 let sum = txs.reduce(0.0) { $0 + max(0, $1.amount) }
                 guard sum.isFinite, sum > 0 else { return nil }
-                return AggregatedData(id: category,
-                                      category: category,
-                                      totalAmount: sum,
-                                      type: transactionType)
+                return AggregatedData(
+                    id: category,
+                    category: category,
+                    totalAmount: sum,
+                    type: transactionType
+                )
             }
-            .sorted { $0.totalAmount > $1.totalAmount } // вот тут по убыванию
+            .sorted { $0.totalAmount > $1.totalAmount }
+    }
+
+    private var totalAmount: Double {
+        aggregatedData.reduce(0) { $0 + $1.totalAmount }
+    }
+
+    // уникальный ключ, чтобы пересоздавать Chart безопасно
+    private var chartID: String {
+        aggregatedData.map { "\($0.category):\($0.totalAmount)" }.joined(separator: "|")
     }
 
     var body: some View {
         ZStack {
-            // Сама диаграмма
-            Chart(aggregatedData) { data in
-                SectorMark(
-                    angle: .value("Amount", data.totalAmount),
-                    innerRadius: .ratio(0.75),  // Можно менять, чтобы центр был больше/меньше
-                    outerRadius: .ratio(1.0),
-                    angularInset: 1
-                )
-                .cornerRadius(4)
-                .foregroundStyle(
-                    Color.colorForCategoryName(data.category, type: data.type)
-                )
-            }
-            .chartLegend(.hidden)
-            .transaction { $0.disablesAnimations = true }
-            .frame(width: 165, height: 165) // Размер диаграммы при желании
-
-            // Текст в центре
-            VStack(spacing: 4) {
-                            let title = transactionType == .income ? "Доходы" : "Расходы"
-                            Text(title)
-                                .font(.custom("SFPro-Regular", size: 15.0))
-                                .foregroundStyle(Color(UIColor.secondaryLabel))
-                                .multilineTextAlignment(.center)
-                                .frame(height: 20.0, alignment: .center)
-                Text(totalAmount.money(.short, symbol: currencySign))
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .foregroundStyle(Color(UIColor.label))
-            }
-                    }
+            if !aggregatedData.isEmpty {
+                Chart(aggregatedData) { data in
+                    SectorMark(
+                        angle: .value("Amount", data.totalAmount),
+                        innerRadius: .ratio(0.75),
+                        outerRadius: .ratio(1.0),
+                        angularInset: 1
+                    )
+                    .cornerRadius(4)
+                    .foregroundStyle(
+                        Color.colorForCategoryName(data.category, type: data.type)
+                    )
                 }
+                .chartLegend(.hidden)
+                .transaction { $0.animation = nil }   // ← именно animation = nil
+                .id(chartID)                          // ← пересоздаём при смене данных
+                .frame(width: 165, height: 165)
+            } else {
+                // Держим место под центр-лейблы, но Chart не создаём вовсе
+                Color.clear.frame(width: 165, height: 165)
             }
+
+            // Центр
+            VStack(spacing: 4) {
+                Text(transactionType == .income ? "Доходы" : "Расходы")
+                    .font(.custom("SFPro-Regular", size: 15))
+                    .foregroundStyle(Color(UIColor.secondaryLabel))
+                    .frame(height: 20, alignment: .center)
+
+                Text(totalAmount.money(.short, symbol: currencySign))
+                    .font(.title3.bold())
+                    .foregroundStyle(Color(UIColor.label))
+            }
+        }
+    }
+}
 
 struct CustomButtonStyle: ButtonStyle {
 
