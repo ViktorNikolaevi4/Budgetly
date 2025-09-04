@@ -231,9 +231,10 @@ struct AddTransactionView: View {
                                             Image(systemName: "ellipsis.circle").font(.title2)
                                             Text("Ещё").font(.caption)
                                         }
-                                        .background(Color(UIColor.secondarySystemBackground))
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)  // Сначала растянуть контент внутри
+                                        .safeFrame(width: safeCellW, height: 68)  // Установить общую ширину
+                                        .background(Color(UIColor.secondarySystemBackground))  // Теперь фон после frame
                                         .cornerRadius(16)
-                                        .safeFrame(width: safeCellW, height: 68)
                                     }
                                 }
                             }
